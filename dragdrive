@@ -430,13 +430,19 @@ SettingTab:Button({ Title = "Test Send Webhook", Callback = function() SendWebho
 -- =========================
 -- SERVICES
 -- =========================
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
 local LP = Players.LocalPlayer
 local PlayerGui = LP:WaitForChild("PlayerGui")
+
+-- =========================
+-- STATE
+-- =========================
+_G.AutoFarmBarista = _G.AutoFarmBarista or false
+local BaristaRunning = false
+local isWorking = false
 
 -- =========================
 -- PATHS & REMOTES
@@ -453,14 +459,7 @@ local startPart = Interactions.StartPart.StartPart
 local machinePart = Interactions.MachinePart.MachinePart
 local registerPart = Interactions.RegisterPart.RegisterPart
 local supplyPart = Interactions.SupplyPart.SupplyPart
-local supplyPos = Vector3.new(-5116.784, 5.789, -670.858)
-
--- =========================
--- STATE & GLOBALS
--- =========================
-_G.AutoFarmBarista = _G.AutoFarmBarista or false
-local BaristaRunning = false
-local isWorking = false
+local supplyPos = Vector3.new(-5116.784, 5.789, -670.858) 
 
 -- =========================
 -- HELPERS
@@ -469,6 +468,29 @@ local function getHRP()
     return LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
 end
 
+-- // PROXIMITY HANDLER (HOLD 6s FOR SUPPLY ONLY)
+local function smartWaitAndClick(prompt, isSupply)
+    if not prompt then return end
+    local t = 0
+    while (not prompt.Enabled or not prompt.Parent) and t < 50 do
+        task.wait(0.1)
+        t += 1
+    end
+    task.wait(0.5)
+    
+    if isSupply then
+        -- Khusus Supply: Hold 6 Detik
+        fireproximityprompt(prompt)
+        task.wait(6) 
+    else
+        -- Register, Machine, Job: Instan
+        fireproximityprompt(prompt)
+    end
+end
+
+-- =========================
+-- VOID TWEEN ENGINE (ORIGINAL)
+-- =========================
 local function voidTween(targetCF)
     local hrp = getHRP()
     if not hrp then return end
@@ -496,67 +518,34 @@ local function voidTween(targetCF)
     task.wait(0.6)
 end
 
--- Normal Click untuk Register & Minigame
-local function smartWaitAndClick(prompt)
-    if not prompt then return end
-    local t = 0
-    while (not prompt.Enabled or not prompt.Parent) and t < 50 do
-        task.wait(0.1)
-        t += 1
-    end
-    task.wait(0.8)
-    fireproximityprompt(prompt)
-end
-
--- Secure Hold 6 Detik KHUSUS Supply/Repair
-local function secureHoldSupply(prompt)
-    if not prompt then return end
-    local t = 0
-    while (not prompt.Enabled or not prompt.Parent) and t < 50 do
-        task.wait(0.1)
-        t += 1
-    end
-    
-    prompt:InputHoldBegin()
-    task.wait(6.2) -- Menahan sesuai durasi asli game agar aman
-    prompt:InputHoldEnd()
-    fireproximityprompt(prompt)
-end
-
 -- =========================
--- AUTO REPAIR LOGIC (Hanya saat diminta)
+-- LOGIC FIX: SUPPLY CHECK (GANTIIN REPAIR)
 -- =========================
-local function autoRepairCheck()
+local function checkSupplyNeeds()
     local missionUI = PlayerGui:FindFirstChild("BaristaMissionUI")
     local label = missionUI and missionUI:FindFirstChild("ObjectiveLabel", true)
     
-    -- LOGIKA: Hanya jalan jika teks objective berwarna MERAH (Broken/Anomaly)
-    if label and label.TextColor3 == Color3.fromRGB(255, 50, 50) then
-        if isWorking then return end -- Cegah double jalan
-        
+    -- Cek kalo teks di UI berubah jadi merah (biasanya disuruh restock/ada anomali mesin)
+    if label and label.TextColor3 == Color3.fromRGB(255, 50, 50) and not isWorking then
         isWorking = true
-        print("Machine needs repair! Moving to supply...")
+        print("🔧 Supply/Machine issue detected. Moving to Supply...")
         
         voidTween(CFrame.new(supplyPos))
-        task.wait(0.5)
         
+        BaristaEvent:FireServer("RestockSupplies")
         local prompt = supplyPart:FindFirstChild("SupplyPrompt")
         if prompt then 
-            secureHoldSupply(prompt) 
+            smartWaitAndClick(prompt, true) -- TRUE = HOLD 6 DETIK
         end
         
-        -- Kirim remote restock
-        BaristaEvent:FireServer("RestockSupplies")
-        task.wait(1)
-        
-        print("Repair finished. Returning to machine...")
+        task.wait(0.5)
         voidTween(machinePart.CFrame)
         isWorking = false
     end
 end
 
 -- =========================
--- STEALTH MINIGAME LOGIC
+-- STEALTH MINIGAME LOGIC (ORIGINAL)
 -- =========================
 local function applyStealthBypass()
     local gui = PlayerGui:FindFirstChild("BaristaGUI")
@@ -583,11 +572,12 @@ local function applyStealthBypass()
     end
 
     local hrp = getHRP()
+
     TweenService:Create(hrp, TweenInfo.new(0.8), {
         CFrame = registerPart.CFrame + Vector3.new(0, 2, 0)
     }):Play()
     task.wait(0.9)
-    smartWaitAndClick(registerPart:WaitForChild("RegisterPrompt"))
+    smartWaitAndClick(registerPart:WaitForChild("RegisterPrompt"), false) -- INSTAN
 
     task.wait(1)
 
@@ -610,17 +600,20 @@ local function StartBaristaGhost()
         TeamChangeRequest:FireServer("Barista", 11378976, 1, 0, "Detector")
         task.wait(2)
 
-        if not _G.AutoFarmBarista then BaristaRunning = false return end    
+        if not _G.AutoFarmBarista then    
+            BaristaRunning = false    
+            return    
+        end    
 
         voidTween(startPart.CFrame)    
-        smartWaitAndClick(startPart:WaitForChild("JobPrompt"))    
+        smartWaitAndClick(startPart:WaitForChild("JobPrompt"), false) -- INSTAN
         task.wait(2)    
 
         voidTween(machinePart.CFrame)    
 
         while _G.AutoFarmBarista do    
-            -- Cek apakah butuh repair sebelum lanjut bikin kopi
-            autoRepairCheck()
+            -- Cek kebutuhan supply/anomali mesin
+            checkSupplyNeeds()
 
             local gui = PlayerGui:FindFirstChild("BaristaGUI")    
             local mini = gui and gui:FindFirstChild("MinigameFrame")    
@@ -632,7 +625,7 @@ local function StartBaristaGhost()
                 if hrp and (hrp.Position - machinePart.Position).Magnitude < 10 then    
                     local prompt = machinePart:FindFirstChild("MachinePrompt")    
                     if prompt and prompt.Enabled then    
-                        smartWaitAndClick(prompt)    
+                        smartWaitAndClick(prompt, false) -- INSTAN
                     end    
                 end    
             end    
@@ -740,6 +733,3 @@ task.spawn(function()
         end
     end
 end)
-
-print("🚀 VoidlineHub Loaded with Adonis Bypass!")
-
