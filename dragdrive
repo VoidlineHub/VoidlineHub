@@ -1,41 +1,4 @@
--- [[ 1. BYPASS SECTION ]] --
--- Ditaruh paling atas agar Adonis lumpuh sebelum UI & Script lain jalan
-local function SilentBypass()
-    local function neutralizeAdonis()
-        for _, v in pairs(getgc(true)) do
-            if type(v) == "function" and islclosure(v) then
-                local ups = debug.getupvalues(v)
-                for i, up in pairs(ups) do
-                    if type(up) == "function" then
-                        local upInfo = debug.getinfo(up)
-                        -- Mematikan fungsi pelaporan "Detected"
-                        if upInfo.name == "v_u_39" or upInfo.name == "Detected" then
-                            debug.setupvalue(v, i, function(...) 
-                                warn("🛡️ [Silent] Adonis detection attempt blocked!")
-                                return 
-                            end)
-                        end
-                    end
-                end
-            end
-        end
-    end
-    pcall(neutralizeAdonis)
 
-    -- SPRINT PROTECTOR (Agar laporan Namecall/Remote tidak tembus)
-    local oldRemote
-    oldRemote = hookfunction(Instance.new("RemoteEvent").FireServer, function(self, ...) 
-        local args = {...}
-        if args[1] == "Detected" or args[1] == "Kick" or args[1] == "BadMemes" then
-            return nil
-        end
-        return oldRemote(self, ...)
-    end)
-    print("✅ Bypass Active & Silent.")
-end
-pcall(SilentBypass)
-
-task.wait(0.5) -- Jeda agar bypass terpasang sempurna
 
 -- [[ 2. UI / WINDOWS SECTION ]] --
 local RunService = game:GetService("RunService")
@@ -708,6 +671,25 @@ end
 
 end)
 
--- ANTI AFK FIXED
+-- ANTI AFK
+local Players = game:GetService("Players")
+local VirtualUser = game:GetService("VirtualUser")
+local LP = Players.LocalPlayer
+
+_G.AntiAFK = true
+
 task.spawn(function()
-    local VU = ga
+while true do
+task.wait(60) -- tiap 60 detik
+if _G.AntiAFK and LP.Character then
+VirtualUser:CaptureController()
+VirtualUser:Button1Down(Vector2.new(0,0))
+task.wait(0.1)
+VirtualUser:Button1Up(Vector2.new(0,0))
+VirtualUser:Button2Down(Vector2.new(0,0))
+task.wait(0.1)
+VirtualUser:Button2Up(Vector2.new(0,0))
+end
+end
+end)
+
