@@ -427,23 +427,16 @@ SettingTab:Toggle({ Title = "Enable Webhook Log", Callback = function(v) _G.Webh
 SettingTab:Button({ Title = "Test Send Webhook", Callback = function() SendWebhook(true) end })
 
 -- // LOGIC BARISTA
-
 -- =========================
 -- SERVICES
 -- =========================
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local PlayerGui = LP:WaitForChild("PlayerGui")
-
--- =========================
--- STATE
--- =========================
-_G.AutoFarmBarista = _G.AutoFarmBarista or false
-local BaristaRunning = false
-local isWorking = false
 
 -- =========================
 -- PATHS & REMOTES
@@ -453,7 +446,6 @@ local Interactions = BaristaJob:WaitForChild("Interactions")
 local JobEvents = ReplicatedStorage:WaitForChild("JobEvents")
 local TeamChangeRequest = JobEvents:WaitForChild("TeamChangeRequest")
 
--- Remote dari data temuanmu
 local BaristaAssets = ReplicatedStorage:WaitForChild("BaristaAssets")
 local BaristaEvent = BaristaAssets:WaitForChild("Events"):WaitForChild("BaristaEvent")
 
@@ -461,7 +453,14 @@ local startPart = Interactions.StartPart.StartPart
 local machinePart = Interactions.MachinePart.MachinePart
 local registerPart = Interactions.RegisterPart.RegisterPart
 local supplyPart = Interactions.SupplyPart.SupplyPart
-local supplyPos = Vector3.new(-5116.784, 5.789, -670.858) -- Koordinat supply box
+local supplyPos = Vector3.new(-5116.784, 5.789, -670.858)
+
+-- =========================
+-- STATE & GLOBALS
+-- =========================
+_G.AutoFarmBarista = _G.AutoFarmBarista or false
+local BaristaRunning = false
+local isWorking = false
 
 -- =========================
 -- HELPERS
@@ -470,9 +469,7 @@ local function getHRP()
     return LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
 end
 
--- =========================
--- VOID TWEEN ENGINE (ORIGINAL)
--- =========================
+-- VOID TWEEN ENGINE
 local function voidTween(targetCF)
     local hrp = getHRP()
     if not hrp then return end
@@ -500,6 +497,7 @@ local function voidTween(targetCF)
     task.wait(0.6)
 end
 
+-- Normal Click untuk Register/Minigame (Sesuai Permintaan)
 local function smartWaitAndClick(prompt)
     if not prompt then return end
     local t = 0
@@ -511,24 +509,43 @@ local function smartWaitAndClick(prompt)
     fireproximityprompt(prompt)
 end
 
+-- Secure Hold Khusus Auto Repair (6 Detik)
+local function secureHoldSupply(prompt)
+    if not prompt then return end
+    local t = 0
+    while (not prompt.Enabled or not prompt.Parent) and t < 50 do
+        task.wait(0.1)
+        t += 1
+    end
+    
+    -- Simulasi menahan tombol
+    prompt:InputHoldBegin()
+    task.wait(6.2) -- Durasi hold 6 detik + buffer keamanan
+    prompt:InputHoldEnd()
+    fireproximityprompt(prompt)
+end
+
 -- =========================
--- AUTO REPAIR (INDEPENDENT)
+-- AUTO REPAIR (SUPPLY)
 -- =========================
 local function autoRepairCheck()
     local missionUI = PlayerGui:FindFirstChild("BaristaMissionUI")
     local label = missionUI and missionUI:FindFirstChild("ObjectiveLabel", true)
     
-    -- Hanya jalan jika warna merah (Broken/Anomaly) dan sedang tidak kerja
+    -- Deteksi anomaly (Warna Merah)
     if label and label.TextColor3 == Color3.fromRGB(255, 50, 50) and not isWorking then
         isWorking = true
-        print("Anomaly/Broken detected. Moving to Supply...")
+        print("Anomaly detected. Using Secure Supply Hold...")
         
         voidTween(CFrame.new(supplyPos))
+        task.wait(0.5)
         
-        -- Menggunakan remote RestockSupplies sesuai temuanmu
-        BaristaEvent:FireServer("RestockSupplies")
         local prompt = supplyPart:FindFirstChild("SupplyPrompt")
-        if prompt then smartWaitAndClick(prompt) end
+        if prompt then 
+            secureHoldSupply(prompt) 
+        end
+        
+        BaristaEvent:FireServer("RestockSupplies")
         
         task.wait(1)
         voidTween(machinePart.CFrame)
@@ -537,7 +554,7 @@ local function autoRepairCheck()
 end
 
 -- =========================
--- STEALTH MINIGAME LOGIC (ORIGINAL)
+-- STEALTH MINIGAME LOGIC
 -- =========================
 local function applyStealthBypass()
     local gui = PlayerGui:FindFirstChild("BaristaGUI")
@@ -582,13 +599,14 @@ local function applyStealthBypass()
 end
 
 -- =========================
--- MAIN BARISTA CONTROLLER (ORIGINAL FLOW)
+-- MAIN BARISTA CONTROLLER
 -- =========================
 local function StartBaristaGhost()
     if BaristaRunning then return end
     BaristaRunning = true
 
     task.spawn(function()
+        -- Ganti Tim
         TeamChangeRequest:FireServer("Barista", 11378976, 1, 0, "Detector")
         task.wait(2)
 
@@ -604,7 +622,6 @@ local function StartBaristaGhost()
         voidTween(machinePart.CFrame)    
 
         while _G.AutoFarmBarista do    
-            -- Tambahan Auto Repair tanpa mengubah flow kerja
             autoRepairCheck()
 
             local gui = PlayerGui:FindFirstChild("BaristaGUI")    
@@ -630,7 +647,7 @@ local function StartBaristaGhost()
 end
 
 -- =========================
--- TOGGLE WATCHER
+-- SYSTEM LOOPS
 -- =========================
 task.spawn(function()
     while true do
@@ -641,22 +658,6 @@ task.spawn(function()
     end
 end)
 
-
--- =========================
--- SYSTEM LOOPS (FPS Counter)
--- =========================
-local lastClock = os.clock()
-local fpsCounter = 0
-local fps = 0
-
-RunService.Heartbeat:Connect(function()
-fpsCounter += 1
-if os.clock() - lastClock >= 1 then
-fps = fpsCounter
-fpsCounter = 0
-lastClock = os.clock()
-end
-end)
 
 -- =========================
 -- FPS / PING LOOP (FIXED)
@@ -726,4 +727,3 @@ task.spawn(function()
     end
 end)
 
-print("🚀 VoidlineHub Loaded with Adonis Bypass!")
