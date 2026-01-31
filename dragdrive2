@@ -495,19 +495,27 @@ local function runRepairFlow()
             autoWalk(POS_EXIT_BARISTA)
             autoWalk(POS_SUPPLY)
             
-            -- PROSES RESTOCK DENGAN HOLD
-            BaristaEvent:FireServer("RestockSupplies")
+            -- AMBIL PROMPT
             local prompt = supplyPart:FindFirstChild("SupplyPrompt")
             
             if prompt then
-                holdClick(prompt) -- SEKARANG PAKAI HOLD
+                task.wait(1.0)
+                -- PAKSA HOLD MANUAL 6 DETIK
+                prompt:InputHoldBegin()
+                print("⏳ Holding Supply for 6 seconds...")
+                task.wait(6.0) -- INI YANG BIKIN DIA NAHAN LAMA
+                prompt:InputHoldEnd()
+                
+                -- EKSEKUSI SERVER
+                BaristaEvent:FireServer("RestockSupplies")
+                fireproximityprompt(prompt)
             end
             
-            task.wait(6.0) -- Jeda biar server kelar proses barang
+            task.wait(1.0) -- Jeda biar barang masuk tas
             
-            -- BALIK KE EXIT (ANTREAN KERJA LAGI)
+            -- BALIK KE EXIT
             autoWalk(POS_EXIT_BARISTA)
-            task.wait(1.0) -- Jeda stabilitas biar gak bingung pas keluar
+            task.wait(1.0) 
             isWorking = false 
         end
     end
