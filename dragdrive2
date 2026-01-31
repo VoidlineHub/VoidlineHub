@@ -389,7 +389,7 @@ SettingTab:Button({ Title = "Test Send Webhook", Callback = function() SendWebho
 
 -- // LOGIC BARISTA
 -- =========================================================
--- BARISTA GHOST MODE (STUCK FIX + SUPPLY HOLD)
+-- BARISTA GHOST MODE (REVISED: 6.5s HOLD + ANTI-STUCK)
 -- =========================================================
 
 local Players = game:GetService("Players")
@@ -446,11 +446,11 @@ local function autoWalk(targetPos)
         hum:MoveTo(targetPos)
         
         task.wait(0.2)
-        -- Cek jika posisi tidak berubah signifikan (stuck)
-        if (hrp.Position - lastPos).Magnitude < 0.4 then
+        -- Jika posisi macet (nyangkut meja/dinding)
+        if (hrp.Position - lastPos).Magnitude < 0.5 then
             stuckTick = stuckTick + 1
-            if stuckTick >= 4 then -- Jika 0.8 detik gak gerak
-                hum.Jump = true -- Paksa lompat buat ngelewati meja/tembok
+            if stuckTick >= 3 then -- Lebih responsif (0.6 detik macet langsung lompat)
+                hum.Jump = true 
                 stuckTick = 0
             end
         else
@@ -466,11 +466,11 @@ end
 local function holdClick(prompt)
     if not prompt or not prompt.Enabled then return end
     
-    task.wait(1.0) 
+    task.wait(0.5) 
     prompt:InputHoldBegin()
-    -- Ambil durasi hold asli dari game biar pas
-    local duration = prompt.HoldDuration > 0 and prompt.HoldDuration or 0.2
-    task.wait(duration + 0.1)
+    -- Ambil durasi hold asli atau default
+    local duration = prompt.HoldDuration > 0 and prompt.HoldDuration or 0.3
+    task.wait(duration + 0.2)
     prompt:InputHoldEnd()
     
     fireproximityprompt(prompt)
@@ -478,7 +478,7 @@ local function holdClick(prompt)
 end
 
 -- =========================================================
--- REPAIR LOGIC (SUPPLY HOLD + STUCK EXIT FIX)
+-- REPAIR LOGIC (SUPPLY HOLD 6.5s + FIX EXIT)
 -- =========================================================
 local function runRepairFlow()
     local missionUI = PlayerGui:FindFirstChild("BaristaMissionUI")
@@ -495,34 +495,32 @@ local function runRepairFlow()
             autoWalk(POS_EXIT_BARISTA)
             autoWalk(POS_SUPPLY)
             
-            -- AMBIL PROMPT
             local prompt = supplyPart:FindFirstChild("SupplyPrompt")
-            
             if prompt then
                 task.wait(1.0)
-                -- PAKSA HOLD MANUAL 6 DETIK
+                -- PAKSA HOLD MANUAL 6.5 DETIK (BIAR GAK KEDETEKSI)
                 prompt:InputHoldBegin()
-                print("⏳ Holding Supply for 6 seconds...")
-                task.wait(6.0) -- INI YANG BIKIN DIA NAHAN LAMA
+                print("⏳ Holding Supply for 6.5 seconds...")
+                task.wait(6.5) 
                 prompt:InputHoldEnd()
                 
-                -- EKSEKUSI SERVER
+                -- BARU TEMBAK REMOTE SETELAH HOLD SELESAI
                 BaristaEvent:FireServer("RestockSupplies")
                 fireproximityprompt(prompt)
             end
             
-            task.wait(1.0) -- Jeda biar barang masuk tas
-            
-            -- BALIK KE EXIT
-            autoWalk(POS_EXIT_BARISTA)
             task.wait(1.0) 
-            isWorking = false 
+            
+            -- BALIK KE EXIT (DENGAN FORCE JUMP BIAR GAK STUCK DI PINTU)
+            autoWalk(POS_EXIT_BARISTA)
+            task.wait(0.5)
+            isWorking = false -- RESET STATE AGAR MACHINE BISA JALAN LAGI
         end
     end
 end
 
 -- =========================
--- MINIGAME & REGISTER
+-- MINIGAME & REGISTER (UR MODIFIED VERSION)
 -- =========================
 local function handleMinigame()
     local gui = PlayerGui:FindFirstChild("BaristaGUI")
@@ -534,12 +532,12 @@ local function handleMinigame()
         local target = mini:WaitForChild("BackgroundBar"):WaitForChild("TargetZone")
         target.Size = UDim2.new(1.8, 0, 1.8, 0)
         target.Position = UDim2.new(-0.4, 0, -0.4, 0)
-        target.BackgroundTransparency = 1
+        target.BackgroundTransparency = 1 -- Sesuai modifikasi lu
     end)
 
     while mini.Visible and _G.AutoFarmBarista do task.wait(0.5) end
     
-    -- Ke Register dulu
+    -- Register Flow
     autoWalk(registerPart.Position)
     local regPrompt = registerPart:FindFirstChild("RegisterPrompt")
     if regPrompt then holdClick(regPrompt) end
@@ -565,7 +563,6 @@ local function StartBaristaGhost()
             
             -- 1. START JOB (TWEEN)
             if not missionUI and not isWorking then
-                -- Fungsi safeTween lu yang original di sini
                 local hrp = getHRP()
                 local targetCF = startPart.CFrame
                 TweenService:Create(hrp, TweenInfo.new(0.5), {CFrame = CFrame.new(hrp.Position.X, -27, hrp.Position.Z)}):Play()
@@ -584,7 +581,7 @@ local function StartBaristaGhost()
                     autoWalk(machinePart.Position)
                 end
 
-            -- 2. REPAIR
+            -- 2. REPAIR (DENGAN RESET STATE YG LEBIH TEGAS)
             elseif missionUI and not isWorking then
                 local label = missionUI:FindFirstChild("ObjectiveLabel", true)
                 if label and label.TextColor3 == Color3.fromRGB(255, 50, 50) then
@@ -601,10 +598,12 @@ local function StartBaristaGhost()
                     handleMinigame()
                 else
                     local hrp = getHRP()
+                    -- Jika jauh dari mesin, jalan ke mesin
                     if (hrp.Position - machinePart.Position).Magnitude > 4 then
                         autoWalk(machinePart.Position)
                     else
                         local prompt = machinePart:FindFirstChild("MachinePrompt")
+                        -- PAKSA HOLD BIAR AMAN
                         if prompt and prompt.Enabled then
                             holdClick(prompt)
                         end
@@ -711,3 +710,4 @@ task.spawn(function()
 end)
 
 print("🚀 VoidlineHub Loaded with Adonis Bypass!")
+ 
