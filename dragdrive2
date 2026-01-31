@@ -698,16 +698,3 @@ end
 end
 
 end)
-
--- ANTIAFK
-task.spawn(function()
-    local VU = game:GetService("VirtualUser")
-    while task.wait(60) do
-        if _G.AntiAFK then
-            VU:CaptureController()
-            VU:ClickButton2(Vector2.new(0,0))
-        end
-    end
-end)
-
-print("🚀 VoidlineHub Loaded with Adonis Bypass!")
