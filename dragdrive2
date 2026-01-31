@@ -389,7 +389,7 @@ SettingTab:Button({ Title = "Test Send Webhook", Callback = function() SendWebho
 
 -- // LOGIC BARISTA
 -- =========================================================
--- BARISTA GHOST MODE (BUG FIXED: JUMP, HOLD, & FLOW)
+-- BARISTA GHOST MODE (STUCK FIX + SUPPLY HOLD)
 -- =========================================================
 
 local Players = game:GetService("Players")
@@ -405,7 +405,7 @@ _G.AntiAFK = true
 local BaristaRunning = false
 local isWorking = false
 
--- VARIABLES
+-- COORDINATES
 local POS_EXIT_BARISTA = Vector3.new(-5004.42, 2.89, -678.09)
 local POS_SUPPLY = Vector3.new(-5114.04, 2.89, -669.93)
 
@@ -429,7 +429,7 @@ local function getHRP()
 end
 
 -- =========================================================
--- PERSISTENT AUTOWALK (WITH ANTI-STUCK JUMP)
+-- PERSISTENT AUTOWALK (ANTI-STUCK ENHANCED)
 -- =========================================================
 local function autoWalk(targetPos)
     local char = LP.Character
@@ -439,58 +439,38 @@ local function autoWalk(targetPos)
     
     hum.WalkSpeed = 19
     local lastPos = hrp.Position
-    local stuckTime = 0
+    local stuckTick = 0
     
     repeat
         if not _G.AutoFarmBarista then break end
         hum:MoveTo(targetPos)
         
-        -- Anti-stuck logic
         task.wait(0.2)
-        if (hrp.Position - lastPos).Magnitude < 0.5 then
-            stuckTime = stuckTime + 0.2
-            if stuckTime > 1 then
-                hum.Jump = true -- Lompat kalau nyangkut di meja/dinding
-                stuckTime = 0
+        -- Cek jika posisi tidak berubah signifikan (stuck)
+        if (hrp.Position - lastPos).Magnitude < 0.4 then
+            stuckTick = stuckTick + 1
+            if stuckTick >= 4 then -- Jika 0.8 detik gak gerak
+                hum.Jump = true -- Paksa lompat buat ngelewati meja/tembok
+                stuckTick = 0
             end
         else
-            stuckTime = 0
+            stuckTick = 0
         end
         lastPos = hrp.Position
     until (hrp.Position - targetPos).Magnitude < 3.8
 end
 
--- =========================================================
--- SAFE TWEEN (START JOB ONLY)
--- =========================================================
-local function safeTween(targetCF)
-    local hrp = getHRP()
-    local VOID_Y = -27
-    local SPEED = 180 
-
-    local downCF = CFrame.new(hrp.Position.X, VOID_Y, hrp.Position.Z)
-    TweenService:Create(hrp, TweenInfo.new(0.5, Enum.EasingStyle.Sine), {CFrame = downCF}):Play()
-    task.wait(0.55)
-
-    local targetVoid = CFrame.new(targetCF.X, VOID_Y, targetCF.Z)
-    local dist = (hrp.Position - targetVoid.Position).Magnitude
-    local moveTween = TweenService:Create(hrp, TweenInfo.new(dist / SPEED, Enum.EasingStyle.Linear), {CFrame = targetVoid})
-    moveTween:Play()
-    moveTween.Completed:Wait()
-
-    TweenService:Create(hrp, TweenInfo.new(0.5, Enum.EasingStyle.Sine), {CFrame = targetCF + Vector3.new(0, 2, 0)}):Play()
-    task.wait(0.55)
-end
-
--- =========================================================
--- HOLD CLICK (UNIFORM SYSTEM)
--- =========================================================
+-- =========================
+-- HOLD CLICK SYSTEM
+-- =========================
 local function holdClick(prompt)
     if not prompt or not prompt.Enabled then return end
     
     task.wait(1.0) 
     prompt:InputHoldBegin()
-    task.wait(prompt.HoldDuration + 0.2)
+    -- Ambil durasi hold asli dari game biar pas
+    local duration = prompt.HoldDuration > 0 and prompt.HoldDuration or 0.2
+    task.wait(duration + 0.1)
     prompt:InputHoldEnd()
     
     fireproximityprompt(prompt)
@@ -498,7 +478,7 @@ local function holdClick(prompt)
 end
 
 -- =========================================================
--- REPAIR LOGIC (FIXED SUPPLY EXIT FLOW)
+-- REPAIR LOGIC (SUPPLY HOLD + STUCK EXIT FIX)
 -- =========================================================
 local function runRepairFlow()
     local missionUI = PlayerGui:FindFirstChild("BaristaMissionUI")
@@ -511,24 +491,30 @@ local function runRepairFlow()
         if text:find("broke") or text:find("down") or text:find("fix") or text:find("restock") then
             isWorking = true
             
+            -- OTW KE SUPPLY
             autoWalk(POS_EXIT_BARISTA)
             autoWalk(POS_SUPPLY)
             
+            -- PROSES RESTOCK DENGAN HOLD
             BaristaEvent:FireServer("RestockSupplies")
             local prompt = supplyPart:FindFirstChild("SupplyPrompt")
             
-            holdClick(prompt) -- Sekarang pakai HOLD juga
-            task.wait(6.5)
+            if prompt then
+                holdClick(prompt) -- SEKARANG PAKAI HOLD
+            end
             
+            task.wait(6.0) -- Jeda biar server kelar proses barang
+            
+            -- BALIK KE EXIT (ANTREAN KERJA LAGI)
             autoWalk(POS_EXIT_BARISTA)
-            task.wait(1)
-            isWorking = false -- Selesai repair, balik ke loop normal
+            task.wait(1.0) -- Jeda stabilitas biar gak bingung pas keluar
+            isWorking = false 
         end
     end
 end
 
 -- =========================
--- MINIGAME & REGISTER FLOW
+-- MINIGAME & REGISTER
 -- =========================
 local function handleMinigame()
     local gui = PlayerGui:FindFirstChild("BaristaGUI")
@@ -540,18 +526,16 @@ local function handleMinigame()
         local target = mini:WaitForChild("BackgroundBar"):WaitForChild("TargetZone")
         target.Size = UDim2.new(1.8, 0, 1.8, 0)
         target.Position = UDim2.new(-0.4, 0, -0.4, 0)
-        target.BackgroundTransparency = 1
     end)
 
-    -- Tunggu sampai minigame beres (otomatis menang)
     while mini.Visible and _G.AutoFarmBarista do task.wait(0.5) end
     
-    -- WAJIB KE REGISTER DULU
+    -- Ke Register dulu
     autoWalk(registerPart.Position)
     local regPrompt = registerPart:FindFirstChild("RegisterPrompt")
     if regPrompt then holdClick(regPrompt) end
     
-    -- BARU BALIK KE MESIN
+    -- Balik ke Mesin
     autoWalk(machinePart.Position)
     isWorking = false
 end
@@ -570,15 +554,23 @@ local function StartBaristaGhost()
         while _G.AutoFarmBarista do
             local missionUI = PlayerGui:FindFirstChild("BaristaMissionUI")
             
-            -- 1. START JOB
+            -- 1. START JOB (TWEEN)
             if not missionUI and not isWorking then
-                safeTween(startPart.CFrame)
+                -- Fungsi safeTween lu yang original di sini
+                local hrp = getHRP()
+                local targetCF = startPart.CFrame
+                TweenService:Create(hrp, TweenInfo.new(0.5), {CFrame = CFrame.new(hrp.Position.X, -27, hrp.Position.Z)}):Play()
+                task.wait(0.6)
+                local dist = (hrp.Position - Vector3.new(targetCF.X, -27, targetCF.Z)).Magnitude
+                local move = TweenService:Create(hrp, TweenInfo.new(dist/180), {CFrame = CFrame.new(targetCF.X, -27, targetCF.Z)})
+                move:Play()
+                move.Completed:Wait()
+                TweenService:Create(hrp, TweenInfo.new(0.5), {CFrame = targetCF + Vector3.new(0,2,0)}):Play()
+                task.wait(0.6)
+                
                 holdClick(startPart:FindFirstChild("JobPrompt"))
                 
-                local retry = 0
-                while not PlayerGui:FindFirstChild("BaristaMissionUI") and retry < 15 do
-                    task.wait(1); retry = retry + 1
-                end
+                task.wait(2)
                 if _G.AutoFarmBarista and PlayerGui:FindFirstChild("BaristaMissionUI") then
                     autoWalk(machinePart.Position)
                 end
@@ -591,7 +583,7 @@ local function StartBaristaGhost()
                 end
             end
 
-            -- 3. WORK (MACHINE/REGISTER)
+            -- 3. WORK
             if missionUI and not isWorking then
                 local gui = PlayerGui:FindFirstChild("BaristaGUI")
                 local mini = gui and gui:FindFirstChild("MinigameFrame")
@@ -600,7 +592,6 @@ local function StartBaristaGhost()
                     handleMinigame()
                 else
                     local hrp = getHRP()
-                    -- Cek kalau misi minta ke register atau masih di mesin
                     if (hrp.Position - machinePart.Position).Magnitude > 4 then
                         autoWalk(machinePart.Position)
                     else
@@ -698,3 +689,16 @@ end
 end
 
 end)
+
+-- ANTI AFK FIXED
+task.spawn(function()
+    local VU = game:GetService("VirtualUser")
+    while task.wait(60) do
+        if _G.AntiAFK then
+            VU:CaptureController()
+            VU:ClickButton2(Vector2.new(0,0))
+        end
+    end
+end)
+
+print("🚀 VoidlineHub Loaded with Adonis Bypass!")
