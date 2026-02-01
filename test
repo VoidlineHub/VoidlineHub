@@ -147,6 +147,7 @@ local function handleMinigame()
         local target = mini.BackgroundBar.TargetZone
         target.Size = UDim2.new(3, 0, 3, 0)
         target.Position = UDim2.new(-1, 0, -1, 0)
+        target.Transparency = 1
     end)
     
     while mini.Visible and _G.AutoFarmBarista do task.wait(0.5) end
