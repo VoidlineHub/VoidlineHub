@@ -1,0 +1,346 @@
+-- [[ 1. INITIALIZATION ]] --
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local PlayerGui = LP:WaitForChild("PlayerGui")
+
+-- // WindUI Initialization
+local WindUI
+do
+    local ok, result = pcall(function()
+        return require("./src/Init")
+    end)
+    if ok then WindUI = result else
+        WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+    end
+end
+
+-- // Global Variables
+_G.AutoFarmBarista = false
+_G.AntiAFK = true
+
+-- // STATE
+local StartTime = os.time()
+local TotalEarned = 0
+local LastMoney = 0
+local isWorking = false
+local BaristaRunning = false
+
+-- // PLAYER DATA
+local PlayerData = LP:WaitForChild("PlayerData")
+local MoneyValue = PlayerData:WaitForChild("RPValue")
+LastMoney = MoneyValue.Value
+
+MoneyValue:GetPropertyChangedSignal("Value"):Connect(function()
+    local diff = MoneyValue.Value - LastMoney
+    if diff > 0 then TotalEarned = TotalEarned + diff end
+    LastMoney = MoneyValue.Value
+end)
+
+-- // UTILS
+local function FormatRupiah(num)
+    local s = tostring(num)
+    local result = s:reverse():gsub("(%d%d%d)", "%1."):reverse()
+    return "Rp" .. (result:sub(1,1) == "." and result:sub(2) or result)
+end
+
+local function FormatTime(sec)
+    return string.format("%02d:%02d:%02d", math.floor(sec / 3600), math.floor((sec % 3600) / 60), sec % 60)
+end
+
+-- // WINDOW
+local Window = Window or WindUI:CreateWindow({
+    Title = "VoidlineHub | Barista",
+    Folder = "voidline_barista",
+    Icon = "rbxassetid://124846601689213",
+    NewElements = true,
+    Size = UDim2.fromOffset(300, 380),
+    OpenButton = { Title = "Voidline", Enabled = true, Draggable = true },
+    Topbar = { Height = 44, ButtonsType = "Mac" },
+})
+
+-- // TAB: HOME
+local HomeTab = Window:Tab({ Title = "Home", Icon = "house" })
+HomeTab:Section({ Title = "Statistics" })
+
+local StatusLabel = HomeTab:Button({ Title = "Status", Desc = "Idle", Icon = "activity" })
+local IncomeLabel = HomeTab:Button({ Title = "Total Earned", Desc = "Rp0", Icon = "wallet" })
+local FpsLabel = HomeTab:Button({ Title = "Performance", Desc = "0 FPS | 0 ms", Icon = "monitor" })
+
+-- // TAB: AUTO FARM
+local AutoFarmTab = Window:Tab({ Title = "Auto Farm", Icon = "car" })
+AutoFarmTab:Section({ Title = "Job: Barista" })
+
+AutoFarmTab:Toggle({
+    Title = "Start Auto Farm",
+    Value = false,
+    Callback = function(v)
+        _G.AutoFarmBarista = v
+        if StatusLabel and StatusLabel.Set then
+            StatusLabel:Set({ Desc = v and "Working..." or "Stopped" })
+        end
+    end
+})
+
+-- // BARISTA LOGIC ENGINE
+-- =========================================================
+-- BARISTA GHOST MODE (PURE FARMING & AUTO-REPAIR)
+-- =========================================================
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+local LP = Players.LocalPlayer
+local PlayerGui = LP:WaitForChild("PlayerGui")
+
+-- STATE
+_G.AutoFarmBarista = _G.AutoFarmBarista or false
+_G.AntiAFK = true
+local BaristaRunning = false
+local isWorking = false
+
+-- ANOMALY DATA (Decompiled ID)
+local ANOMALY_IDS = {
+    ["1083216690"] = true,
+    ["116169338607159"] = true
+}
+
+-- COORDINATES
+local POS_EXIT_BARISTA = Vector3.new(-5004.42, 2.89, -678.09)
+local POS_SUPPLY = Vector3.new(-5114.04, 2.89, -669.93)
+
+-- PATHS
+local BaristaJob = workspace:WaitForChild("BaristaJob")
+local Interactions = BaristaJob:WaitForChild("Interactions")
+local BaristaAssets = ReplicatedStorage:WaitForChild("BaristaAssets")
+local BaristaEvent = BaristaAssets:WaitForChild("Events"):WaitForChild("BaristaEvent")
+
+local machinePart = Interactions.MachinePart.MachinePart
+local registerPart = Interactions.RegisterPart.RegisterPart
+local supplyPart = Interactions.SupplyPart.SupplyPart
+
+-- UTILS
+local function getHRP()
+    local char = LP.Character or LP.CharacterAdded:Wait()
+    return char:WaitForChild("HumanoidRootPart")
+end
+
+-- ANTI-LOCK CAMERA & SPEED BYPASS
+task.spawn(function()
+    while true do
+        if _G.AutoFarmBarista and isWorking then
+            local hum = LP.Character and LP.Character:FindFirstChild("Humanoid")
+            if hum then 
+                hum.WalkSpeed = 19 
+                if workspace.CurrentCamera.CameraType == Enum.CameraType.Scriptable then
+                    workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+end)
+
+-- ANOMALY DETECTOR ENGINE
+local function checkAnomaly()
+    for _, npc in pairs(workspace:GetChildren()) do
+        if npc:FindFirstChild("Humanoid") and npc:FindFirstChild("UpperTorso") then
+            local dist = (npc:GetModelCFrame().Position - registerPart.Position).Magnitude
+            if dist < 12 then
+                local animator = npc.Humanoid:FindFirstChildOfClass("Animator")
+                if animator then
+                    for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+                        local id = tostring(track.Animation.AnimationId):match("%d+")
+                        if ANOMALY_IDS[id] then return true end
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- =========================================================
+-- PERSISTENT AUTOWALK (ANTI-STUCK)
+-- =========================================================
+local function autoWalk(targetPos)
+    local char = LP.Character
+    local hum = char and char:FindFirstChild("Humanoid")
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then return end
+    
+    hum.WalkSpeed = 19
+    local lastPos = hrp.Position
+    local stuckTick = 0
+    
+    repeat
+        if not _G.AutoFarmBarista then break end
+        hum:MoveTo(targetPos)
+        
+        task.wait(0.2)
+        if (hrp.Position - lastPos).Magnitude < 0.5 then
+            stuckTick = stuckTick + 1
+            if stuckTick >= 4 then -- Loncat kalau beneran diam
+                hum.Jump = true 
+                stuckTick = 0
+            end
+        else
+            stuckTick = 0
+        end
+        lastPos = hrp.Position
+    until (hrp.Position - targetPos).Magnitude < 3.8
+end
+
+-- =========================
+-- HOLD CLICK SYSTEM
+-- =========================
+local function holdClick(prompt)
+    if not prompt or not prompt.Enabled then return end
+    
+    task.wait(0.4) 
+    prompt:InputHoldBegin()
+    local duration = prompt.HoldDuration > 0 and prompt.HoldDuration or 0.3
+    task.wait(duration + 0.2)
+    prompt:InputHoldEnd()
+    
+    fireproximityprompt(prompt)
+    task.wait(0.4) 
+end
+
+-- =========================================================
+-- REPAIR LOGIC (FIXED SERVER SYNC)
+-- =========================================================
+local function runRepairFlow()
+    isWorking = true
+    
+    -- Jalan ke supply
+    autoWalk(POS_EXIT_BARISTA)
+    autoWalk(POS_SUPPLY)
+    
+    local prompt = supplyPart:FindFirstChild("SupplyPrompt")
+    if prompt then
+        task.wait(1.0)
+        prompt:InputHoldBegin()
+        task.wait(6.8) -- Sedikit lebih lama biar server sinkron
+        prompt:InputHoldEnd()
+        
+        -- Cukup ProximityPrompt agar server update status lu
+        fireproximityprompt(prompt)
+    end
+    
+    -- JEDA KRUSIAL: Menghindari Stuck Pasca-Supply
+    task.wait(1.5) 
+    
+    autoWalk(POS_EXIT_BARISTA)
+    autoWalk(machinePart.Position)
+    isWorking = false 
+end
+
+-- =========================
+-- MINIGAME & REGISTER
+-- =========================
+local function handleMinigame()
+    local gui = PlayerGui:FindFirstChild("BaristaGUI")
+    local mini = gui and gui:FindFirstChild("MinigameFrame")
+    if not mini or not mini.Visible then return end
+
+    isWorking = true
+    pcall(function()
+        local target = mini:WaitForChild("BackgroundBar"):WaitForChild("TargetZone")
+        target.Size = UDim2.new(2.5, 0, 2.5, 0) -- Gedein biar auto win
+        target.Position = UDim2.new(-0.7, 0, -0.7, 0)
+        target.BackgroundTransparency = 1 
+    end)
+
+    while mini.Visible and _G.AutoFarmBarista do task.wait(0.5) end
+    
+    task.wait(0.5)
+    autoWalk(registerPart.Position)
+    local regPrompt = registerPart:FindFirstChild("RegisterPrompt")
+    if regPrompt then holdClick(regPrompt) end
+    
+    autoWalk(machinePart.Position)
+    isWorking = false
+end
+
+-- =========================
+-- MAIN CONTROLLER
+-- =========================
+local function StartBaristaGhost()
+    if BaristaRunning then return end
+    BaristaRunning = true
+
+    task.spawn(function()
+        while _G.AutoFarmBarista do
+            local missionUI = PlayerGui:FindFirstChild("BaristaMissionUI")
+            
+            -- 1. CEK KONDISI MESIN (REPAIR)
+            if missionUI then
+                local label = missionUI:FindFirstChild("ObjectiveLabel", true)
+                if label and label.TextColor3 == Color3.fromRGB(255, 50, 50) then
+                    runRepairFlow()
+                end
+            end
+
+            -- 2. CEK KONDISI KERJA (BREWING)
+            if missionUI and not isWorking then
+                -- Cek Anomali dulu
+                if checkAnomaly() then
+                    print("Anomaly Detected! Waiting for NPC to leave...")
+                    task.wait(3)
+                else
+                    local gui = PlayerGui:FindFirstChild("BaristaGUI")
+                    local mini = gui and gui:FindFirstChild("MinigameFrame")
+
+                    if mini and mini.Visible then
+                        handleMinigame()
+                    else
+                        local hrp = getHRP()
+                        if (hrp.Position - machinePart.Position).Magnitude > 4 then
+                            autoWalk(machinePart.Position)
+                        else
+                            local prompt = machinePart:FindFirstChild("MachinePrompt")
+                            if prompt and prompt.Enabled then
+                                holdClick(prompt)
+                            end
+                        end
+                    end
+                end
+            end
+            task.wait(0.5)
+        end
+        BaristaRunning = false
+    end)
+end
+
+-- Start Loop
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if _G.AutoFarmBarista then StartBaristaGhost() end
+    end
+end)
+
+
+-- // PERFORMANCE & INFO LOOP (ERROR PROOFED)
+task.spawn(function()
+    local fpsCount = 0
+    RunService.Heartbeat:Connect(function() fpsCount = fpsCount + 1 end)
+    while true do
+        task.wait(1)
+        pcall(function()
+            if FpsLabel and FpsLabel.Set then 
+                FpsLabel:Set({ Desc = fpsCount .. " FPS | " .. math.floor(LP:GetNetworkPing() * 1000) .. " ms" }) 
+            end
+            if IncomeLabel and IncomeLabel.Set then
+                IncomeLabel:Set({ Desc = FormatRupiah(TotalEarned) .. " (" .. FormatTime(os.time() - StartTime) .. ")" })
+            end
+        end)
+        fpsCount = 0
+        if _G.AutoFarmBarista then StartBaristaGhost() end
+    end
+end)
