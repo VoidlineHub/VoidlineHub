@@ -32,7 +32,7 @@ end)
 
 -- // WINDOW
 local Window = WindUI:CreateWindow({
-    Title = "VoidlineHub | Barista Safe",
+    Title = "VoidlineHub | Barista",
     Folder = "voidline_barista",
     Icon = "rbxassetid://124846601689213",
     NewElements = true,
@@ -61,7 +61,7 @@ AutoFarmTab:Toggle({
     end
 })
 
--- // BARISTA LOGIC (ANTI-ADONIS VERSION)
+-- // BARISTA LOGIC
 local POS_EXIT_BARISTA = Vector3.new(-5004.42, 2.89, -678.09)
 local POS_SUPPLY = Vector3.new(-5114.04, 2.89, -669.93)
 local BaristaJob = workspace:WaitForChild("BaristaJob")
@@ -76,65 +76,54 @@ local function autoWalk(targetPos)
     local hum = LP.Character and LP.Character:FindFirstChild("Humanoid")
     local hrp = getHRP()
     if not hum or not hrp then return end
-    
-    -- Speed 16-18 adalah batas aman Adonis Anti-Speed
-    hum.WalkSpeed = 16 
+    hum.WalkSpeed = 19
     local lastPos = hrp.Position
     local stuckTick = 0
-    
     repeat
         if not _G.AutoFarmBarista then break end
         hum:MoveTo(targetPos)
         task.wait(0.2)
-        if (hrp.Position - lastPos).Magnitude < 0.3 then
+        if (hrp.Position - lastPos).Magnitude < 0.5 then
             stuckTick = stuckTick + 1
-            if stuckTick >= 5 then hum.Jump = true stuckTick = 0 end
+            if stuckTick >= 4 then hum.Jump = true stuckTick = 0 end
         else stuckTick = 0 end
         lastPos = hrp.Position
-    until (hrp.Position - targetPos).Magnitude < 5
+    until (hrp.Position - targetPos).Magnitude < 4.5
 end
 
-local function safeHold(prompt)
+local function holdClick(prompt)
     if not prompt then return end
-    
-    -- Tunggu prompt siap (Server Sync)
     local t = 0
-    while not prompt.Enabled and t < 20 do
+    while not prompt.Enabled and t < 10 do
         task.wait(0.1)
         t = t + 1
     end
-    
-    task.wait(0.5) -- Jeda manusiawi sebelum mencet
+    task.wait(0.4)
     prompt:InputHoldBegin()
-    -- Durasi asli + random kecil biar gak ke-detect bot
-    local duration = (prompt.HoldDuration > 0 and prompt.HoldDuration or 0.3) + 0.3
-    task.wait(duration)
+    task.wait((prompt.HoldDuration > 0 and prompt.HoldDuration or 0.3) + 0.2)
     prompt:InputHoldEnd()
-    
-    -- Trigger Proximity
     fireproximityprompt(prompt)
-    task.wait(0.8) -- Delay setelah interaksi biar server gak kaget
+    task.wait(0.4)
 end
 
 local function runRepairFlow()
     isWorking = true
-    StatusLabel:Set({ Desc = "Repairing..." })
-    
     autoWalk(POS_EXIT_BARISTA)
     autoWalk(POS_SUPPLY)
     
-    local sPrompt = supplyPart:FindFirstChild("SupplyPrompt")
-    if sPrompt then
-        safeHold(sPrompt)
-        -- JEDA KRUSIAL: Server butuh waktu sinkron status restocking -> normal
-        task.wait(2.2) 
+    local prompt = supplyPart:FindFirstChild("SupplyPrompt")
+    if prompt then
+        task.wait(0.5)
+        prompt:InputHoldBegin()
+        task.wait(6.8) -- Server sync delay
+        prompt:InputHoldEnd()
+        fireproximityprompt(prompt)
     end
     
+    task.wait(1.5) -- Jeda biar server gak kaget
     autoWalk(POS_EXIT_BARISTA)
     autoWalk(machinePart.Position)
-    
     isWorking = false
-    StatusLabel:Set({ Desc = "Farming..." })
 end
 
 local function handleMinigame()
@@ -144,17 +133,18 @@ local function handleMinigame()
     
     isWorking = true
     pcall(function()
-        local target = mini.BackgroundBar.TargetZone
+        local target = mini:WaitForChild("BackgroundBar"):WaitForChild("TargetZone")
         target.Size = UDim2.new(3, 0, 3, 0)
         target.Position = UDim2.new(-1, 0, -1, 0)
-        target.Transparency = 1
+        target.BackgroundTransparency = 1 -- Gue balikin transparansinya bro!
     end)
     
     while mini.Visible and _G.AutoFarmBarista do task.wait(0.5) end
-    task.wait(0.8)
+    task.wait(0.5)
     
     autoWalk(registerPart.Position)
-    safeHold(registerPart:FindFirstChild("RegisterPrompt"))
+    local regPrompt = registerPart:FindFirstChild("RegisterPrompt")
+    if regPrompt then holdClick(regPrompt) end
     
     autoWalk(machinePart.Position)
     isWorking = false
@@ -163,38 +153,26 @@ end
 local function StartBaristaGhost()
     if BaristaRunning then return end
     BaristaRunning = true
-    
     task.spawn(function()
         while _G.AutoFarmBarista do
             local missionUI = PlayerGui:FindFirstChild("BaristaMissionUI")
-            
-            -- Cek Kondisi Repair
             if missionUI then
                 local label = missionUI:FindFirstChild("ObjectiveLabel", true)
                 if label and label.TextColor3 == Color3.fromRGB(255, 50, 50) then
                     runRepairFlow()
                 end
             end
-            
-            -- Cek Kondisi Farming
             if missionUI and not isWorking then
                 local gui = PlayerGui:FindFirstChild("BaristaGUI")
                 local mini = gui and gui:FindFirstChild("MinigameFrame")
-                
                 if mini and mini.Visible then 
                     handleMinigame() 
                 else
-                    local hrp = getHRP()
-                    if hrp then
-                        local dist = (hrp.Position - machinePart.Position).Magnitude
-                        if dist > 6 then
-                            autoWalk(machinePart.Position)
-                        else
-                            local mPrompt = machinePart:FindFirstChild("MachinePrompt")
-                            if mPrompt and mPrompt.Enabled then
-                                safeHold(mPrompt)
-                            end
-                        end
+                    if (getHRP().Position - machinePart.Position).Magnitude > 5 then
+                        autoWalk(machinePart.Position)
+                    else
+                        local prompt = machinePart:FindFirstChild("MachinePrompt")
+                        if prompt and prompt.Enabled then holdClick(prompt) end
                     end
                 end
             end
