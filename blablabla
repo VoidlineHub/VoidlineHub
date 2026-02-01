@@ -389,7 +389,7 @@ SettingTab:Button({ Title = "Test Send Webhook", Callback = function() SendWebho
 
 -- // LOGIC BARISTA
 -- =========================================================
--- BARISTA GHOST MODE (REVISED: 6.5s HOLD + ANTI-STUCK)
+-- BARISTA GHOST MODE (REVISED: AUTO-REPAIR + ANOMALY DETECTOR)
 -- =========================================================
 
 local Players = game:GetService("Players")
@@ -404,6 +404,12 @@ _G.AutoFarmBarista = _G.AutoFarmBarista or false
 _G.AntiAFK = true
 local BaristaRunning = false
 local isWorking = false
+
+-- ANOMALY DATA (Decompiled ID)
+local ANOMALY_IDS = {
+    ["1083216690"] = true,
+    ["116169338607159"] = true
+}
 
 -- COORDINATES
 local POS_EXIT_BARISTA = Vector3.new(-5004.42, 2.89, -678.09)
@@ -428,8 +434,43 @@ local function getHRP()
     return char:WaitForChild("HumanoidRootPart")
 end
 
+-- ANTI-LOCK CAMERA & SPEED BYPASS
+task.spawn(function()
+    while true do
+        if _G.AutoFarmBarista and isWorking then
+            local hum = LP.Character and LP.Character:FindFirstChild("Humanoid")
+            if hum then 
+                hum.WalkSpeed = 19 
+                if workspace.CurrentCamera.CameraType == Enum.CameraType.Scriptable then
+                    workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+end)
+
+-- ANOMALY DETECTOR ENGINE
+local function checkAnomaly()
+    for _, npc in pairs(workspace:GetChildren()) do
+        if npc:FindFirstChild("Humanoid") and npc:FindFirstChild("UpperTorso") then
+            local dist = (npc:GetModelCFrame().Position - registerPart.Position).Magnitude
+            if dist < 12 then
+                local animator = npc.Humanoid:FindFirstChildOfClass("Animator")
+                if animator then
+                    for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+                        local id = tostring(track.Animation.AnimationId):match("%d+")
+                        if ANOMALY_IDS[id] then return true end
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
 -- =========================================================
--- PERSISTENT AUTOWALK (ANTI-STUCK ENHANCED)
+-- PERSISTENT AUTOWALK
 -- =========================================================
 local function autoWalk(targetPos)
     local char = LP.Character
@@ -476,41 +517,30 @@ local function holdClick(prompt)
 end
 
 -- =========================================================
--- REPAIR LOGIC (Sesuai Arahan: Langsung False abis Supply)
+-- REPAIR LOGIC (ENHANCED)
 -- =========================================================
 local function runRepairFlow()
-    local missionUI = PlayerGui:FindFirstChild("BaristaMissionUI")
-    local label = missionUI and missionUI:FindFirstChild("ObjectiveLabel", true)
+    isWorking = true
     
-    if label then
-        local text = label.Text:lower()
-        if text:find("anomaly") or text:find("strange") or text:find("person") then return end
-
-        if text:find("broke") or text:find("down") or text:find("fix") or text:find("restock") then
-            isWorking = true
-            
-            autoWalk(POS_EXIT_BARISTA)
-            autoWalk(POS_SUPPLY)
-            
-            local prompt = supplyPart:FindFirstChild("SupplyPrompt")
-            if prompt then
-                task.wait(1.0)
-                prompt:InputHoldBegin()
-                task.wait(6.5) 
-                prompt:InputHoldEnd()
-                
-                BaristaEvent:FireServer("RestockSupplies")
-                fireproximityprompt(prompt)
-            end
-            
-            -- ARAHAN LU: Begitu beres restock, langsung false biar bisa kerja lagi
-            isWorking = false 
-            
-            task.wait(0.5) 
-            autoWalk(POS_EXIT_BARISTA)
-            autoWalk(machinePart.Position)
-        end
+    -- Teleport aman ke supply
+    autoWalk(POS_EXIT_BARISTA)
+    autoWalk(POS_SUPPLY)
+    
+    local prompt = supplyPart:FindFirstChild("SupplyPrompt")
+    if prompt then
+        task.wait(1.0)
+        prompt:InputHoldBegin()
+        task.wait(6.7) -- Safe margin
+        prompt:InputHoldEnd()
+        
+        BaristaEvent:FireServer("RestockSupplies")
+        fireproximityprompt(prompt)
     end
+    
+    task.wait(0.5) 
+    autoWalk(POS_EXIT_BARISTA)
+    autoWalk(machinePart.Position)
+    isWorking = false 
 end
 
 -- =========================
@@ -524,8 +554,8 @@ local function handleMinigame()
     isWorking = true
     pcall(function()
         local target = mini:WaitForChild("BackgroundBar"):WaitForChild("TargetZone")
-        target.Size = UDim2.new(1.8, 0, 1.8, 0)
-        target.Position = UDim2.new(-0.4, 0, -0.4, 0)
+        target.Size = UDim2.new(2, 0, 2, 0) -- Maximized
+        target.Position = UDim2.new(-0.5, 0, -0.5, 0)
         target.BackgroundTransparency = 1 
     end)
 
@@ -553,7 +583,16 @@ local function StartBaristaGhost()
         while _G.AutoFarmBarista do
             local missionUI = PlayerGui:FindFirstChild("BaristaMissionUI")
             
+            -- Cek Kondisi Mesin Rusak (Warna Merah Anomali/Broken)
+            if missionUI then
+                local label = missionUI:FindFirstChild("ObjectiveLabel", true)
+                if label and label.TextColor3 == Color3.fromRGB(255, 50, 50) then
+                    runRepairFlow()
+                end
+            end
+
             if not missionUI and not isWorking then
+                -- Logic Teleport ke Job Start
                 local hrp = getHRP()
                 local targetCF = startPart.CFrame
                 TweenService:Create(hrp, TweenInfo.new(0.5), {CFrame = CFrame.new(hrp.Position.X, -27, hrp.Position.Z)}):Play()
@@ -570,28 +609,28 @@ local function StartBaristaGhost()
                 if _G.AutoFarmBarista and PlayerGui:FindFirstChild("BaristaMissionUI") then
                     autoWalk(machinePart.Position)
                 end
-
-            elseif missionUI and not isWorking then
-                local label = missionUI:FindFirstChild("ObjectiveLabel", true)
-                if label and label.TextColor3 == Color3.fromRGB(255, 50, 50) then
-                    runRepairFlow() 
-                end
             end
 
             if missionUI and not isWorking then
-                local gui = PlayerGui:FindFirstChild("BaristaGUI")
-                local mini = gui and gui:FindFirstChild("MinigameFrame")
-
-                if mini and mini.Visible then
-                    handleMinigame()
+                -- Cek Anomali sebelum interaksi
+                if checkAnomaly() then
+                    print("Anomaly Detected! Waiting...")
+                    task.wait(3)
                 else
-                    local hrp = getHRP()
-                    if (hrp.Position - machinePart.Position).Magnitude > 4 then
-                        autoWalk(machinePart.Position)
+                    local gui = PlayerGui:FindFirstChild("BaristaGUI")
+                    local mini = gui and gui:FindFirstChild("MinigameFrame")
+
+                    if mini and mini.Visible then
+                        handleMinigame()
                     else
-                        local prompt = machinePart:FindFirstChild("MachinePrompt")
-                        if prompt and prompt.Enabled then
-                            holdClick(prompt)
+                        local hrp = getHRP()
+                        if (hrp.Position - machinePart.Position).Magnitude > 4 then
+                            autoWalk(machinePart.Position)
+                        else
+                            local prompt = machinePart:FindFirstChild("MachinePrompt")
+                            if prompt and prompt.Enabled then
+                                holdClick(prompt)
+                            end
                         end
                     end
                 end
@@ -602,6 +641,7 @@ local function StartBaristaGhost()
     end)
 end
 
+-toggle
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -695,4 +735,3 @@ task.spawn(function()
 end)
 
 print("🚀 VoidlineHub Loaded with Adonis Bypass!")
-
