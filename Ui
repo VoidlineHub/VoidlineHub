@@ -21,9 +21,10 @@ local Window = WindUI:CreateWindow({
 Window:Tag({
 Title = "Github",
 Icon = "github",
-Color = Colorfrom.rgb("255,255,255")
-Border = true
+Color = Color3.fromRGB("255,255,255"),
+Border = true,
 })
+end
 
 -- Home Tab
 local AutoFarmTab = Window:Tab({ Title = "Auto Farm", Icon = "cpu" })
