@@ -38,13 +38,6 @@ task.spawn(function()
     end)
 end)
 
--- // VOIDLINE HUB: ELITE FINAL (FIXED TIMER & BYPASS ORDER) //
-
-
--- // CONFIG
-
-
-
 
 -- // PATHS
 local function GetBaristaElements()
@@ -475,8 +468,19 @@ AutofarmTab:Slider({
 
 AutofarmTab:Section({ Title = "Autofarm barista" })
 AutofarmTab:Toggle({
-Title = "Autofarm barista",
-Desc = "This is quite a big salary and it's all automatic!"
+    Title = "Autofarm barista",
+    Desc = "This is quite a big salary and it's all automatic!",
+    Callback = function(state)
+        _G.AutoFarmBarista = state -- Ini "saklar" buat mesin barista lu
+        if state then
+            LastActivity = tick() -- Reset timer biar gak langsung dianggap stuck
+            WindUI:Notify({ 
+                Title = "Voidline Hub", 
+                Content = "Barista Engine Active!", 
+                Duration = 3 
+            })
+        end
+    end
 })
 
 AutofarmTab:Toggle({ 
