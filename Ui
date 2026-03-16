@@ -1,0 +1,22 @@
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "voidlinehub",
+    Icon = "github", 
+    Author = "bilzz",
+    Folder = "terserah",
+    Transparent = true,
+    Size = UDim2.fromOffset(380, 300),
+    Topbar = {
+        Height = 45,
+        ButtonsType = "Mac",
+    },
+    OpenButton = {
+        Enabled = true,
+        Title = "Drag Drive Simulator",
+        Draggable = true,
+    }
+})
+
+-- [[ yang local autofarm tab taruh dibawah ini ]] --
+local AutoFarmTab = Window:Tab({ Title = "Auto Farm", Icon = "cpu" })
