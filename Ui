@@ -16,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
+local Player = LP
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local CourierSettings = require(ReplicatedStorage:WaitForChild("Delivery System"):WaitForChild("Settings"))
@@ -70,7 +71,9 @@ end
 
 -- // BYPASS TP (SIT -> WAIT -> TP)
 local function BypassTP(targetCF)
-    local Char = Player.Character or Player.CharacterAdded:Wait()
+local function BypassTP(targetCF)
+    -- Ganti Player jadi LP biar gak nil
+    local Char = LP.Character or LP.CharacterAdded:Wait()
     local Hum = Char:WaitForChild("Humanoid")
     local Root = Char:WaitForChild("HumanoidRootPart")
     
@@ -87,7 +90,8 @@ end
 local function ExecuteStartSequence()
     local tr = GetRemote("TeamChangeRequest")
     
-    if Player.Team and Player.Team.Name ~= "Barista" and tr then
+    -- Ganti Player jadi LP di baris ini
+    if LP.Team and LP.Team.Name ~= "Barista" and tr then
         tr:FireServer("Barista", 11378976, 0, 0, "Detector")
         task.wait(2.5)
     end
@@ -97,12 +101,10 @@ local function ExecuteStartSequence()
     
     if JobPrompt and JobPrompt.Enabled then
         fireproximityprompt(JobPrompt)
-        
     end
     
     LastActivity = tick() -- Reset timer setelah ambil job
 end
-
 
 -- // MAIN FARMING LOOP
 task.spawn(function()
