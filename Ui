@@ -471,9 +471,14 @@ AutofarmTab:Toggle({
     Title = "Autofarm barista",
     Desc = "This is quite a big salary and it's all automatic!",
     Callback = function(state)
-        _G.AutoFarmBarista = state -- Ini "saklar" buat mesin barista lu
+        _G.AutoFarmBarista = state 
         if state then
-            LastActivity = tick() -- Reset timer biar gak langsung dianggap stuck
+            LastActivity = tick()
+            -- [[ PANCINGAN BIAR LANGSUNG JALAN ]]
+            task.spawn(function()
+                ExecuteStartSequence() 
+            end)
+            
             WindUI:Notify({ 
                 Title = "Voidline Hub", 
                 Content = "Barista Engine Active!", 
