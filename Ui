@@ -6,10 +6,9 @@ local Window = WindUI:CreateWindow({
     Author = "bilzz",
     Folder = "terserah",
     Transparent = true,
-    Size = UDim2.fromOffset(380, 300),
+    Size = UDim2.fromOffset(300, 350),
     Topbar = {
         Height = 45,
-        ButtonsType = "Mac",
     },
     OpenButton = {
         Enabled = true,
@@ -21,10 +20,12 @@ local Window = WindUI:CreateWindow({
 Window:Tag({
 Title = "Github",
 Icon = "github",
-Color = Color3.fromRGB("255,255,255"),
+Color = Color3.fromRGB(255,255,255),
 Border = true,
 })
 end
 
 -- Home Tab
-local AutoFarmTab = Window:Tab({ Title = "Auto Farm", Icon = "cpu" })
+local HomeTab = Window:Tab({ Title = "Home Tab", Icon = "house" })
+
+local HomeTab:paragraph({
