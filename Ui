@@ -35,8 +35,15 @@ task.spawn(function()
 end)
 
 -- [[  UTILITY FUNCTIONS ]]
-
-
+local function SwitchToCourier()
+    local TeamRemote = ReplicatedStorage:FindFirstChild("TeamChangeRequest", true)
+    if TeamRemote then
+        if not LP.Team or LP.Team.Name ~= "Courier" then
+            TeamRemote:FireServer("Courier", 11378976, 0, 0, "Detector")
+            task.wait(1.5)
+        end
+    end
+end
 
 local function Tween(targetCFrame)
 
@@ -169,6 +176,7 @@ task.spawn(function()
         -- Hanya jalan jika Toggle ON
 
         if _G.AutofarmCourier then
+SwitchToCourier()
 
             local Char = LP.Character
 
