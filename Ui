@@ -70,7 +70,6 @@ end
 
 -- // BYPASS TP (SIT -> WAIT -> TP)
 local function BypassTP(targetCF)
-local function BypassTP(targetCF)
     -- Ganti Player jadi LP biar gak nil
     local Char = LP.Character or LP.CharacterAdded:Wait()
     local Hum = Char:WaitForChild("Humanoid")
