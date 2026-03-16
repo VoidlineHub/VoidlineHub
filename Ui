@@ -28,4 +28,6 @@ end
 -- Home Tab
 local HomeTab = Window:Tab({ Title = "Home Tab", Icon = "house" })
 
-local HomeTab:paragraph({
+HomeTab:paragraph({
+Title = "[+] Added barista\n[-] Remove feature (will return)\n[+] Added Courier\n[+] Webhook\n[+] misc feature",
+})
