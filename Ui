@@ -41,7 +41,8 @@ end)
 
 -- // PATHS
 local function GetBaristaElements()
-    local Gui = Player.PlayerGui:FindFirstChild("BaristaGUI")
+    -- Ganti Player jadi LP biar nyambung sama variabel di atas
+    local Gui = LP.PlayerGui:FindFirstChild("BaristaGUI")
     if Gui then
         local OrderText = Gui:FindFirstChild("StatusFrame") and Gui.StatusFrame:FindFirstChild("OrderText")
         local Minigame = Gui:FindFirstChild("MinigameFrame")
