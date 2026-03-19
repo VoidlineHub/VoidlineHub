@@ -7,7 +7,7 @@ game:GetService('CoreGui').RobloxGui['CoreScripts/NetworkPause']:Destroy()
 genv.WindUI = nil
 genv.maxRetries = 3
 
-local = genv.maxRetries
+local _ = genv.maxRetries
 
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
 
