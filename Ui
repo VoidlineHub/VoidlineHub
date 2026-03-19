@@ -17,13 +17,16 @@ local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local Player = LP
+local Player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local PlayerData = Player:WaitForChild("PlayerData")
 local UserInputService = game:GetService("UserInputService")
 local CourierSettings = require(ReplicatedStorage:WaitForChild("Delivery System"):WaitForChild("Settings"))
 local MachinePrompt = workspace.BaristaJob.Interactions.MachinePart.MachinePart.MachinePrompt
 local RegisterPrompt = workspace.BaristaJob.Interactions.RegisterPart.RegisterPart.RegisterPrompt
 local SupplyPrompt = workspace.BaristaJob.Interactions.SupplyPart.SupplyPart.SupplyPrompt
 local JobPrompt = workspace.BaristaJob.Interactions.StartPart.StartPart.JobPrompt
+
 
 -- // CFRAMES
 local SupplyCF = CFrame.new(-5116.78418, 5.78931046, -670.858887)
@@ -37,7 +40,16 @@ local TAKE_PROMPT = workspace:WaitForChild("Livrason"):WaitForChild("Take1"):Wai
 _G.AutofarmCourier = false 
 _G.CourierSpeed = 230  
 _G.AutoFarmBarista = false
+_G.AutoWebhook = false
+_G.WebhookURL = "" 
+_G.TotalEarning = 0
+_G.CycleCount = 0
+_G.StartTime = os.time()
 LastActivity = tick()
+local lastMoney = PlayerData.RPValue.Value
+local pendingIncome = 0
+local isRunning = false
+local cooldownTime = 60
 
 -- [[ ANTI-AFK SYSTEM ]]
 task.spawn(function()
@@ -48,6 +60,133 @@ task.spawn(function()
     end)
 end)
 
+
+-- // 2. FUNGSI AUTO-AVATAR (Narik foto profil user otomatis)
+local function getAvatar()
+    return "https://www.roblox.com/headshot-thumbnail/image?userId=" .. Player.UserId .. "&width=420&height=420&format=png"
+end
+
+-- // 3. FORMAT RUPIAH
+local function formatRP(v)
+    local s = string.format("%.0f", v)
+    local formatted = s:reverse():gsub("(%d%d%d)", "%1."):reverse():gsub("^%.", "")
+    return "RP. " .. formatted
+end
+
+-- // 4. RUNNING TIME
+local function getRunningTime()
+    local diff = os.time() - _G.StartTime
+    return string.format("%02d:%02d:%02d", math.floor(diff/3600), math.floor((diff%3600)/60), diff%60)
+end
+
+-- // 5. FUNGSI WEBHOOK (AUTO AVATAR VERSION)
+local function sendWebhook(income, target)
+    if _G.WebhookURL == "" or not _G.WebhookURL:find("discord.com") then return end
+    
+    _G.CycleCount = _G.CycleCount + 1
+    _G.TotalEarning = _G.TotalEarning + income
+    
+    local currentMoney = PlayerData.RPValue.Value -- Ambil langsung dari PlayerData
+
+    local embed = {
+        ["title"] = "Cycle Completed",
+        ["color"] = 0xFFFFFF,
+        ["fields"] = {
+            {["name"] = "Username", ["value"] = Player.Name, ["inline"] = false},
+            {["name"] = "Cycle Income", ["value"] = formatRP(income), ["inline"] = false},
+            {["name"] = "Target", ["value"] = formatRP(target), ["inline"] = false},
+            {["name"] = "Current Money", ["value"] = formatRP(currentMoney) .. " (Est)", ["inline"] = false},
+            {["name"] = "Total Earning", ["value"] = formatRP(_G.TotalEarning) .. " (Est)", ["inline"] = false},
+            {["name"] = "Cycle Count", ["value"] = tostring(_G.CycleCount), ["inline"] = false},
+            {["name"] = "Running Time", ["value"] = getRunningTime(), ["inline"] = false}
+        },
+        ["image"] = {
+            ["url"] = "https://i.imgur.com/logo_aroel.png" -- Logo tetap Aroel Hub
+        },
+        ["footer"] = {
+            ["text"] = "Powered by Voidline | " .. os.date("%m/%d/%Y %I:%M %p")
+        }
+    }
+
+    local payload = HttpService:JSONEncode({
+        ["username"] = "Voidline Webhook",
+        ["avatar_url"] = getAvatar(), -- INI DIA: Auto ambil foto profil yang pake script
+        ["embeds"] = {embed}
+    })
+
+    pcall(function()
+        request({
+            Url = _G.WebhookURL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = payload
+        })
+    end)
+end
+
+PlayerData.RPValue:GetPropertyChangedSignal("Value"):Connect(function()
+
+    local newMoney = PlayerData.RPValue.Value
+
+    
+
+    if newMoney > lastMoney then
+
+        -- Kumpulin dulu duitnya, jangan langsung kirim
+
+        local income = newMoney - lastMoney
+
+        pendingIncome = pendingIncome + income
+
+        
+
+        -- Cek apa timer 1 menitnya sudah jalan?
+
+        if not isRunning then
+
+            isRunning = true
+
+            
+
+            task.spawn(function()
+
+                while isRunning do
+
+                    task.wait(cooldownTime) -- Nunggu 1 menit anteng
+
+                    
+
+                    -- Kirim kalau ada duit yang kekumpul & URL ada
+
+                    if pendingIncome > 0 and _G.WebhookURL ~= "" then
+
+                        sendWebhook(pendingIncome, 0)
+
+                        pendingIncome = 0 -- Reset buat menit berikutnya
+
+                    end
+
+                    
+
+                    -- Optional: Stop timer kalau user matiin fitur (sesuai variabel lu)
+
+                    if not _G.AutofarmCourier and not _G.AutoFarmBarista then
+
+                        isRunning = false
+
+                    end
+
+                end
+
+            end)
+
+        end
+
+    end
+
+    lastMoney = newMoney
+
+end)
 
 -- // PATHS
 local function GetBaristaElements()
@@ -489,7 +628,26 @@ AutofarmTab:Toggle({
     end
 })
 
-AutofarmTab:Toggle({ 
-Title = "AUTO FIND ANOMALI",
-Desc = " auto search for anomalies"
+local WebhookTab = Window:Tab({ Title = "Webhook", Icon = "webhook" })
+
+WebhookTab:Section({ Title = "Webhook Configuration" })
+
+WebhookTab:Input({
+    Title = "Discord Webhook URL",
+    Desc = "Enter your Discord channel webhook link",
+    Placeholder = "https://discord.com/api/webhooks/...",
+    Callback = function(text)
+        _G.WebhookURL = text
+        print("Webhook set to: " .. text)
+    end
+})
+
+-- Tambahin Toggle biar user bisa ON/OFF log-nya
+WebhookTab:Toggle({
+    Title = "Enable Webhook Logs",
+    Desc = "Send cycle reports to Discord every 1 minute",
+    Default = false,
+    Callback = function(state)
+        _G.AutoWebhook = state
+    end
 })
