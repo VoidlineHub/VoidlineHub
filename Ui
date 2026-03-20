@@ -101,7 +101,7 @@ local function sendWebhook(income, target)
             {["name"] = "Running Time", ["value"] = getRunningTime(), ["inline"] = false}
         },
         ["image"] = {
-            ["url"] = "https://i.imgur.com/logo_aroel.png" -- Logo tetap Aroel Hub
+            ["url"] = "https://cdn.discordapp.com/attachments/1478884254028140611/1484406906570281070/IMG_20260320_122214.jpg?ex=69be1d29&is=69bccba9&hm=74716a72bf915e22a4fdfa2c4a9edf9fbca36f8d9fc1c0dbbe5ab2e54efeec1e&" -- Logo tetap Aroel Hub
         },
         ["footer"] = {
             ["text"] = "Powered by Voidline | " .. os.date("%m/%d/%Y %I:%M %p")
