@@ -17,7 +17,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
-local Player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local PlayerData = Player:WaitForChild("PlayerData")
 local UserInputService = game:GetService("UserInputService")
@@ -111,7 +110,7 @@ local function sendWebhook(income, target)
 
         -- BAGIAN 4: IMAGE (Logo Besar di Bawah)
         ["image"] = {
-            ["url"] = "https://i.imgur.com/G5W4xM9.png" -- Logo VD Kosmik
+            ["url"] = "https://cdn.discordapp.com/attachments/1478884254028140611/1484460670211723304/Gemini_Generated_Image_7og1bq7og1bq7og1.png?ex=69be4f3b&is=69bcfdbb&hm=d179409928b7a1277912aedfca658b94b37a4a99b5f3bb6d39ba9850b1302a6d&" -- Logo VD Kosmik
         },
 
         ["footer"] = {
