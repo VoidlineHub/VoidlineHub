@@ -60,7 +60,6 @@ task.spawn(function()
     end)
 end)
 
-
 -- // 2. FUNGSI AUTO-AVATAR (Narik foto profil user otomatis)
 local function getAvatar()
     return "https://www.roblox.com/headshot-thumbnail/image?userId=" .. Player.UserId .. "&width=420&height=420&format=png"
@@ -86,7 +85,7 @@ local function sendWebhook(income, target)
     _G.CycleCount = _G.CycleCount + 1
     _G.TotalEarning = _G.TotalEarning + income
     
-    local currentMoney = PlayerData.RPValue.Value -- Ambil langsung dari PlayerData
+    local currentMoney = PlayerData.RPValue.Value
 
     local embed = {
         ["title"] = "Cycle Completed",
@@ -101,7 +100,7 @@ local function sendWebhook(income, target)
             {["name"] = "Running Time", ["value"] = getRunningTime(), ["inline"] = false}
         },
         ["image"] = {
-            ["url"] = "https://cdn.discordapp.com/attachments/1478884254028140611/1484406906570281070/IMG_20260320_122214.jpg?ex=69be1d29&is=69bccba9&hm=74716a72bf915e22a4fdfa2c4a9edf9fbca36f8d9fc1c0dbbe5ab2e54efeec1e&" -- Logo tetap Aroel Hub
+            ["url"] = "https://cdn.discordapp.com/attachments/1478884254028140611/1484406906570281070/IMG_20260320_122214.jpg?ex=69be1d29&is=69bccba9&hm=74716a72bf915e22a4fdfa2c4a9edf9fbca36f8d9fc1c0dbbe5ab2e54efeec1e&"
         },
         ["footer"] = {
             ["text"] = "Powered by Voidline | " .. os.date("%m/%d/%Y %I:%M %p")
@@ -110,83 +109,50 @@ local function sendWebhook(income, target)
 
     local payload = HttpService:JSONEncode({
         ["username"] = "Voidline Webhook",
-        ["avatar_url"] = getAvatar(), -- INI DIA: Auto ambil foto profil yang pake script
+        ["avatar_url"] = getAvatar(),
         ["embeds"] = {embed}
     })
 
-    pcall(function()
-        request({
-            Url = _G.WebhookURL,
-            Method = "POST",
-            Headers = {["Content-Type"] = "application/json"},
-            Body = payload
-        })
-    end)
+    -- Perbaikan agar request jalan di semua executor (Delta/Fluxus/Wave/dll)
+    local send = request or http_request or (http and http.request) or (syn and syn.request)
+    if send then
+        pcall(function()
+            send({
+                Url = _G.WebhookURL,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = payload
+            })
+        end)
+    end
 end
 
 PlayerData.RPValue:GetPropertyChangedSignal("Value"):Connect(function()
-
     local newMoney = PlayerData.RPValue.Value
-
-    
-
     if newMoney > lastMoney then
-
-        -- Kumpulin dulu duitnya, jangan langsung kirim
-
         local income = newMoney - lastMoney
-
         pendingIncome = pendingIncome + income
-
         
-
-        -- Cek apa timer 1 menitnya sudah jalan?
-
         if not isRunning then
-
             isRunning = true
-
-            
-
             task.spawn(function()
-
                 while isRunning do
-
-                    task.wait(cooldownTime) -- Nunggu 1 menit anteng
-
-                    
-
-                    -- Kirim kalau ada duit yang kekumpul & URL ada
-
+                    task.wait(cooldownTime)
                     if pendingIncome > 0 and _G.WebhookURL ~= "" then
-
                         sendWebhook(pendingIncome, 0)
-
-                        pendingIncome = 0 -- Reset buat menit berikutnya
-
+                        pendingIncome = 0
                     end
-
-                    
-
-                    -- Optional: Stop timer kalau user matiin fitur (sesuai variabel lu)
-
+                    -- Auto stop jika semua farm off
                     if not _G.AutofarmCourier and not _G.AutoFarmBarista then
-
                         isRunning = false
-
                     end
-
                 end
-
             end)
-
         end
-
     end
-
     lastMoney = newMoney
-
 end)
+
 
 -- // PATHS
 local function GetBaristaElements()
