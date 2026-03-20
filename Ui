@@ -62,7 +62,8 @@ end)
 
 -- // 2. FUNGSI AUTO-AVATAR (Narik foto profil user otomatis)
 local function getAvatar()
-    return "https://www.roblox.com/headshot-thumbnail/image?userId=" .. Player.UserId .. "&width=420&height=420&format=png"
+    -- Pastikan pakai LP.UserId agar sinkron dengan Data Binding lu
+    return "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LP.UserId .. "&width=420&height=420&format=png"
 end
 
 -- // 3. FORMAT RUPIAH
@@ -77,6 +78,7 @@ local function getRunningTime()
     local diff = os.time() - _G.StartTime
     return string.format("%02d:%02d:%02d", math.floor(diff/3600), math.floor((diff%3600)/60), diff%60)
 end
+
 -- // 5. FUNGSI WEBHOOK (VOIDLINE EMBED AUTHOR VERSION)
 local function sendWebhook(income, target)
     if _G.WebhookURL == "" or not _G.WebhookURL:find("discord.com") then return end
@@ -88,19 +90,16 @@ local function sendWebhook(income, target)
     local http_request = request or http_request or (syn and syn.request) or (fluxus and fluxus.request)
 
     local embed = {
-        -- BAGIAN 1: AUTHOR (Avatar URL & Nama di Sampingnya)
         ["author"] = {
             ["name"] = "Voidline Webhook",
-            ["icon_url"] = getAvatar() -- Foto profil lu muncul di sini (Kecil)
+            ["icon_url"] = getAvatar() -- Foto profil lu (LP)
         },
 
-        -- BAGIAN 2: TITLE (Cycle Completed)
         ["title"] = "Cycle Completed",
         ["color"] = 0xFFFFFF,
 
-        -- BAGIAN 3: FIELDS (Data Earning dll)
         ["fields"] = {
-            {["name"] = "Username", ["value"] = Player.Name, ["inline"] = false},
+            {["name"] = "Username", ["value"] = LP.Name, ["inline"] = false}, -- DIUBAH: Dari Player ke LP
             {["name"] = "Cycle Income", ["value"] = formatRP(income), ["inline"] = false},
             {["name"] = "Target", ["value"] = formatRP(target), ["inline"] = false},
             {["name"] = "Current Money", ["value"] = formatRP(currentMoney) .. " (Est)", ["inline"] = false},
@@ -109,9 +108,8 @@ local function sendWebhook(income, target)
             {["name"] = "Running Time", ["value"] = getRunningTime(), ["inline"] = false}
         },
 
-        -- BAGIAN 4: IMAGE (Logo Besar di Bawah)
         ["image"] = {
-            ["url"] = "https://cdn.discordapp.com/attachments/1478884254028140611/1484460670211723304/Gemini_Generated_Image_7og1bq7og1bq7og1.png?ex=69be4f3b&is=69bcfdbb&hm=d179409928b7a1277912aedfca658b94b37a4a99b5f3bb6d39ba9850b1302a6d&" -- Logo VD Kosmik
+            ["url"] = "https://cdn.discordapp.com/attachments/1478884254028140611/1484460670211723304/Gemini_Generated_Image_7og1bq7og1bq7og1.png"
         },
 
         ["footer"] = {
@@ -120,7 +118,6 @@ local function sendWebhook(income, target)
     }
 
     local payload = HttpService:JSONEncode({
-        -- Username bot luar kita biarin default atau kosongin biar fokus ke Author
         ["username"] = "Voidline Reports", 
         ["embeds"] = {embed}
     })
@@ -137,27 +134,22 @@ local function sendWebhook(income, target)
     end
 end
 
--- Pas duit berubah...
+-- // 6. MONEY MONITOR (DAFTAR PERUBAHAN DUIT)
 PlayerData.RPValue:GetPropertyChangedSignal("Value"):Connect(function()
     local newMoney = PlayerData.RPValue.Value
     if newMoney > lastMoney then
-        -- 1. MASUKIN CELENGAN
         pendingIncome = pendingIncome + (newMoney - lastMoney)
         
-        -- 2. JALANIN TIMER (CUMA SEKALI DI AWAL)
         if not isRunning then
             isRunning = true
             task.spawn(function()
                 while isRunning do
-                    task.wait(60) -- 3. NUNGGU 1 MENIT ANTENG
-                    
-                    -- 4. KIRIM HASIL AKUMULASI
+                    task.wait(60)
                     if pendingIncome > 0 and _G.WebhookURL ~= "" then
                         sendWebhook(pendingIncome, 0)
-                        pendingIncome = 0 -- RESET
+                        pendingIncome = 0
                     end
-                    
-                    -- 5. AUTO STOP (BIAR GAK BOROS MEMORI)
+                    -- Auto stop jika semua farm off
                     if not _G.AutofarmCourier and not _G.AutoFarmBarista then
                         isRunning = false
                     end
@@ -167,6 +159,7 @@ PlayerData.RPValue:GetPropertyChangedSignal("Value"):Connect(function()
     end
     lastMoney = newMoney
 end)
+
 
 -- // PATHS
 local function GetBaristaElements()
