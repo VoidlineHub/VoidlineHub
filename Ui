@@ -109,7 +109,7 @@ local function sendWebhook(income, target)
         },
 
         ["image"] = {
-            ["url"] = "https://cdn.discordapp.com/attachments/1478884254028140611/1484460670211723304/Gemini_Generated_Image_7og1bq7og1bq7og1.png"
+            ["url"] = "https://cdn.discordapp.com/attachments/1478884254028140611/1484460670211723304/Gemini_Generated_Image_7og1bq7og1bq7og1.png?ex=69be4f3b&is=69bcfdbb&hm=d179409928b7a1277912aedfca658b94b37a4a99b5f3bb6d39ba9850b1302a6d&"
         },
 
         ["footer"] = {
