@@ -16,16 +16,17 @@ local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
-local LP = Players.LocalPlayer
+local LP = Players.LocalPlayer -- Kita pakai LP untuk LocalPlayer
 local RunService = game:GetService("RunService")
-local PlayerData = Player:WaitForChild("PlayerData")
+local PlayerData = LP:WaitForChild("PlayerData") -- DIPERBAIKI: Dari Player jadi LP
 local UserInputService = game:GetService("UserInputService")
+
+-- // SETTINGS & PROMPTS
 local CourierSettings = require(ReplicatedStorage:WaitForChild("Delivery System"):WaitForChild("Settings"))
 local MachinePrompt = workspace.BaristaJob.Interactions.MachinePart.MachinePart.MachinePrompt
 local RegisterPrompt = workspace.BaristaJob.Interactions.RegisterPart.RegisterPart.RegisterPrompt
 local SupplyPrompt = workspace.BaristaJob.Interactions.SupplyPart.SupplyPart.SupplyPrompt
 local JobPrompt = workspace.BaristaJob.Interactions.StartPart.StartPart.JobPrompt
-
 
 -- // CFRAMES
 local SupplyCF = CFrame.new(-5116.78418, 5.78931046, -670.858887)
