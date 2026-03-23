@@ -15,7 +15,7 @@ _G.AutoRaceActive = false
 _G.TweenSpeed = 200 
 _G.TweenDelay = 3
 _G.SelectNPC = "DA0ZA"
-_G.SelectDealer = "Creeper"
+_G.SelectDealer = "Daihatsu"
 _G.AntiAFK = true
 
 -- Logic Anti-AFK
@@ -209,30 +209,49 @@ MainTab:Section({ Title = "Race Utility" })
 
 MainTab:Button({
     Title = "Delete NPC Vehicles",
-    Desc = "Hapus kendaraan NPC yang menghalangi jalan",
+    Desc = "Clear all NPC vehicles to avoid collisions during race.",
     Callback = function()
-        
+        if workspace:FindFirstChild("NPCVehicle") then
+            workspace.NPCVehicle:Destroy()
+            WindUI:Notify({ 
+                Title = "Voidline", 
+                Content = "NPC Vehicles has been cleared!" 
+            })
+        else
+            WindUI:Notify({ 
+                Title = "Voidline", 
+                Content = "No NPC Vehicles found." 
+            })
+        end
     end
 })
 
--- Tambahin Slider Speed & Toggle (Sesuai rencana kita tadi)
+-- [[ 6. AUTO RACE CONFIGURATION ]] --
 MainTab:Section({ Title = "Auto Race Configuration" })
 
 MainTab:Slider({
     Title = "Tween Speed",
+    Desc = "Adjust your car's movement speed during race.",
     Step = 1,
-    Value = { Min = 10, Max = 300, Default = 200 },
+    Value = { Min = 10, Max = 400, Default = 200 }, -- Gue naikin max ke 400 biar makin kenceng
     Callback = function(v)
-        print("Speed set to: " .. v)
+        _G.TweenSpeed = v
     end
 })
 
 MainTab:Toggle({
     Title = "Start Auto Race",
-    Desc = "Mulai balapan otomatis (1-38)",
+    Desc = "Start automatic racing from Checkpoint 1 to 38.",
     Value = false,
     Callback = function(state)
+        _G.AutoRaceActive = state
         
+        -- Notifikasi status
+        if state then
+            WindUI:Notify({ Title = "Voidline", Content = "Auto Race Enabled!" })
+        else
+            WindUI:Notify({ Title = "Voidline", Content = "Auto Race Disabled." })
+        end
     end
 })
 
@@ -250,7 +269,7 @@ MainTab:Dropdown({
 
 MainTab:Button({
     Title = "Open Dealer",
-    Desc = "Klik untuk memicu menu dealer",
+    Desc = "remote open dealer",
     Callback = function()
         local dealerPath
         
