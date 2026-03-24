@@ -715,18 +715,21 @@ end)
 end)
 
 -- [[ UI ELEMENTS ]] --
-MiscTab:Section({ Title = "Protection" })
+
+
+
+MiscTab:Section({ Title = "Optimization" })
 
 MiscTab:Toggle({
-    Title = "Anti-Staff / Admin",
-    Value = _G.AntiStaff or false,
+    Title = "Anti-Staff",
+    Desc = "if there is staff will be kicked",
+    Value = _G.AntiStaff, -- Ini otomatis ngambil 'false' dari variabel lu di atas
     Callback = function(state)
         _G.AntiStaff = state
-        SaveMisc()
+        SaveMisc() -- Fungsi save lu
     end
 })
 
-MiscTab:Section({ Title = "Optimization" })
 
 MiscTab:Toggle({
     Title = "Anti-AFK",
