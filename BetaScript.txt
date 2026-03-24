@@ -773,10 +773,11 @@ MiscTab:Input({
 
 MiscTab:Dropdown({
     Title = "Action on Target",
-    Options = {"Stop", "Kick", "Rejoin"},
-    Value = _G.OnTargetReached,
-    Callback = function(val)
-        _G.OnTargetReached = val
-        SaveMisc()
+    Desc = "select action when target is reached",
+    Values = {"Stop", "Kick", "Rejoin"},
+    Value = _G.ActionOnTarget, -- Default ambil dari variabel _G lu
+    Callback = function(option)
+        _G.ActionOnTarget = option
+        -- Optional: SaveMisc() biar langsung kesimpen
     end
 })
