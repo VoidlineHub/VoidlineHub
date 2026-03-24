@@ -1,0 +1,134 @@
+-- [[ VOIDLINE HUB - FINAL STABLE 9S DELAY ]] --
+local WindUI = loadstring(game:HttpGet('https://github.com/Footagesus/WindUI/releases/latest/download/main.lua'))()
+
+local Window = WindUI:CreateWindow({
+    Title = "VoidlineHub",
+    Icon = "rbxassetid://10723343321",
+    Author = "Bilzz",
+    Size = UDim2.fromOffset(320, 350), 
+    Transparent = true, 
+    Folder = "VoidlineHub_Config"
+})
+
+local MainTab = Window:Tab({
+    Title = "Auto Farm",
+    Icon = "rbxassetid://10709789531"
+})
+
+-- [[ DATA CONFIG ]] --
+local FINISH_POS = CFrame.new(16376.9463, 12.8355455, -1365.27478, -0.906296611, 0, 0.422642082, 0, 1, 0, -0.422642082, 0, -0.906296611)
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local lp = Players.LocalPlayer
+local remotes = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Races")
+local _AutoFarm = false
+
+-- [[ FUNCTIONS ]] --
+local function getMyCar()
+    return workspace:WaitForChild("AVehicleStorage"):FindFirstChild(lp.Name)
+end
+
+local function joinRace()
+    if _AutoFarm then
+      
+        remotes:WaitForChild("Race_Join"):FireServer("AirportDrag")
+    end
+end
+
+-- [[ UI ELEMENTS ]] --
+MainTab:Section({ Title = "Main Controls" })
+
+MainTab:Toggle({
+    Title = "Auto race airport drag",
+    Desc = "auto drag race loop",
+    Value = false,
+    Callback = function(Value)
+        _AutoFarm = Value
+        if Value then joinRace() end
+    end
+})
+
+local StatusSection = MainTab:Section({ Title = "Status: Idle" })
+
+-- [[ CORE LOGIC ]] --
+remotes:WaitForChild("Race_TimerStart").OnClientEvent:Connect(function(trackName, startTime, cpCount)
+    if not _AutoFarm then return end
+    
+    StatusSection:SetTitle("Status: Race Started!")
+    
+    -- 1. Tunggu GO!
+    while workspace:GetServerTimeNow() < startTime do 
+        task.wait(0.01) 
+    end
+    
+    
+    StatusSection:SetTitle("Status: GO! Wait 15s...")
+    
+    -- 2. Tunggu ExploitTime
+    task.wait(15.0) 
+
+    -- 3. CARI MAP & TELEPORT
+    local car = getMyCar()
+    local mapFolder = nil
+    
+    for i = 1, 15 do
+        local raceFolder = workspace.Races:FindFirstChild(trackName)
+        mapFolder = raceFolder and raceFolder:FindFirstChild(trackName .. "Map")
+        if mapFolder then break end
+        task.wait(0.5)
+    end
+    
+    if car and mapFolder then
+        StatusSection:SetTitle("Status: Teleporting CPs...")
+        local cpFolder = mapFolder:WaitForChild("Checkpoints", 5)
+        
+        if cpFolder then
+            for i = 1, cpCount do
+                pcall(function()
+                    local targetCP = cpFolder:FindFirstChild(tostring(i))
+                    if targetCP then
+                        car:PivotTo(targetCP.CFrame + Vector3.new(0, 2, 0))
+                        task.wait(0.3)
+                    end
+                end)
+            end
+        end
+        
+        -- FINAL FINISH
+        car:PivotTo(FINISH_POS)
+        StatusSection:SetTitle("Status: Race Finished!")
+    end
+end)
+
+-- [[ FIX REJOIN DELAY 9s ]] --
+remotes:WaitForChild("Race_Finish").OnClientEvent:Connect(function()
+    if not _AutoFarm then return end
+    
+    StatusSection:SetTitle("Status: Waiting 9s for Reset...")
+    task.wait(9) -- Sesuai request lu: Delay 9 detik biar server aman
+    
+    StatusSection:SetTitle("Status: Rejoining...")
+    joinRace()
+end)
+
+-- [[ FIX AUTO SKIP CUTSCENE ]] --
+remotes:WaitForChild("Race_SkipCutscene").OnClientEvent:Connect(function()
+    if _AutoFarm then
+        task.wait(1.5) -- Jeda lebih lama biar server siap
+        pcall(function()
+            local currentRace = lp:GetAttribute("RaceName") or "AirportDrag"
+            remotes.Race_SkipVote:FireServer(currentRace)
+            
+        end)
+    end
+end)
+
+-- Anti AFK
+local VirtualUser = game:GetService("VirtualUser")
+lp.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+end)
+
+
