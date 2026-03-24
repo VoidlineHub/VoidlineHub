@@ -678,14 +678,16 @@ task.spawn(function()
     local vu = game:GetService("VirtualUser")
     
     -- Anti-Staff Monitor
-    Players.PlayerAdded:Connect(function(plr)
+    task.spawn(function()
+    while task.wait(3) do
         if _G.AntiStaff then
-            -- Cek Rank (Biasanya Admin punya Rank > 200 atau Group ID tertentu)
-            if plr:GetRankInGroup(1234567) >= 100 or plr.AccountAge < 30 then -- Ganti ID Group Game-nya
-                LP:Kick("Voidline: Staff Detected! (" .. plr.Name .. ")")
+            -- Kalau jumlah player di server > 1 (berarti ada orang lain selain lu)
+            if #game.Players:GetPlayers() > 1 then
+                LP:Kick("Voidline: staff detect!")
             end
         end
-    end)
+    end
+end)
     
     -- Anti-AFK
     LP.Idled:Connect(function()
