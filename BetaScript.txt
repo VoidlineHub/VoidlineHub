@@ -697,16 +697,32 @@ end)
         end
     end)
     
-    -- Target & Action Monitor
-    while task.wait(5) do
+    
+end)
+
+-- [[ MONITOR LOOP UTAMA ]] --
+task.spawn(function()
+    while task.wait(3) do
+        -- Cek: Target System ON, Sedang Farm, dan Target RP > 0
         if _G.TargetEnabled and (_G.AutofarmCourier or _G.AutoFarmBarista) and (_G.TargetMoney and _G.TargetMoney > 0) then
-            if PlayerData.RPValue.Value >= _G.TargetMoney then
-                _G.AutofarmCourier, _G.AutoFarmBarista, _G.TargetEnabled = false, false, false
-                SaveMisc() -- Simpan biar pas rejoin gak farm lagi
+            
+            local currentRP = PlayerData.RPValue.Value
+            
+            if currentRP >= _G.TargetMoney then
+                -- 1. Matikan flag (PENTING!)
+                _G.AutofarmCourier = false
+                _G.AutoFarmBarista = false
+                _G.TargetEnabled = false
                 
-                if _G.OnTargetReached == "Kick" then
-                    LP:Kick("Target RP Tercapai!")
-                elseif _G.OnTargetReached == "Rejoin" then
+                -- 2. Simpan settingan (biar pas rejoin farm tetap OFF)
+                if SaveMisc then SaveMisc() end
+                
+                -- 3. Eksekusi Action (Hanya logic, no print/warn)
+                if _G.ActionOnTarget == "Stop farming" then
+                    -- Tidak melakukan apa-apa selain mematikan flag di atas
+                elseif _G.ActionOnTarget == "Kick" then
+                    LP:Kick("Target RP " .. _G.TargetMoney .. " Tercapai!")
+                elseif _G.ActionOnTarget == "Rejoin" then
                     game:GetService("TeleportService"):Teleport(game.PlaceId, LP)
                 end
             end
