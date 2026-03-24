@@ -36,7 +36,7 @@ local StartJobCF = CFrame.new(-4989.80078, 5.30382967, -715.013062)
 local TAKE_BOX_CFRAME = CFrame.new(-5105.61182, 4.48948574, -3758.98267)
 local TAKE_PROMPT = workspace:WaitForChild("Livrason"):WaitForChild("Take1"):WaitForChild("Take"):WaitForChild("ProximityPrompt")
 
--- [[ GLOBAL VARIABLES ]]
+-- [[ GLOBAL VARIABLES ]] --
 _G.AutofarmCourier = false 
 _G.CourierSpeed = 230  
 _G.AutoFarmBarista = false
@@ -45,20 +45,35 @@ _G.WebhookURL = ""
 _G.TotalEarning = 0
 _G.CycleCount = 0
 _G.StartTime = os.time()
-LastActivity = tick()
+_G.TargetMoney = 0
+_G.ActionOnTarget = "Stop" 
+_G.FPSBoost = false
+_G.AntiAFK = true
+_G.TargetEnabled = false
+_G.AntiStaff = false
+
+-- [[ LOCAL VARIABLES ]] --
+local LastActivity = tick()
 local lastMoney = PlayerData.RPValue.Value
 local pendingIncome = 0
 local isRunning = false
 local cooldownTime = 60
+local fileName = "Voidline_Misc_Config.json"
 
--- [[ ANTI-AFK SYSTEM ]]
-task.spawn(function()
-    local VirtualUser = game:GetService("VirtualUser")
-    game:GetService("Players").LocalPlayer.Idled:Connect(function()
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new())
+-- [[ AUTO LOAD SETTING ]] --
+if isfile(fileName) then
+    local success, config = pcall(function() 
+        return game:GetService("HttpService"):JSONDecode(readfile(fileName)) 
     end)
-end)
+    if success then
+        _G.TargetMoney = config.TM or 0
+        _G.ActionOnTarget = config.OTR or "Stop"
+        _G.AntiAFK = config.AFK
+        _G.FPSBoost = config.FPS
+        _G.TargetEnabled = config.TE or false
+        _G.AntiStaff = config.AS or false
+    end
+end
 
 -- // 2. FUNGSI AUTO-AVATAR (Narik foto profil user otomatis)
 local function getAvatar()
@@ -622,5 +637,146 @@ WebhookTab:Toggle({
     Default = false,
     Callback = function(state)
         _G.AutoWebhook = state
+    end
+})
+
+
+-- [[ CONFIG FILE NAME ]] --
+local fileName = "Voidline_Misc_Config.json"
+
+-- [[ AUTO SAVE/LOAD LOGIC ]] --
+local function SaveMisc()
+    local data = {
+        TargetMoney = _G.TargetMoney or 0,
+        OnTargetReached = _G.OnTargetReached or "Stop",
+        AntiAFK = _G.AntiAFK or true,
+        FPSBoost = _G.FPSBoost or false,
+        TargetEnabled = _G.TargetEnabled or false,
+        AntiStaff = _G.AntiStaff or false
+    }
+    writefile(fileName, HttpService:JSONEncode(data))
+end
+
+local function LoadMisc()
+    if isfile(fileName) then
+        local config = HttpService:JSONDecode(readfile(fileName))
+        _G.TargetMoney = config.TargetMoney
+        _G.OnTargetReached = config.OnTargetReached
+        _G.AntiAFK = config.AntiAFK
+        _G.FPSBoost = config.FPSBoost
+        _G.TargetEnabled = config.TargetEnabled
+        _G.AntiStaff = config.AntiStaff
+    end
+end
+LoadMisc()
+
+-- [[ TAB MISC ]] --
+local MiscTab = Window:Tab({ Title = "Misc", Icon = "settings" })
+
+-- [[ LOGIC BACKGROUND ]] --
+task.spawn(function()
+    local vu = game:GetService("VirtualUser")
+    
+    -- Anti-Staff Monitor
+    Players.PlayerAdded:Connect(function(plr)
+        if _G.AntiStaff then
+            -- Cek Rank (Biasanya Admin punya Rank > 200 atau Group ID tertentu)
+            if plr:GetRankInGroup(1234567) >= 100 or plr.AccountAge < 30 then -- Ganti ID Group Game-nya
+                LP:Kick("Voidline: Staff Detected! (" .. plr.Name .. ")")
+            end
+        end
+    end)
+    
+    -- Anti-AFK
+    LP.Idled:Connect(function()
+        if _G.AntiAFK then
+            vu:CaptureController()
+            vu:ClickButton2(Vector2.new())
+        end
+    end)
+    
+    -- Target & Action Monitor
+    while task.wait(5) do
+        if _G.TargetEnabled and (_G.AutofarmCourier or _G.AutoFarmBarista) and (_G.TargetMoney and _G.TargetMoney > 0) then
+            if PlayerData.RPValue.Value >= _G.TargetMoney then
+                _G.AutofarmCourier, _G.AutoFarmBarista, _G.TargetEnabled = false, false, false
+                SaveMisc() -- Simpan biar pas rejoin gak farm lagi
+                
+                if _G.OnTargetReached == "Kick" then
+                    LP:Kick("Target RP Tercapai!")
+                elseif _G.OnTargetReached == "Rejoin" then
+                    game:GetService("TeleportService"):Teleport(game.PlaceId, LP)
+                end
+            end
+        end
+    end
+end)
+
+-- [[ UI ELEMENTS ]] --
+MiscTab:Section({ Title = "Protection" })
+
+MiscTab:Toggle({
+    Title = "Anti-Staff / Admin",
+    Value = _G.AntiStaff or false,
+    Callback = function(state)
+        _G.AntiStaff = state
+        SaveMisc()
+    end
+})
+
+MiscTab:Section({ Title = "Optimization" })
+
+MiscTab:Toggle({
+    Title = "Anti-AFK",
+    Value = _G.AntiAFK,
+    Callback = function(state)
+        _G.AntiAFK = state
+        SaveMisc()
+    end
+})
+
+MiscTab:Toggle({
+    Title = "FPS Booster",
+    Value = _G.FPSBoost,
+    Callback = function(state)
+        _G.FPSBoost = state
+        if state then
+            settings().Rendering.QualityLevel = 1
+            for _, v in pairs(game:GetDescendants()) do
+                if v:IsA("Part") or v:IsA("MeshPart") then v.Material = Enum.Material.SmoothPlastic
+                elseif v:IsA("Decal") or v:IsA("Texture") then v:Destroy() end
+            end
+        end
+        SaveMisc()
+    end
+})
+
+MiscTab:Section({ Title = "Target Settings" })
+
+MiscTab:Toggle({
+    Title = "Enable Target System",
+    Value = _G.TargetEnabled,
+    Callback = function(state)
+        _G.TargetEnabled = state
+        SaveMisc()
+    end
+})
+
+MiscTab:Input({
+    Title = "Target RP",
+    Placeholder = "Current: " .. (_G.TargetMoney or 0),
+    Callback = function(val)
+        _G.TargetMoney = tonumber(val:gsub("[,%.]", "")) or 0
+        SaveMisc()
+    end
+})
+
+MiscTab:Dropdown({
+    Title = "Action on Target",
+    Options = {"Stop", "Kick", "Rejoin"},
+    Value = _G.OnTargetReached,
+    Callback = function(val)
+        _G.OnTargetReached = val
+        SaveMisc()
     end
 })
