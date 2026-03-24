@@ -46,7 +46,7 @@ _G.TotalEarning = 0
 _G.CycleCount = 0
 _G.StartTime = os.time()
 _G.TargetMoney = 0
-_G.ActionOnTarget = "Stop" 
+_G.ActionOnTarget = "Stop farming" 
 _G.FPSBoost = false
 _G.AntiAFK = true
 _G.TargetEnabled = false
@@ -718,7 +718,7 @@ end)
 
 
 
-MiscTab:Section({ Title = "Optimization" })
+MiscTab:Section({ Title = "more feature" })
 
 MiscTab:Toggle({
     Title = "Anti-Staff",
@@ -779,7 +779,7 @@ MiscTab:Input({
 MiscTab:Dropdown({
     Title = "Action on Target",
     Desc = "select action when target is reached",
-    Values = {"Stop", "Kick", "Rejoin"},
+    Values = {"Stop farming", "Kick", "Rejoin"},
     Value = _G.ActionOnTarget, -- Default ambil dari variabel _G lu
     Callback = function(option)
         _G.ActionOnTarget = option
