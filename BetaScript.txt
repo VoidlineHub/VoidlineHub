@@ -697,38 +697,34 @@ end)
         end
     end)
     
-    
-end)
+    -- [[ DATA BINDING ]] --
+local currentRP = PlayerData:WaitForChild("RPValue")
 
--- [[ MONITOR LOOP UTAMA ]] --
-task.spawn(function()
-    while task.wait(3) do
-        -- Cek: Target System ON, Sedang Farm, dan Target RP > 0
-        if _G.TargetEnabled and (_G.AutofarmCourier or _G.AutoFarmBarista) and (_G.TargetMoney and _G.TargetMoney > 0) then
+-- Monitor Duit Otomatis (Gantiin Loop task.wait)
+currentRP.Changed:Connect(function(newVal)
+    if _G.TargetEnabled and (_G.AutofarmCourier or _G.AutoFarmBarista) then
+        if _G.TargetMoney and _G.TargetMoney > 0 and newVal >= _G.TargetMoney then
+            -- 1. Matikan Flag
+            _G.AutofarmCourier = false
+            _G.AutoFarmBarista = false
+            _G.TargetEnabled = false
             
-            local currentRP = PlayerData.RPValue.Value
+            -- 2. Save State (Biar pas rejoin tetep OFF)
+            if SaveMisc then SaveMisc() end
             
-            if currentRP >= _G.TargetMoney then
-                -- 1. Matikan flag (PENTING!)
-                _G.AutofarmCourier = false
-                _G.AutoFarmBarista = false
-                _G.TargetEnabled = false
-                
-                -- 2. Simpan settingan (biar pas rejoin farm tetap OFF)
-                if SaveMisc then SaveMisc() end
-                
-                -- 3. Eksekusi Action (Hanya logic, no print/warn)
-                if _G.ActionOnTarget == "Stop farming" then
-                    -- Tidak melakukan apa-apa selain mematikan flag di atas
-                elseif _G.ActionOnTarget == "Kick" then
-                    LP:Kick("Target RP " .. _G.TargetMoney .. " Tercapai!")
-                elseif _G.ActionOnTarget == "Rejoin" then
-                    game:GetService("TeleportService"):Teleport(game.PlaceId, LP)
-                end
+            -- 3. Action (Sesuai Pilihan Lu)
+            if _G.ActionOnTarget == "Stop farming" then
+                -- Diem
+            elseif _G.ActionOnTarget == "Kick" then
+                LP:Kick("Target RP " .. _G.TargetMoney .. " Tercapai!")
+            elseif _G.ActionOnTarget == "Rejoin" then
+                game:GetService("TeleportService"):Teleport(game.PlaceId, LP)
             end
         end
     end
 end)
+
+
 
 -- [[ UI ELEMENTS ]] --
 
