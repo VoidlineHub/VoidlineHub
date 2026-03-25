@@ -8,7 +8,13 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local lp = Players.LocalPlayer
 local remotes = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Races")
-
+local function joinRace()
+    if _G.AutoTail then
+        remotes.Race_Join:FireServer("Tail")
+    elseif _G.AutoFarm then
+        remotes.Race_Join:FireServer("AirportDrag")
+    end
+end
 
 -- [[ VARIABEL ]] --
 _G.AutoTail = false
@@ -68,16 +74,14 @@ remotes.Race_TimerStart.OnClientEvent:Connect(function(trackName, startTime, cpC
     end
 end)
 
-RaceRemotes.Race_Finish.OnClientEvent:Connect(function()
+remotes.Race_Finish.OnClientEvent:Connect(function()
     if _G.AutoTail then
         for i = 9, 1, -1 do
             task.wait(1)
         end
-        RaceRemotes.Race_Join:FireServer("Tail")
+        remotes.Race_Join:FireServer("Tail")
     end
 end)
-
-
 
 
 
@@ -127,13 +131,34 @@ remotes:WaitForChild("Race_TimerStart").OnClientEvent:Connect(function(trackName
     end
 end)
 
--- [[ FIX REJOIN DELAY 9s ]] --
+-- [[ FIX REJOIN LOGIC (DRAG & TAIL) ]] --
+
 remotes:WaitForChild("Race_Finish").OnClientEvent:Connect(function()
-    if not _G.AutoFarm then return end
+
+    -- Cek apakah salah satu fitur auto lagi nyala
+
+    if not _G.AutoFarm and not _G.AutoTail then return end
+
     
-    StatusSection:SetTitle("Status: Waiting 9s for Reset...")
-    task.wait(9) -- Sesuai request lu: Delay 9 detik biar server aman
+
+    -- Update UI biar lu tau lagi nunggu
+
+    if StatusSection then
+
+    end
+
+    
+
+    -- Delay 9 detik biar aman dari deteksi server
+
+    task.wait(9) 
+
+    
+
+    -- Panggil fungsi join yang tadi kita bikin
+
     joinRace()
+
 end)
 
 -- [[ FIX AUTO SKIP CUTSCENE ]] --
@@ -168,7 +193,7 @@ MainTab:Toggle({
     Desc = "auto drag race loop",
     Value = false,
     Callback = function(Value)
-        _AutoFarm = Value
+        _G.AutoFarm = Value
         if Value then joinRace() end
     end
 })
