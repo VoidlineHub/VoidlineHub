@@ -1,216 +1,138 @@
--- [[ VOIDLINE HUB - FINAL STABLE 9S DELAY ]] --
+-- [[ 1. LOAD WIND UI ]] --
 local WindUI = loadstring(game:HttpGet('https://github.com/Footagesus/WindUI/releases/latest/download/main.lua'))()
 
--- [[ DATA CONFIG ]] --
-local FINISH_POS = CFrame.new(16376.9463, 12.8355455, -1365.27478, -0.906296611, 0, 0.422642082, 0, 1, 0, -0.422642082, 0, -0.906296611)
-local TAIL_FINISH = CFrame.new(66.1744461, 97.5540085, -6510.10059)
+-- [[ 2. DATA BINDING ]] --
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local lp = Players.LocalPlayer
 local remotes = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Races")
-local function joinRace()
-    if _G.AutoTail then
-        remotes.Race_Join:FireServer("Tail")
-    elseif _G.AutoFarm then
-        remotes.Race_Join:FireServer("AirportDrag")
-    end
-end
 
--- [[ VARIABEL ]] --
-_G.AutoTail = false
+-- [[ 3. VARIABEL & LOCATIONS ]] --
 _G.AutoFarm = false
+_G.SelectedRace = "Airport Drag" -- Default value
 
--- [[ HELPER FUNCTIONS ]] --
+local raceNames = {"Airport Drag", "Tail of the Dragon"}
+local FINISH_POS = CFrame.new(16376.9463, 12.8355455, -1365.27478, -0.906296611, 0, 0.422642082, 0, 1, 0, -0.422642082, 0, -0.906296611)
+local TAIL_FINISH = CFrame.new(66.1744461, 97.5540085, -6510.10059)
+local DashBtn -- Untuk update Desc
+
+-- [[ 4. FUNCTION ]] --
 local function getMyCar()
     return workspace.AVehicleStorage:FindFirstChild(lp.Name)
 end
 
--- [[ TAIL RACE LOGIC ]] --
+local function joinRace()
+    if not _G.AutoFarm then return end
+    local mode = (_G.SelectedRace == "Tail of the Dragon" and "Tail") or "AirportDrag"
+    remotes.Race_Join:FireServer(mode)
+end
+
+-- [[ 5. LOGIC RACE ]] --
 remotes.Race_TimerStart.OnClientEvent:Connect(function(trackName, startTime, cpCount)
-    if not _G.AutoTail or trackName ~= "Tail" then return end
+    if not _G.AutoFarm then return end
     
     -- Tunggu Lampu Hijau
     while workspace:GetServerTimeNow() < startTime do 
+        if DashBtn then DashBtn:SetDesc("Status: Waiting Green Light...") end
         task.wait(0.01) 
     end
     
-    -- LIVE TIMER LOOP (95s)
-    for i = 1, 95 do
-        if not _G.AutoTail then break end
-        task.wait(1)
-    end
-    
-    local car = workspace.AVehicleStorage:FindFirstChild(lp.Name)
-    if not car then 
-        return 
-    end
-
-    -- STEP 1: Streaming Bypass
-    car:PivotTo(TAIL_FINISH) 
-    task.wait(3)
-
-    -- STEP 2: Checkpoint Run
-    local raceFolder = workspace:FindFirstChild("Races")
-    local tailFolder = raceFolder and raceFolder:FindFirstChild("Tail")
-    local map = tailFolder and tailFolder:FindFirstChild("TailMap")
-    
-    if map then
-        local cps = map:FindFirstChild("Checkpoints")
-        if cps then
-            for i = 1, 32 do
-                if not _G.AutoTail then break end
-                local cp = cps:FindFirstChild(tostring(i))
-                if cp then
-                    car:PivotTo(cp.CFrame + Vector3.new(0, 2, 0))
-                    task.wait(0.4) 
-                end
-            end
-            -- Finish beneran
-            task.wait(0.5)
-            car:PivotTo(TAIL_FINISH)
+    -- TAIL LOGIC
+    if _G.SelectedRace == "Tail of the Dragon" and trackName == "Tail" then
+        for i = 1, 95 do
+            if not _G.AutoFarm then break end
+            if DashBtn then DashBtn:SetDesc("Timer: " .. i .. "s / 95s") end
+            task.wait(1)
         end
-    else
-
+        local car = getMyCar()
+        if car then
+            car:PivotTo(TAIL_FINISH) 
+            task.wait(3)
+            local raceFolder = workspace:FindFirstChild("Races")
+            local map = raceFolder and raceFolder.Tail:FindFirstChild("TailMap")
+            if map then
+                for i = 1, 32 do
+                    if not _G.AutoFarm then break end
+                    local cp = map.Checkpoints:FindFirstChild(tostring(i))
+                    if cp then 
+                        DashBtn:SetDesc("CP: " .. i .. "/32")
+                        car:PivotTo(cp.CFrame + Vector3.new(0, 2, 0))
+                        task.wait(0.4) 
+                    end
+                end
+                car:PivotTo(TAIL_FINISH)
+            end
+        end
+        
+    -- DRAG LOGIC
+    elseif _G.SelectedRace == "Airport Drag" and trackName ~= "Tail" then
+        DashBtn:SetDesc("Status: Racing Drag...")
+        task.wait(15.0) 
+        local car = getMyCar()
+        if car then car:PivotTo(FINISH_POS) end
     end
 end)
 
 remotes.Race_Finish.OnClientEvent:Connect(function()
-    if _G.AutoTail then
-        for i = 9, 1, -1 do
-            task.wait(1)
-        end
-        remotes.Race_Join:FireServer("Tail")
-    end
-end)
-
-
-
-
--- [[ Autodrag LOGIC ]] --
-remotes:WaitForChild("Race_TimerStart").OnClientEvent:Connect(function(trackName, startTime, cpCount)
     if not _G.AutoFarm then return end
-    
-    
-    -- 1. Tunggu GO!
-    while workspace:GetServerTimeNow() < startTime do 
-        task.wait(0.01) 
+    for i = 9, 1, -1 do
+        DashBtn:SetDesc("Re-join in: " .. i .. "s")
+        task.wait(1)
     end
-    
-    
-    -- 2. Tunggu ExploitTime
-    task.wait(15.0) 
-
-    -- 3. CARI MAP & TELEPORT
-    local car = getMyCar()
-    local mapFolder = nil
-    
-    for i = 1, 15 do
-        local raceFolder = workspace.Races:FindFirstChild(trackName)
-        mapFolder = raceFolder and raceFolder:FindFirstChild(trackName .. "Map")
-        if mapFolder then break end
-        task.wait(0.5)
-    end
-    
-    if car and mapFolder then
-        local cpFolder = mapFolder:WaitForChild("Checkpoints", 5)
-        
-        if cpFolder then
-            for i = 1, cpCount do
-                pcall(function()
-                    local targetCP = cpFolder:FindFirstChild(tostring(i))
-                    if targetCP then
-                        car:PivotTo(targetCP.CFrame + Vector3.new(0, 2, 0))
-                        task.wait(0.3)
-                    end
-                end)
-            end
-        end
-        
-        -- FINAL FINISH
-        car:PivotTo(FINISH_POS)
-    end
-end)
-
--- [[ FIX REJOIN LOGIC (DRAG & TAIL) ]] --
-
-remotes:WaitForChild("Race_Finish").OnClientEvent:Connect(function()
-
-    -- Cek apakah salah satu fitur auto lagi nyala
-
-    if not _G.AutoFarm and not _G.AutoTail then return end
-
-    
-
-    -- Update UI biar lu tau lagi nunggu
-
-    if StatusSection then
-
-    end
-
-    
-
-    -- Delay 9 detik biar aman dari deteksi server
-
-    task.wait(9) 
-
-    
-
-    -- Panggil fungsi join yang tadi kita bikin
-
     joinRace()
-
 end)
 
--- [[ FIX AUTO SKIP CUTSCENE ]] --
-remotes:WaitForChild("Race_SkipCutscene").OnClientEvent:Connect(function()
-    if _AutoFarm then
-        task.wait(1.5) -- Jeda lebih lama biar server siap
-        pcall(function()
-            local currentRace = lp:GetAttribute("RaceName") or "AirportDrag"
-            remotes.Race_SkipVote:FireServer(currentRace)
-            
-        end)
+remotes.Race_SkipCutscene.OnClientEvent:Connect(function()
+    if _G.AutoFarm then
+        task.wait(1.5)
+        local mode = (_G.SelectedRace == "Tail of the Dragon" and "Tail") or "AirportDrag"
+        remotes.Race_SkipVote:FireServer(mode)
     end
 end)
 
--- [[ WINDOW ]] --
+-- [[ 6. WINDOW & TAB ]] --
 local Window = WindUI:CreateWindow({
     Title = "VoidlineHub",
     Icon = "rbxassetid://10723343321",
     Author = "Bilzz",
-    Size = UDim2.fromOffset(320, 350), 
+    Size = UDim2.fromOffset(320, 380), 
     Transparent = true, 
     Folder = "VoidlineHub_Config"
 })
 
-local MainTab = Window:Tab({
-    Title = "Auto Race",
-    Icon = "rbxassetid://10709789531"
+local MainTab = Window:Tab({ Title = "Race Farm", Icon = "flag" })
+
+-- [[ 7. UI ELEMENTS ]] --
+MainTab:Section({ Title = "Live dashboard" })
+DashBtn = MainTab:Button({
+    Title = "Info Race",
+    Desc = "Status: Idle",
+    Callback = function() end
 })
 
-MainTab:Toggle({
-    Title = "Auto race airport drag",
-    Desc = "auto drag race loop",
-    Value = false,
-    Callback = function(Value)
-        _G.AutoFarm = Value
-        if Value then joinRace() end
+MainTab:Section({ Title = "auto race" })
+MainTab:Dropdown({
+    Title = "Select Race",
+    Desc = "Choose your farm mode",
+    Values = raceNames,
+    Value = _G.SelectedRace,
+    Callback = function(option) 
+        _G.SelectedRace = option 
+        DashBtn:SetDesc("Selected: " .. option)
     end
 })
 
 MainTab:Toggle({
-    Title = "Autorace Tail",
+    Title = "Enable Auto Race",
     Value = false,
     Callback = function(v)
-        _G.AutoTail = v
-        if v then RaceRemotes.Race_Join:FireServer("Tail") end
+        _G.AutoFarm = v
+        if v then joinRace() end
     end
 })
 
 -- Anti AFK
-local VirtualUser = game:GetService("VirtualUser")
 lp.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
+    game:GetService("VirtualUser"):CaptureController()
+    game:GetService("VirtualUser"):ClickButton2(Vector2.new())
 end)
-
