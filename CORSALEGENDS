@@ -14,8 +14,13 @@ local remotes = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Races")
 _G.AutoTail = false
 _G.AutoFarm = false
 
+-- [[ HELPER FUNCTIONS ]] --
+local function getMyCar()
+    return workspace.AVehicleStorage:FindFirstChild(lp.Name)
+end
+
 -- [[ TAIL RACE LOGIC ]] --
-RaceRemotes.Race_TimerStart.OnClientEvent:Connect(function(trackName, startTime, cpCount)
+remotes.Race_TimerStart.OnClientEvent:Connect(function(trackName, startTime, cpCount)
     if not _G.AutoTail or trackName ~= "Tail" then return end
     
     -- Tunggu Lampu Hijau
