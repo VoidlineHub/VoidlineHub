@@ -1,32 +1,74 @@
+
 local WindUI = loadstring(game:HttpGet('https://github.com/Footagesus/WindUI/releases/latest/download/main.lua'))()
 
--- [[ DATA BINDING ]] --
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 local lp = Players.LocalPlayer
-local remotes = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Races")
+local remotes = ReplicatedStorage:WaitForChild("Remotes")
 
--- [[ VARIABEL ]] --
+-- [[ SETTINGS & VARIABLES ]] --
+_G.WebhookURL = "" 
+_G.WebhookEnabled = false
 _G.AutoFarm = false
 _G.SelectedRace = "Airport Drag"
+_G.SelectedCrate = "Import"
+_G.BuyAmount = 1
+_G.AutoGacha = false
 
+local currentPrize = 0
 local raceNames = {"Airport Drag", "Tail of the Dragon", "Snetterton Circuit", "Highway Sprint", "City Curve", "Lakeside Run"}
 
--- KOORDINAT FINISH
-local DRAG_FINISH = CFrame.new(16376.9463, 12.8355455, -1365.27478, -0.906296611, 0, 0.422642082, 0, 1, 0, -0.422642082, 0, -0.906296611)
-local TAIL_FINISH = CFrame.new(66.1744461, 97.5540085, -6510.10059)
-local SNETT_FINISH = CFrame.new(5491.53564, 12.9024019, 1124.4491, -0.0871315002, 0, 0.996196866, 0, 1, 0, -0.996196866, 0, -0.0871315002)
-local HIGHWAY_FINISH = CFrame.new(3752.88135, 31.969429, -10750.9189, 0, 0, 1, 0, 1, -0, -1, 0, 0)
-local CITY_FINISH = CFrame.new(8364.37012, 24.8929977, -432.636169, -1, 0, 0, 0, 1, 0, 0, 0, -1)
-local LAKESIDE_FINISH = CFrame.new(-7981.57422, 12.8355455, -3645.5105, -0.422592998, 0, -0.906319618, 0, 1, 0, 0.906319618, 0, -0.422592998)
+-- [[ COORDINATES ]] --
+local FINISH_CF = {
+    ["Airport Drag"] = CFrame.new(16376.9463, 12.8355455, -1365.27478),
+    ["Tail of the Dragon"] = CFrame.new(66.1744461, 97.5540085, -6510.10059),
+    ["Snetterton Circuit"] = CFrame.new(5491.53564, 12.9024019, 1124.4491),
+    ["Highway Sprint"] = CFrame.new(3752.88135, 31.969429, -10750.9189),
+    ["City Curve"] = CFrame.new(8364.37012, 24.8929977, -432.636169),
+    ["Lakeside Run"] = CFrame.new(-7981.57422, 12.8355455, -3645.5105)
+}
 
-local DashBtn
-
--- [[ FUNCTION ]] --
-local function getMyCar()
-    return workspace.AVehicleStorage:FindFirstChild(lp.Name)
+-- [[ UTILS ]] --
+local function formatNumber(v)
+    local s = tostring(math.floor(v))
+    return s:reverse():gsub("%d%d%d", "%1."):reverse():gsub("^%.", "")
 end
 
+local function sendWebhook(status)
+    if not _G.WebhookEnabled or _G.WebhookURL == "" or not _G.WebhookURL:find("discord.com/api/webhooks") then return end
+    
+    local cash = lp.leaderstats:FindFirstChild("Cash") and lp.leaderstats.Cash.Value or 0
+    local miles = lp.leaderstats:FindFirstChild("Miles") and lp.leaderstats.Miles.Value or 0
+    
+    local data = {
+        ["embeds"] = {{
+            ["title"] = "ScriptUnion| Logs Monitor",
+            ["color"] = 0x000000,
+            ["fields"] = {
+                {["name"] = "Current Race", ["value"] = _G.SelectedRace, ["inline"] = true},
+                {["name"] = "Current Prize", ["value"] = "$" .. formatNumber(currentPrize), ["inline"] = true},
+                {["name"] = "Total Cash", ["value"] = "$" .. formatNumber(cash), ["inline"] = true},
+                {["name"] = "Total Miles", ["value"] = formatNumber(miles) .. " Miles", ["inline"] = true},
+                {["name"] = "Status Update", ["value"] = "```" .. status .. "```", ["inline"] = false}
+            },
+            ["footer"] = {["text"] = "ScriptUnion v7.0 - Precision System"},
+            ["timestamp"] = DateTime.now():ToIsoDate()
+        }}
+    }
+    local requestFunc = syn and syn.request or http_request or request or (http and http.request)
+    if requestFunc then requestFunc({Url = _G.WebhookURL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data)}) end
+end
+
+-- [[ AUTO HEARTBEAT (1 MIN) ]] --
+task.spawn(function()
+    while true do
+        if _G.AutoFarm and _G.WebhookEnabled then sendWebhook("HEARTBEAT: System Running") end
+        task.wait(60)
+    end
+end)
+
+-- [[ RACE LOGIC ]] --
 local function joinRace()
     if not _G.AutoFarm then return end
     local mode = "AirportDrag"
@@ -35,170 +77,126 @@ local function joinRace()
     elseif _G.SelectedRace == "Highway Sprint" then mode = "HighwayAround"
     elseif _G.SelectedRace == "City Curve" then mode = "CityCurve"
     elseif _G.SelectedRace == "Lakeside Run" then mode = "Lakeside" end
-    remotes.Race_Join:FireServer(mode)
+    remotes.Races.Race_Join:FireServer(mode)
 end
 
--- [[ LOGIC RACE ]] --
-remotes.Race_TimerStart.OnClientEvent:Connect(function(trackName, startTime, cpCount)
+remotes.Races.Race_PrizeInfo.OnClientEvent:Connect(function(_, _, _, pool) currentPrize = pool or 0 end)
+
+remotes.Races.Race_TimerStart.OnClientEvent:Connect(function(trackName, startTime)
     if not _G.AutoFarm then return end
-    
-    while workspace:GetServerTimeNow() < startTime do 
-        if DashBtn then DashBtn:SetDesc("Status: Waiting Green Light...") end
-        task.wait(0.01) 
-    end
-    
-    local car = getMyCar()
+    while workspace:GetServerTimeNow() < startTime do task.wait(0.01) end
+    local car = workspace.AVehicleStorage:FindFirstChild(lp.Name)
     if not car then return end
 
-    -- [[ 1. CITY CURVE (38S SAFE) ]] --
-    if trackName == "CityCurve" or _G.SelectedRace == "City Curve" then
-        local cps = workspace.Races.CityCurve.CurveMap.Checkpoints
-        for i = 1, 17 do
-            if not _G.AutoFarm then break end
-            DashBtn:SetDesc("City: CP " .. i .. " (2s)")
-            task.wait(2)
-            local cp = cps:FindFirstChild(tostring(i))
-            if cp then car:PivotTo(cp.CFrame + Vector3.new(0, 2, 0)) end
-        end
-        task.wait(4)
-        car:PivotTo(CITY_FINISH)
-
-    -- [[ 2. LAKESIDE RUN (18S SAFE) ]] --
-    elseif trackName == "Lakeside" or _G.SelectedRace == "Lakeside Run" then
-        local cps = workspace.Races.Lakeside.LakesideMap.Checkpoints
-        for i = 1, 5 do
-            if not _G.AutoFarm then break end
-            DashBtn:SetDesc("Lakeside: CP " .. i .. " (3s)")
-            task.wait(3)
-            local cp = cps:FindFirstChild(tostring(i))
-            if cp then car:PivotTo(cp.CFrame + Vector3.new(0, 2, 0)) end
-        end
-        task.wait(3)
-        car:PivotTo(LAKESIDE_FINISH)
-
-    -- [[ 3. HIGHWAY SPRINT (135S SAFE) ]] --
-    elseif trackName == "HighwayAround" or _G.SelectedRace == "Highway Sprint" then
-        local cps = workspace.Races.HighwayAround.HighwayAroundMap.Checkpoints
-        for i = 1, 18 do
-            if not _G.AutoFarm then break end
-            DashBtn:SetDesc("Sprint: CP " .. i .. " (7s)")
-            task.wait(7)
-            local cp = cps:FindFirstChild(tostring(i))
-            if cp then car:PivotTo(cp.CFrame + Vector3.new(0, 2, 0)) end
-        end
-        task.wait(9)
-        car:PivotTo(HIGHWAY_FINISH)
-
-    -- [[ 4. SNETTERTON (61S SAFE) ]] --
-    elseif trackName == "Snetterton" or _G.SelectedRace == "Snetterton Circuit" then
-        local cps = workspace.Races.Snetterton.SnettertonMap.Checkpoints
-        for i = 1, 3 do
-            if not _G.AutoFarm then break end
-            DashBtn:SetDesc("Snett: CP " .. i .. " (15s)")
-            task.wait(15)
-            local cp = cps:FindFirstChild(tostring(i))
-            if cp then car:PivotTo(cp.CFrame + Vector3.new(0, 2, 0)) end
-        end
-        task.wait(16)
-        car:PivotTo(SNETT_FINISH)
-
-    -- [[ 5. TAIL LOGIC (95s+)]] --
-    elseif trackName == "Tail" or _G.SelectedRace == "Tail of the Dragon" then
-        for i = 1, 95 do
-            if not _G.AutoFarm then break end
-            DashBtn:SetDesc("Timer: " .. i .. "s / 95s")
-            task.wait(1)
-        end
-        car:PivotTo(TAIL_FINISH)
-        task.wait(3)
-        local map = workspace.Races.Tail:FindFirstChild("TailMap")
-        if map then
-            for i = 1, 32 do
-                if not _G.AutoFarm then break end
-                local cp = map.Checkpoints:FindFirstChild(tostring(i))
-                if cp then 
-                    DashBtn:SetDesc("CP: " .. i .. "/32")
-                    car:PivotTo(cp.CFrame + Vector3.new(0, 2, 0))
-                    task.wait(0.4) 
-                end
-            end
-            car:PivotTo(TAIL_FINISH)
-        end
-
-    -- [[ 6. AIRPORT DRAG (17S SAFE) ]] --
-    elseif trackName == "AirportDrag" or _G.SelectedRace == "Airport Drag" then
-        local cps = workspace.Races.AirportDrag.AirportDragMap.Checkpoints
-        task.wait(5)
-        car:PivotTo(cps["1"].CFrame + Vector3.new(0, 2, 0))
-        task.wait(5)
-        car:PivotTo(cps["2"].CFrame + Vector3.new(0, 2, 0))
-        task.wait(3)
-        car:PivotTo(cps["3"].CFrame + Vector3.new(0, 2, 0))
-        task.wait(4)
-        car:PivotTo(DRAG_FINISH)
+    if trackName == "CityCurve" then
+        for i = 1, 17 do task.wait(2) car:PivotTo(workspace.Races.CityCurve.CurveMap.Checkpoints[tostring(i)].CFrame + Vector3.new(0,2,0)) end
+        task.wait(4) car:PivotTo(FINISH_CF["City Curve"])
+    elseif trackName == "Lakeside" then
+        for i = 1, 5 do task.wait(3) car:PivotTo(workspace.Races.Lakeside.LakesideMap.Checkpoints[tostring(i)].CFrame + Vector3.new(0,2,0)) end
+        task.wait(3) car:PivotTo(FINISH_CF["Lakeside Run"])
+    elseif trackName == "HighwayAround" then
+        for i = 1, 18 do task.wait(7) car:PivotTo(workspace.Races.HighwayAround.HighwayAroundMap.Checkpoints[tostring(i)].CFrame + Vector3.new(0,2,0)) end
+        task.wait(9) car:PivotTo(FINISH_CF["Highway Sprint"])
+    elseif trackName == "Snetterton" then
+        for i = 1, 3 do task.wait(15) car:PivotTo(workspace.Races.Snetterton.SnettertonMap.Checkpoints[tostring(i)].CFrame + Vector3.new(0,2,0)) end
+        task.wait(16) car:PivotTo(FINISH_CF["Snetterton Circuit"])
+    elseif trackName == "Tail" then
+        task.wait(95) car:PivotTo(FINISH_CF["Tail of the Dragon"]) task.wait(3)
+        for i = 1, 32 do task.wait(0.4) car:PivotTo(workspace.Races.Tail.TailMap.Checkpoints[tostring(i)].CFrame + Vector3.new(0,2,0)) end
+        car:PivotTo(FINISH_CF["Tail of the Dragon"])
+    elseif trackName == "AirportDrag" then
+        task.wait(5) car:PivotTo(workspace.Races.AirportDrag.AirportDragMap.Checkpoints["1"].CFrame + Vector3.new(0,2,0))
+        task.wait(5) car:PivotTo(workspace.Races.AirportDrag.AirportDragMap.Checkpoints["2"].CFrame + Vector3.new(0,2,0))
+        task.wait(3) car:PivotTo(workspace.Races.AirportDrag.AirportDragMap.Checkpoints["3"].CFrame + Vector3.new(0,2,0))
+        task.wait(4) car:PivotTo(FINISH_CF["Airport Drag"])
     end
-    
-    DashBtn:SetDesc("Status: Race Done!")
+    sendWebhook("Race Finished! Ready to next.")
 end)
 
--- [[ REJOIN & SKIP ]] --
-remotes.Race_Finish.OnClientEvent:Connect(function()
+remotes.Races.Race_Finish.OnClientEvent:Connect(function()
     if not _G.AutoFarm then return end
-    for i = 9, 1, -1 do
-        DashBtn:SetDesc("Re-join in: " .. i .. "s")
-        task.wait(1)
-    end
+    task.wait(10)
     joinRace()
 end)
 
-remotes.Race_SkipCutscene.OnClientEvent:Connect(function()
-    if _G.AutoFarm then
-        task.wait(2)
-        local mode = "AirportDrag"
-        if _G.SelectedRace == "Tail of the Dragon" then mode = "Tail"
-        elseif _G.SelectedRace == "Snetterton Circuit" then mode = "Snetterton"
-        elseif _G.SelectedRace == "Highway Sprint" then mode = "HighwayAround"
-        elseif _G.SelectedRace == "City Curve" then mode = "CityCurve"
-        elseif _G.SelectedRace == "Lakeside Run" then mode = "Lakeside" end
-        remotes.Race_SkipVote:FireServer(mode)
-    end
-end)
-
--- [[ WINDOW & UI ]] --
+-- [[ UI WINDOW (320x380) ]] --
 local Window = WindUI:CreateWindow({
     Title = "VoidlineHub",
-    Icon = "rbxassetid://10723343321",
     Author = "Bilzz",
     Size = UDim2.fromOffset(320, 380), 
-    Transparent = true, 
-    Folder = "VoidlineHub_Config"
+    Icon = "flag",
+    Transparent = true
 })
 
-local MainTab = Window:Tab({ Title = "Race Farm", Icon = "flag" })
-MainTab:Section({ Title = "Live dashboard" })
-DashBtn = MainTab:Button({ Title = "Info Race", Desc = "Status: Idle" })
+local MainTab = Window:Tab({ Title = "Main", Icon = "house" })
+local MonitorTab = Window:Tab({ Title = "Monitor", Icon = "activity" })
 
-MainTab:Section({ Title = "auto race" })
+-- MAIN TAB
+MainTab:Section({ Title = "Auto Race Configuration" })
 MainTab:Dropdown({
     Title = "Select Race",
+    Desc = "choose your racing mode!",
     Values = raceNames,
     Value = _G.SelectedRace,
-    Callback = function(option) 
-        _G.SelectedRace = option 
-        DashBtn:SetDesc("Selected: " .. option)
-    end
+    Callback = function(v) _G.SelectedRace = v end
 })
-
 MainTab:Toggle({
     Title = "Enable Auto Race",
-    Value = false,
+    Desc = "turn on your autorace!!", 
+    Callback = function(v) _G.AutoFarm = v if v then joinRace() end end
+})
+
+MainTab:Section({ Title = "Auto Gacha System" })
+MainTab:Dropdown({
+    Title = "Crate Type",
+    Desc = "select you create",
+    Values = {"Import", "Part", "Fusion"},
+    Value = "Import",
+    Callback = function(v) _G.SelectedCrate = v end
+})
+MainTab:Input({
+    Title = "Open Amount",
+    Desc = "can be 1, 5, 10",
+    Placeholder = "Example: 10",
+    Callback = function(v) _G.BuyAmount = tonumber(v) or 1 end
+})
+MainTab:Toggle({
+    Title = "Enable Auto Gacha",
+    Desc = "turn on your gacha",
     Callback = function(v)
-        _G.AutoFarm = v
-        if v then joinRace() end
+        _G.AutoGacha = v
+        task.spawn(function()
+            while _G.AutoGacha do
+                local r = (_G.SelectedCrate == "Part" and "PC") or (_G.SelectedCrate == "Fusion" and "FC") or "IC"
+                local targetRemote = remotes:FindFirstChild(r)
+                if targetRemote then targetRemote:InvokeServer(_G.BuyAmount) end
+                task.wait(2)
+            end
+        end)
     end
 })
 
+-- MONITOR TAB
+MonitorTab:Section({ Title = "Discord Webhook" })
+MonitorTab:Input({
+    Title = "Webhook URL",
+    Desc= "Webhook Logs",
+    Placeholder = "Paste your webhook URL...",
+    Callback = function(v) 
+        _G.WebhookURL = v 
+        if _G.WebhookEnabled and v ~= "" then sendWebhook("Webhook Connected!") end
+    end
+})
+MonitorTab:Toggle({
+    Title = "Enable Webhook Logs",
+    Desc = "turn on your Webhook",
+    Callback = function(v) _G.WebhookEnabled = v end
+})
+
+-- ANTI AFK
 lp.Idled:Connect(function()
     game:GetService("VirtualUser"):CaptureController()
     game:GetService("VirtualUser"):ClickButton2(Vector2.new())
 end)
+
+print("VoidlineHub v7.0 Loaded!")
