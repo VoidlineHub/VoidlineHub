@@ -1,4 +1,3 @@
--- [[ VOIDLINE HUB - SAFE 17S FAST EDITION ]] --
 local WindUI = loadstring(game:HttpGet('https://github.com/Footagesus/WindUI/releases/latest/download/main.lua'))()
 
 -- [[ DATA BINDING ]] --
@@ -11,9 +10,16 @@ local remotes = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Races")
 _G.AutoFarm = false
 _G.SelectedRace = "Airport Drag"
 
-local raceNames = {"Airport Drag", "Tail of the Dragon"}
+local raceNames = {"Airport Drag", "Tail of the Dragon", "Snetterton Circuit", "Highway Sprint", "City Curve", "Lakeside Run"}
+
+-- KOORDINAT FINISH
+local DRAG_FINISH = CFrame.new(16376.9463, 12.8355455, -1365.27478, -0.906296611, 0, 0.422642082, 0, 1, 0, -0.422642082, 0, -0.906296611)
 local TAIL_FINISH = CFrame.new(66.1744461, 97.5540085, -6510.10059)
-local FINISH_POS = CFrame.new(16376.9463, 12.8355455, -1365.27478, -0.906296611, 0, 0.422642082, 0, 1, 0, -0.422642082, 0, -0.906296611)
+local SNETT_FINISH = CFrame.new(5491.53564, 12.9024019, 1124.4491, -0.0871315002, 0, 0.996196866, 0, 1, 0, -0.996196866, 0, -0.0871315002)
+local HIGHWAY_FINISH = CFrame.new(3752.88135, 31.969429, -10750.9189, 0, 0, 1, 0, 1, -0, -1, 0, 0)
+local CITY_FINISH = CFrame.new(8364.37012, 24.8929977, -432.636169, -1, 0, 0, 0, 1, 0, 0, 0, -1)
+local LAKESIDE_FINISH = CFrame.new(-7981.57422, 12.8355455, -3645.5105, -0.422592998, 0, -0.906319618, 0, 1, 0, 0.906319618, 0, -0.422592998)
+
 local DashBtn
 
 -- [[ FUNCTION ]] --
@@ -23,7 +29,12 @@ end
 
 local function joinRace()
     if not _G.AutoFarm then return end
-    local mode = (_G.SelectedRace == "Tail of the Dragon" and "Tail") or "AirportDrag"
+    local mode = "AirportDrag"
+    if _G.SelectedRace == "Tail of the Dragon" then mode = "Tail"
+    elseif _G.SelectedRace == "Snetterton Circuit" then mode = "Snetterton"
+    elseif _G.SelectedRace == "Highway Sprint" then mode = "HighwayAround"
+    elseif _G.SelectedRace == "City Curve" then mode = "CityCurve"
+    elseif _G.SelectedRace == "Lakeside Run" then mode = "Lakeside" end
     remotes.Race_Join:FireServer(mode)
 end
 
@@ -36,65 +47,98 @@ remotes.Race_TimerStart.OnClientEvent:Connect(function(trackName, startTime, cpC
         task.wait(0.01) 
     end
     
-    -- [[ TAIL LOGIC (ASLI LU) ]] --
-    if _G.SelectedRace == "Tail of the Dragon" and trackName == "Tail" then
+    local car = getMyCar()
+    if not car then return end
+
+    -- [[ 1. CITY CURVE (38S SAFE) ]] --
+    if trackName == "CityCurve" or _G.SelectedRace == "City Curve" then
+        local cps = workspace.Races.CityCurve.CurveMap.Checkpoints
+        for i = 1, 17 do
+            if not _G.AutoFarm then break end
+            DashBtn:SetDesc("City: CP " .. i .. " (2s)")
+            task.wait(2)
+            local cp = cps:FindFirstChild(tostring(i))
+            if cp then car:PivotTo(cp.CFrame + Vector3.new(0, 2, 0)) end
+        end
+        task.wait(4)
+        car:PivotTo(CITY_FINISH)
+
+    -- [[ 2. LAKESIDE RUN (18S SAFE) ]] --
+    elseif trackName == "Lakeside" or _G.SelectedRace == "Lakeside Run" then
+        local cps = workspace.Races.Lakeside.LakesideMap.Checkpoints
+        for i = 1, 5 do
+            if not _G.AutoFarm then break end
+            DashBtn:SetDesc("Lakeside: CP " .. i .. " (3s)")
+            task.wait(3)
+            local cp = cps:FindFirstChild(tostring(i))
+            if cp then car:PivotTo(cp.CFrame + Vector3.new(0, 2, 0)) end
+        end
+        task.wait(3)
+        car:PivotTo(LAKESIDE_FINISH)
+
+    -- [[ 3. HIGHWAY SPRINT (135S SAFE) ]] --
+    elseif trackName == "HighwayAround" or _G.SelectedRace == "Highway Sprint" then
+        local cps = workspace.Races.HighwayAround.HighwayAroundMap.Checkpoints
+        for i = 1, 18 do
+            if not _G.AutoFarm then break end
+            DashBtn:SetDesc("Sprint: CP " .. i .. " (7s)")
+            task.wait(7)
+            local cp = cps:FindFirstChild(tostring(i))
+            if cp then car:PivotTo(cp.CFrame + Vector3.new(0, 2, 0)) end
+        end
+        task.wait(9)
+        car:PivotTo(HIGHWAY_FINISH)
+
+    -- [[ 4. SNETTERTON (61S SAFE) ]] --
+    elseif trackName == "Snetterton" or _G.SelectedRace == "Snetterton Circuit" then
+        local cps = workspace.Races.Snetterton.SnettertonMap.Checkpoints
+        for i = 1, 3 do
+            if not _G.AutoFarm then break end
+            DashBtn:SetDesc("Snett: CP " .. i .. " (15s)")
+            task.wait(15)
+            local cp = cps:FindFirstChild(tostring(i))
+            if cp then car:PivotTo(cp.CFrame + Vector3.new(0, 2, 0)) end
+        end
+        task.wait(16)
+        car:PivotTo(SNETT_FINISH)
+
+    -- [[ 5. TAIL LOGIC (95s+)]] --
+    elseif trackName == "Tail" or _G.SelectedRace == "Tail of the Dragon" then
         for i = 1, 95 do
             if not _G.AutoFarm then break end
-            if DashBtn then DashBtn:SetDesc("Timer: " .. i .. "s / 95s") end
+            DashBtn:SetDesc("Timer: " .. i .. "s / 95s")
             task.wait(1)
         end
-        local car = getMyCar()
-        if car then
-            car:PivotTo(TAIL_FINISH) 
-            task.wait(3)
-            local raceFolder = workspace:FindFirstChild("Races")
-            local map = raceFolder and raceFolder.Tail:FindFirstChild("TailMap")
-            if map then
-                for i = 1, 32 do
-                    if not _G.AutoFarm then break end
-                    local cp = map.Checkpoints:FindFirstChild(tostring(i))
-                    if cp then 
-                        DashBtn:SetDesc("CP: " .. i .. "/32")
-                        car:PivotTo(cp.CFrame + Vector3.new(0, 2, 0))
-                        task.wait(0.4) 
-                    end
-                end
-                car:PivotTo(TAIL_FINISH)
-            end
-        end
-        
-    -- [[ DRAG LOGIC (17S TOTAL: 5+5+3+4) ]] --
-    elseif _G.SelectedRace == "Airport Drag" and trackName ~= "Tail" then
-        local car = getMyCar()
-        local map = workspace:WaitForChild("Races"):WaitForChild("AirportDrag"):WaitForChild("AirportDragMap")
-        local cps = map:WaitForChild("Checkpoints")
-
-        -- CP 1: Delay 5s
-        DashBtn:SetDesc("Status: Delay CP 1 (5s)")
-        task.wait(5)
-        local cp1 = cps:WaitForChild("1", 5)
-        if cp1 and car then car:PivotTo(cp1.CFrame + Vector3.new(0, 2, 0)) end
-
-        -- CP 2: Delay 5s
-        DashBtn:SetDesc("Status: Delay CP 2 (5s)")
-        task.wait(5)
-        local cp2 = cps:WaitForChild("2", 5)
-        if cp2 and car then car:PivotTo(cp2.CFrame + Vector3.new(0, 2, 0)) end
-
-        -- CP 3: Delay 3s
-        DashBtn:SetDesc("Status: Delay CP 3 (3s)")
+        car:PivotTo(TAIL_FINISH)
         task.wait(3)
-        local cp3 = cps:WaitForChild("3", 5)
-        if cp3 and car then car:PivotTo(cp3.CFrame + Vector3.new(0, 2, 0)) end
-
-        -- FINISH: Delay 4s (Total 17s)
-        DashBtn:SetDesc("Status: Final Delay (4s)")
-        task.wait(4)
-        if car then
-            car:PivotTo(FINISH_POS)
-            DashBtn:SetDesc("Status: Done (Safe 17s)")
+        local map = workspace.Races.Tail:FindFirstChild("TailMap")
+        if map then
+            for i = 1, 32 do
+                if not _G.AutoFarm then break end
+                local cp = map.Checkpoints:FindFirstChild(tostring(i))
+                if cp then 
+                    DashBtn:SetDesc("CP: " .. i .. "/32")
+                    car:PivotTo(cp.CFrame + Vector3.new(0, 2, 0))
+                    task.wait(0.4) 
+                end
+            end
+            car:PivotTo(TAIL_FINISH)
         end
+
+    -- [[ 6. AIRPORT DRAG (17S SAFE) ]] --
+    elseif trackName == "AirportDrag" or _G.SelectedRace == "Airport Drag" then
+        local cps = workspace.Races.AirportDrag.AirportDragMap.Checkpoints
+        task.wait(5)
+        car:PivotTo(cps["1"].CFrame + Vector3.new(0, 2, 0))
+        task.wait(5)
+        car:PivotTo(cps["2"].CFrame + Vector3.new(0, 2, 0))
+        task.wait(3)
+        car:PivotTo(cps["3"].CFrame + Vector3.new(0, 2, 0))
+        task.wait(4)
+        car:PivotTo(DRAG_FINISH)
     end
+    
+    DashBtn:SetDesc("Status: Race Done!")
 end)
 
 -- [[ REJOIN & SKIP ]] --
@@ -110,7 +154,12 @@ end)
 remotes.Race_SkipCutscene.OnClientEvent:Connect(function()
     if _G.AutoFarm then
         task.wait(2)
-        local mode = (_G.SelectedRace == "Tail of the Dragon" and "Tail") or "AirportDrag"
+        local mode = "AirportDrag"
+        if _G.SelectedRace == "Tail of the Dragon" then mode = "Tail"
+        elseif _G.SelectedRace == "Snetterton Circuit" then mode = "Snetterton"
+        elseif _G.SelectedRace == "Highway Sprint" then mode = "HighwayAround"
+        elseif _G.SelectedRace == "City Curve" then mode = "CityCurve"
+        elseif _G.SelectedRace == "Lakeside Run" then mode = "Lakeside" end
         remotes.Race_SkipVote:FireServer(mode)
     end
 end)
@@ -126,13 +175,8 @@ local Window = WindUI:CreateWindow({
 })
 
 local MainTab = Window:Tab({ Title = "Race Farm", Icon = "flag" })
-
 MainTab:Section({ Title = "Live dashboard" })
-DashBtn = MainTab:Button({
-    Title = "Info Race",
-    Desc = "Status: Idle",
-    Callback = function() end
-})
+DashBtn = MainTab:Button({ Title = "Info Race", Desc = "Status: Idle" })
 
 MainTab:Section({ Title = "auto race" })
 MainTab:Dropdown({
@@ -154,7 +198,6 @@ MainTab:Toggle({
     end
 })
 
--- Anti AFK
 lp.Idled:Connect(function()
     game:GetService("VirtualUser"):CaptureController()
     game:GetService("VirtualUser"):ClickButton2(Vector2.new())
