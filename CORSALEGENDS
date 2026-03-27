@@ -1,22 +1,22 @@
--- [[ 1. LOAD WIND UI ]] --
+-- [[ VOIDLINE HUB - SAFE 17S FAST EDITION ]] --
 local WindUI = loadstring(game:HttpGet('https://github.com/Footagesus/WindUI/releases/latest/download/main.lua'))()
 
--- [[ 2. DATA BINDING ]] --
+-- [[ DATA BINDING ]] --
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local lp = Players.LocalPlayer
 local remotes = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Races")
 
--- [[ 3. VARIABEL & LOCATIONS ]] --
+-- [[ VARIABEL ]] --
 _G.AutoFarm = false
-_G.SelectedRace = "Airport Drag" -- Default value
+_G.SelectedRace = "Airport Drag"
 
 local raceNames = {"Airport Drag", "Tail of the Dragon"}
-local FINISH_POS = CFrame.new(16376.9463, 12.8355455, -1365.27478, -0.906296611, 0, 0.422642082, 0, 1, 0, -0.422642082, 0, -0.906296611)
 local TAIL_FINISH = CFrame.new(66.1744461, 97.5540085, -6510.10059)
-local DashBtn -- Untuk update Desc
+local FINISH_POS = CFrame.new(16376.9463, 12.8355455, -1365.27478, -0.906296611, 0, 0.422642082, 0, 1, 0, -0.422642082, 0, -0.906296611)
+local DashBtn
 
--- [[ 4. FUNCTION ]] --
+-- [[ FUNCTION ]] --
 local function getMyCar()
     return workspace.AVehicleStorage:FindFirstChild(lp.Name)
 end
@@ -27,17 +27,16 @@ local function joinRace()
     remotes.Race_Join:FireServer(mode)
 end
 
--- [[ 5. LOGIC RACE ]] --
+-- [[ LOGIC RACE ]] --
 remotes.Race_TimerStart.OnClientEvent:Connect(function(trackName, startTime, cpCount)
     if not _G.AutoFarm then return end
     
-    -- Tunggu Lampu Hijau
     while workspace:GetServerTimeNow() < startTime do 
         if DashBtn then DashBtn:SetDesc("Status: Waiting Green Light...") end
         task.wait(0.01) 
     end
     
-    -- TAIL LOGIC
+    -- [[ TAIL LOGIC (ASLI LU) ]] --
     if _G.SelectedRace == "Tail of the Dragon" and trackName == "Tail" then
         for i = 1, 95 do
             if not _G.AutoFarm then break end
@@ -64,15 +63,41 @@ remotes.Race_TimerStart.OnClientEvent:Connect(function(trackName, startTime, cpC
             end
         end
         
-    -- DRAG LOGIC
+    -- [[ DRAG LOGIC (17S TOTAL: 5+5+3+4) ]] --
     elseif _G.SelectedRace == "Airport Drag" and trackName ~= "Tail" then
-        DashBtn:SetDesc("Status: Racing Drag...")
-        task.wait(15.0) 
         local car = getMyCar()
-        if car then car:PivotTo(FINISH_POS) end
+        local map = workspace:WaitForChild("Races"):WaitForChild("AirportDrag"):WaitForChild("AirportDragMap")
+        local cps = map:WaitForChild("Checkpoints")
+
+        -- CP 1: Delay 5s
+        DashBtn:SetDesc("Status: Delay CP 1 (5s)")
+        task.wait(5)
+        local cp1 = cps:WaitForChild("1", 5)
+        if cp1 and car then car:PivotTo(cp1.CFrame + Vector3.new(0, 2, 0)) end
+
+        -- CP 2: Delay 5s
+        DashBtn:SetDesc("Status: Delay CP 2 (5s)")
+        task.wait(5)
+        local cp2 = cps:WaitForChild("2", 5)
+        if cp2 and car then car:PivotTo(cp2.CFrame + Vector3.new(0, 2, 0)) end
+
+        -- CP 3: Delay 3s
+        DashBtn:SetDesc("Status: Delay CP 3 (3s)")
+        task.wait(3)
+        local cp3 = cps:WaitForChild("3", 5)
+        if cp3 and car then car:PivotTo(cp3.CFrame + Vector3.new(0, 2, 0)) end
+
+        -- FINISH: Delay 4s (Total 17s)
+        DashBtn:SetDesc("Status: Final Delay (4s)")
+        task.wait(4)
+        if car then
+            car:PivotTo(FINISH_POS)
+            DashBtn:SetDesc("Status: Done (Safe 17s)")
+        end
     end
 end)
 
+-- [[ REJOIN & SKIP ]] --
 remotes.Race_Finish.OnClientEvent:Connect(function()
     if not _G.AutoFarm then return end
     for i = 9, 1, -1 do
@@ -84,13 +109,13 @@ end)
 
 remotes.Race_SkipCutscene.OnClientEvent:Connect(function()
     if _G.AutoFarm then
-        task.wait(1.5)
+        task.wait(2)
         local mode = (_G.SelectedRace == "Tail of the Dragon" and "Tail") or "AirportDrag"
         remotes.Race_SkipVote:FireServer(mode)
     end
 end)
 
--- [[ 6. WINDOW & TAB ]] --
+-- [[ WINDOW & UI ]] --
 local Window = WindUI:CreateWindow({
     Title = "VoidlineHub",
     Icon = "rbxassetid://10723343321",
@@ -102,7 +127,6 @@ local Window = WindUI:CreateWindow({
 
 local MainTab = Window:Tab({ Title = "Race Farm", Icon = "flag" })
 
--- [[ 7. UI ELEMENTS ]] --
 MainTab:Section({ Title = "Live dashboard" })
 DashBtn = MainTab:Button({
     Title = "Info Race",
@@ -113,7 +137,6 @@ DashBtn = MainTab:Button({
 MainTab:Section({ Title = "auto race" })
 MainTab:Dropdown({
     Title = "Select Race",
-    Desc = "Choose your farm mode",
     Values = raceNames,
     Value = _G.SelectedRace,
     Callback = function(option) 
