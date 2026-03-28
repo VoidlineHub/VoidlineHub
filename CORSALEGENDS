@@ -1,4 +1,4 @@
-
+-- [[ VOIDLINE HUB - FINAL EDITION (FIXED TAIL BUG) ]] --
 local WindUI = loadstring(game:HttpGet('https://github.com/Footagesus/WindUI/releases/latest/download/main.lua'))()
 
 local Players = game:GetService("Players")
@@ -43,7 +43,7 @@ local function sendWebhook(status)
     
     local data = {
         ["embeds"] = {{
-            ["title"] = "ScriptUnion| Logs Monitor",
+            ["title"] = "ScriptUnion | Logs Monitor",
             ["color"] = 0x000000,
             ["fields"] = {
                 {["name"] = "Current Race", ["value"] = _G.SelectedRace, ["inline"] = true},
@@ -60,7 +60,7 @@ local function sendWebhook(status)
     if requestFunc then requestFunc({Url = _G.WebhookURL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data)}) end
 end
 
--- [[ AUTO HEARTBEAT (1 MIN) ]] --
+-- [[ AUTO HEARTBEAT ]] --
 task.spawn(function()
     while true do
         if _G.AutoFarm and _G.WebhookEnabled then sendWebhook("HEARTBEAT: System Running") end
@@ -101,9 +101,23 @@ remotes.Races.Race_TimerStart.OnClientEvent:Connect(function(trackName, startTim
         for i = 1, 3 do task.wait(15) car:PivotTo(workspace.Races.Snetterton.SnettertonMap.Checkpoints[tostring(i)].CFrame + Vector3.new(0,2,0)) end
         task.wait(16) car:PivotTo(FINISH_CF["Snetterton Circuit"])
     elseif trackName == "Tail" then
-        task.wait(95) car:PivotTo(FINISH_CF["Tail of the Dragon"]) task.wait(3)
-        for i = 1, 32 do task.wait(0.4) car:PivotTo(workspace.Races.Tail.TailMap.Checkpoints[tostring(i)].CFrame + Vector3.new(0,2,0)) end
+        task.wait(95) 
+        car:PivotTo(FINISH_CF["Tail of the Dragon"]) 
+        task.wait(3)
+        
+        -- FIXED LOGIC TAIL (Gua ganti pake loop yang lebih pasti sampe 32)
+        local tailCheckpoints = workspace.Races.Tail.TailMap.Checkpoints
+        for i = 1, 32 do 
+            local cp = tailCheckpoints:FindFirstChild(tostring(i))
+            if cp then
+                car:PivotTo(cp.CFrame + Vector3.new(0, 2, 0))
+                task.wait(0.4) 
+            end
+        end
+        -- Extra wait biar server register CP terakhir
+        task.wait(1)
         car:PivotTo(FINISH_CF["Tail of the Dragon"])
+        
     elseif trackName == "AirportDrag" then
         task.wait(5) car:PivotTo(workspace.Races.AirportDrag.AirportDragMap.Checkpoints["1"].CFrame + Vector3.new(0,2,0))
         task.wait(5) car:PivotTo(workspace.Races.AirportDrag.AirportDragMap.Checkpoints["2"].CFrame + Vector3.new(0,2,0))
@@ -135,34 +149,34 @@ local MonitorTab = Window:Tab({ Title = "Monitor", Icon = "activity" })
 MainTab:Section({ Title = "Auto Race Configuration" })
 MainTab:Dropdown({
     Title = "Select Race",
-    Desc = "choose your racing mode!",
+    Desc = "Choose your racing mode!",
     Values = raceNames,
     Value = _G.SelectedRace,
     Callback = function(v) _G.SelectedRace = v end
 })
 MainTab:Toggle({
     Title = "Enable Auto Race",
-    Desc = "turn on your autorace!!", 
+    Desc = "Turn on your autorace!!", 
     Callback = function(v) _G.AutoFarm = v if v then joinRace() end end
 })
 
 MainTab:Section({ Title = "Auto Gacha System" })
 MainTab:Dropdown({
     Title = "Crate Type",
-    Desc = "select you create",
+    Desc = "Select your crate",
     Values = {"Import", "Part", "Fusion"},
     Value = "Import",
     Callback = function(v) _G.SelectedCrate = v end
 })
 MainTab:Input({
     Title = "Open Amount",
-    Desc = "can be 1, 5, 10",
+    Desc = "Can be 1, 5, 10",
     Placeholder = "Example: 10",
     Callback = function(v) _G.BuyAmount = tonumber(v) or 1 end
 })
 MainTab:Toggle({
     Title = "Enable Auto Gacha",
-    Desc = "turn on your gacha",
+    Desc = "Turn on your gacha",
     Callback = function(v)
         _G.AutoGacha = v
         task.spawn(function()
@@ -189,7 +203,7 @@ MonitorTab:Input({
 })
 MonitorTab:Toggle({
     Title = "Enable Webhook Logs",
-    Desc = "turn on your Webhook",
+    Desc = "Turn on your Webhook",
     Callback = function(v) _G.WebhookEnabled = v end
 })
 
@@ -199,4 +213,4 @@ lp.Idled:Connect(function()
     game:GetService("VirtualUser"):ClickButton2(Vector2.new())
 end)
 
-print("VoidlineHub v7.0 Loaded!")
+print("VoidlineHub v7.0 Fixed Loaded!")
