@@ -1,29 +1,46 @@
--- [[ 1. INITIALIZE ]] --
-local WindUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua'))()
+--// load rayfield
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- [[ 2. DATA BINDING & VARIABLES (_G) ]] --
+--// variabel
 local VIM = game:GetService("VirtualInputManager")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local lp = game.Players.LocalPlayer
 
-_G.SelectedMotor = "Yamahax-MioSporty"
 _G.IsAutoFarm = false
 _G.IsAutoGear = true
+_G.SelectedMotor = "Yamahax-MioSporty"
+_G.MotorOptions = {"Yamahax-MioSporty"}
 
 local START_CF = CFrame.new(-8909.42871, 2.39137, 758.84540, -0.8551978469, 0.0000000440, -0.5183017254, 0.0000000650, 1.0000000000, -0.0000000224, 0.5183017254, -0.0000000528, -0.8551978469)
 
--- [[ 3. CORE LOGIC ]] --
+--// logic autofarm
+local function getGarageData()
+    local newList = {}
+    pcall(function()
+        local data = ReplicatedStorage.DealershipEvents.InitializeCarData:InvokeServer()
+        if data and type(data) == "table" then
+            for _, info in pairs(data) do
+                if info.Name then table.insert(newList, info.Name) end
+            end
+        end
+    end)
+    if #newList == 0 then table.insert(newList, "Yamahax-MioSporty") end
+    _G.MotorOptions = newList
+    return newList
+end
+
 local function startMatrixRace()
     while _G.IsAutoFarm do
         local char = lp.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         if not char or not hum then break end
 
-        -- Hapus palang/barrier
+        -- Clear Barrier
         pcall(function()
-            local barrier = workspace.BUILDING_KARTASURA.DRAG_RACE.ACC:FindFirstChild("BAN")
-            if barrier then barrier:Destroy() end
+            if workspace.BUILDING_KARTASURA.DRAG_RACE.ACC:FindFirstChild("BAN") then
+                workspace.BUILDING_KARTASURA.DRAG_RACE.ACC.BAN:Destroy()
+            end
         end)
 
         hum.Sit = true
@@ -36,7 +53,6 @@ local function startMatrixRace()
         hum:ChangeState(Enum.HumanoidStateType.Jumping) 
         task.wait(0.1)
         
-        -- Spawn motor yang dipilih
         ReplicatedStorage.SpawnCarEvents.SpawnCar:FireServer(_G.SelectedMotor)
         task.wait(9) 
 
@@ -58,7 +74,6 @@ local function startMatrixRace()
             end
             task.wait(1)
 
-            -- Chat Start
             if game:GetService("TextChatService").ChatVersion == Enum.ChatVersion.TextChatService then
                 game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync("!START")
             else
@@ -66,7 +81,7 @@ local function startMatrixRace()
             end
             task.wait(6)
 
-            -- Gigi 1 (W+P+E)
+            -- STEP 1: W -> P -> E (Gigi 1)
             VIM:SendKeyEvent(true, Enum.KeyCode.W, false, game)
             task.wait(0.2)
             VIM:SendKeyEvent(true, Enum.KeyCode.P, false, game)
@@ -81,17 +96,17 @@ local function startMatrixRace()
             local pGui = lp:FindFirstChild("PlayerGui")
             local timer = pGui and pGui:WaitForChild("TimerGui", 10):WaitForChild("Frame", 5):WaitForChild("TimeValue", 5)
 
-            -- Shifter
+            -- STEP 2: Delay 3s -> Gear 2 & Loop 4s
             local gearLoop = task.spawn(function()
                 if not _G.IsAutoGear then return end
-                task.wait(3) -- Ke Gigi 2
+                task.wait(3)
                 if raceActive then
                     VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                     task.wait(0.05)
                     VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                 end
                 while raceActive do
-                    task.wait(4) -- Loop Gigi
+                    task.wait(4)
                     if raceActive then
                         VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                         task.wait(0.05)
@@ -100,7 +115,7 @@ local function startMatrixRace()
                 end
             end)
 
-            -- Finish Detection (Warna Lime)
+            -- Finish Detection
             local connection
             connection = RunService.Heartbeat:Connect(function()
                 if not _G.IsAutoFarm or not targetVehicle.Parent then 
@@ -134,45 +149,59 @@ local function startMatrixRace()
     end
 end
 
--- [[ 4. WINDOW INTERFACE ]] --
-local Window = WindUI:CreateWindow({
-    Title = "VoidlineHub",
-    Author = "Bilzz",
-    Icon = "flag",
-    Size = UDim2.fromOffset(350, 420),
-    Transparent = true
+--// window
+local Window = Rayfield:CreateWindow({
+   Name = "VoidlineHub",
+   LoadingTitle = "VoidlineHub",
+   LoadingSubtitle = "by Bilzz",
+   ConfigurationSaving = { Enabled = false }
 })
 
-local MainTab = Window:Tab({ Title = "Main", Icon = "home" })
+local MainTab = Window:CreateTab("Main Drag", 4483362458)
 
-MainTab:Section({ Title = "select vehicle" })
+--// dropdown garasi
+MainTab:CreateSection("select vehicle")
 
--- Pakai TextBox aja biar 100% gak bakal error SetValues/Table lagi
-MainTab:Input({
-    Title = "Motor Name",
-    Desc = "Ketik nama motor kamu (Contoh: Yamahax-MioSporty)",
-    Value = _G.SelectedMotor,
-    Placeholder = "Nama motor...",
-    Callback = function(v)
-        _G.SelectedMotor = v
-    end
+local MotorDropdown = MainTab:CreateDropdown({
+   Name = "Select Motor",
+   Info = "Pilih motor yang sudah kamu punya di garasi",
+   Options = _G.MotorOptions,
+   CurrentOption = {_G.SelectedMotor},
+   MultipleOptions = false,
+   Callback = function(Option) _G.SelectedMotor = Option[1] end,
 })
 
-MainTab:Toggle({
-    Title = "Auto Shifter Mode",
-    Desc = "Oper gigi otomatis (3s Gigi 2, sisa loop 4s)",
-    Value = _G.IsAutoGear,
-    Callback = function(v) _G.IsAutoGear = v end
+MainTab:CreateButton({
+   Name = "Refresh Motor List",
+   Info = "Scan ulang koleksi motor kamu",
+   Callback = function()
+      local data = getGarageData()
+      MotorDropdown:Refresh(data, true)
+   end,
 })
 
-MainTab:Section({ Title = "on autorace" })
+--// toggle farm
+MainTab:CreateSection("on autorace")
 
-MainTab:Toggle({
-    Title = "Auto Drag Loop",
-    Desc = "Jalankan siklus farming drag otomatis",
-    Value = _G.IsAutoFarm,
-    Callback = function(v)
-        _G.IsAutoFarm = v
-        if _G.IsAutoFarm then task.spawn(startMatrixRace) end
-    end
+MainTab:CreateToggle({
+   Name = "Auto Shifter Mode",
+   Info = "Otomatis oper gigi (3s Gigi 2, sisa loop 4s)",
+   CurrentValue = _G.IsAutoGear,
+   Callback = function(v) _G.IsAutoGear = v end,
 })
+
+MainTab:CreateToggle({
+   Name = "Main Auto Drag Loop",
+   Info = "Mulai siklus farming drag secara otomatis",
+   CurrentValue = _G.IsAutoFarm,
+   Callback = function(v)
+      _G.IsAutoFarm = v
+      if _G.IsAutoFarm then task.spawn(startMatrixRace) end
+   end,
+})
+
+-- Initial Refresh
+task.spawn(function()
+    local data = getGarageData()
+    MotorDropdown:Refresh(data, true)
+end)
