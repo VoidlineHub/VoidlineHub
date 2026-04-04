@@ -8,38 +8,22 @@ local RunService = game:GetService("RunService")
 local lp = game.Players.LocalPlayer
 
 _G.SelectedMotor = "Yamahax-MioSporty"
-_G.MotorOptions = {"Yamahax-MioSporty"}
 _G.IsAutoFarm = false
 _G.IsAutoGear = true
 
 local START_CF = CFrame.new(-8909.42871, 2.39137, 758.84540, -0.8551978469, 0.0000000440, -0.5183017254, 0.0000000650, 1.0000000000, -0.0000000224, 0.5183017254, -0.0000000528, -0.8551978469)
 
 -- [[ 3. CORE LOGIC ]] --
-local function getGarageData()
-    local newList = {}
-    pcall(function()
-        local data = ReplicatedStorage.DealershipEvents.InitializeCarData:InvokeServer()
-        if data and type(data) == "table" then
-            for _, info in pairs(data) do
-                if info.Name then table.insert(newList, info.Name) end
-            end
-        end
-    end)
-    if #newList == 0 then table.insert(newList, "Yamahax-MioSporty") end
-    _G.MotorOptions = newList
-    return newList
-end
-
 local function startMatrixRace()
     while _G.IsAutoFarm do
         local char = lp.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         if not char or not hum then break end
 
+        -- Hapus palang/barrier
         pcall(function()
-            if workspace.BUILDING_KARTASURA.DRAG_RACE.ACC:FindFirstChild("BAN") then
-                workspace.BUILDING_KARTASURA.DRAG_RACE.ACC.BAN:Destroy()
-            end
+            local barrier = workspace.BUILDING_KARTASURA.DRAG_RACE.ACC:FindFirstChild("BAN")
+            if barrier then barrier:Destroy() end
         end)
 
         hum.Sit = true
@@ -52,6 +36,7 @@ local function startMatrixRace()
         hum:ChangeState(Enum.HumanoidStateType.Jumping) 
         task.wait(0.1)
         
+        -- Spawn motor yang dipilih
         ReplicatedStorage.SpawnCarEvents.SpawnCar:FireServer(_G.SelectedMotor)
         task.wait(9) 
 
@@ -73,6 +58,7 @@ local function startMatrixRace()
             end
             task.wait(1)
 
+            -- Chat Start
             if game:GetService("TextChatService").ChatVersion == Enum.ChatVersion.TextChatService then
                 game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync("!START")
             else
@@ -80,6 +66,7 @@ local function startMatrixRace()
             end
             task.wait(6)
 
+            -- Gigi 1 (W+P+E)
             VIM:SendKeyEvent(true, Enum.KeyCode.W, false, game)
             task.wait(0.2)
             VIM:SendKeyEvent(true, Enum.KeyCode.P, false, game)
@@ -94,16 +81,17 @@ local function startMatrixRace()
             local pGui = lp:FindFirstChild("PlayerGui")
             local timer = pGui and pGui:WaitForChild("TimerGui", 10):WaitForChild("Frame", 5):WaitForChild("TimeValue", 5)
 
+            -- Shifter
             local gearLoop = task.spawn(function()
                 if not _G.IsAutoGear then return end
-                task.wait(3)
+                task.wait(3) -- Ke Gigi 2
                 if raceActive then
                     VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                     task.wait(0.05)
                     VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                 end
                 while raceActive do
-                    task.wait(4)
+                    task.wait(4) -- Loop Gigi
                     if raceActive then
                         VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                         task.wait(0.05)
@@ -112,6 +100,7 @@ local function startMatrixRace()
                 end
             end)
 
+            -- Finish Detection (Warna Lime)
             local connection
             connection = RunService.Heartbeat:Connect(function()
                 if not _G.IsAutoFarm or not targetVehicle.Parent then 
@@ -158,12 +147,15 @@ local MainTab = Window:Tab({ Title = "Main", Icon = "home" })
 
 MainTab:Section({ Title = "select vehicle" })
 
-local MotorDropdown = MainTab:Dropdown({
-    Title = "Select Motor",
-    Desc = "Pilih motor dari garasi kamu",
-    Values = _G.MotorOptions,
+-- Pakai TextBox aja biar 100% gak bakal error SetValues/Table lagi
+MainTab:Input({
+    Title = "Motor Name",
+    Desc = "Ketik nama motor kamu (Contoh: Yamahax-MioSporty)",
     Value = _G.SelectedMotor,
-    Callback = function(v) _G.SelectedMotor = v end
+    Placeholder = "Nama motor...",
+    Callback = function(v)
+        _G.SelectedMotor = v
+    end
 })
 
 MainTab:Toggle({
@@ -184,24 +176,3 @@ MainTab:Toggle({
         if _G.IsAutoFarm then task.spawn(startMatrixRace) end
     end
 })
-
-MainTab:Button({
-    Title = "Force Refresh",
-    Desc = "Pindai ulang motor secara manual",
-    Callback = function()
-        local data = getGarageData()
-        MotorDropdown.Values = data -- Cara manual buat bypass error SetValues
-    end
-})
-
--- [[ 5. AUTO REFRESH LOOP ]] --
-task.spawn(function()
-    while true do
-        local data = getGarageData()
-        if #data ~= #_G.MotorOptions then
-            _G.MotorOptions = data
-            MotorDropdown.Values = data
-        end
-        task.wait(10)
-    end
-end)
