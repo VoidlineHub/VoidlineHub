@@ -1,0 +1,199 @@
+-- [[ 1. INITIALIZE ]] --
+local WindUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua'))()
+
+-- [[ 2. DATA BINDING & VARIABLES ]] --
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VIM = game:GetService("VirtualInputManager")
+local RunService = game:GetService("RunService")
+local lp = game.Players.LocalPlayer
+
+_G.SelectedMotor = "Yamahax-MioSporty"
+_G.MotorOptions = {"Yamahax-MioSporty"}
+_G.IsAutoFarm = false
+_G.IsAutoGear = true
+
+local START_CF = CFrame.new(-8909.42871, 2.39137, 758.84540, -0.8551978469, 0.0000000440, -0.5183017254, 0.0000000650, 1.0000000000, -0.0000000224, 0.5183017254, -0.0000000528, -0.8551978469)
+
+-- [[ 3. CORE LOGIC ]] --
+local function getGarageData()
+    local newList = {}
+    pcall(function()
+        local data = ReplicatedStorage.DealershipEvents.InitializeCarData:InvokeServer()
+        if data and type(data) == "table" then
+            for _, info in pairs(data) do
+                if info.Name then table.insert(newList, info.Name) end
+            end
+        end
+    end)
+    return #newList > 0 and newList or {"Yamahax-MioSporty"}
+end
+
+local function startMatrixRace()
+    while _G.IsAutoFarm do
+        local char = lp.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if not char or not hum then break end
+
+        pcall(function()
+            if workspace.BUILDING_KARTASURA.DRAG_RACE.ACC:FindFirstChild("BAN") then
+                workspace.BUILDING_KARTASURA.DRAG_RACE.ACC.BAN:Destroy()
+            end
+        end)
+
+        hum.Sit = true
+        task.wait(4)
+        char:PivotTo(START_CF)
+        task.wait(4)
+        
+        hum.Sit = false 
+        task.wait(0.1)
+        hum:ChangeState(Enum.HumanoidStateType.Jumping) 
+        
+        ReplicatedStorage.SpawnCarEvents.SpawnCar:FireServer(_G.SelectedMotor)
+        task.wait(9) 
+
+        local targetVehicle = nil
+        for _, child in pairs(workspace:GetChildren()) do
+            if child:IsA("Model") and string.find(child.Name, "Montors") and string.find(child.Name, lp.Name) then
+                targetVehicle = child
+                break
+            end
+        end
+
+        if targetVehicle then
+            local driveSeat = targetVehicle:FindFirstChild("DriveSeat")
+            if driveSeat then
+                char:PivotTo(driveSeat.CFrame)
+                task.wait(0.3)
+                local prompt = driveSeat:FindFirstChildOfClass("ProximityPrompt")
+                if prompt then fireproximityprompt(prompt) end
+            end
+            task.wait(1)
+
+            if game:GetService("TextChatService").ChatVersion == Enum.ChatVersion.TextChatService then
+                game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync("!START")
+            else
+                ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("!START", "All")
+            end
+            task.wait(6)
+
+            VIM:SendKeyEvent(true, Enum.KeyCode.W, false, game)
+            task.wait(0.2)
+            VIM:SendKeyEvent(true, Enum.KeyCode.P, false, game)
+            task.wait(0.1)
+            VIM:SendKeyEvent(false, Enum.KeyCode.P, false, game)
+            task.wait(0.1)
+            VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+            task.wait(0.05)
+            VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+
+            local raceActive = true
+            local pGui = lp:FindFirstChild("PlayerGui")
+            local timer = pGui and pGui:WaitForChild("TimerGui", 10):WaitForChild("Frame", 5):WaitForChild("TimeValue", 5)
+
+            local gearLoop = task.spawn(function()
+                if not _G.IsAutoGear then return end
+                task.wait(3) 
+                if raceActive then
+                    VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                    task.wait(0.05)
+                    VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                end
+                while raceActive do
+                    task.wait(4)
+                    if raceActive then
+                        VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                        task.wait(0.05)
+                        VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                    end
+                end
+            end)
+
+            local connection
+            connection = RunService.Heartbeat:Connect(function()
+                if not _G.IsAutoFarm or not targetVehicle.Parent then 
+                    raceActive = false
+                    if connection then connection:Disconnect() end
+                    return 
+                end
+                if timer and timer.TextColor3.G > 0.8 and timer.TextColor3.B < 0.3 then 
+                    raceActive = false
+                    if connection then connection:Disconnect() end
+                end
+            end)
+
+            local timeout = 0
+            while raceActive and timeout < 35 do
+                task.wait(0.5)
+                timeout = timeout + 0.5
+            end
+            
+            raceActive = false
+            if connection then connection:Disconnect() end
+            task.cancel(gearLoop)
+
+            VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+            hum.Sit = false 
+            task.wait(0.1)
+            hum:ChangeState(Enum.HumanoidStateType.Jumping) 
+        end
+        if not _G.IsAutoFarm then break end
+        task.wait(2)
+    end
+end
+
+-- [[ 4. WINDOW INTERFACE ]] --
+local Window = WindUI:CreateWindow({
+    Title = "VoidlineHub",
+    Author = "Bilzz",
+    Icon = "flag",
+    Size = UDim2.fromOffset(320, 380),
+    Transparent = true
+})
+
+local MainTab = Window:Tab({ Title = "Main", Icon = "home" })
+
+MainTab:Section({ Title = "select vehicle"})
+local MotorDropdown = MainTab:Dropdown({
+    Title = "Select Motor",
+    Desc = "Daftar motor yang tersedia di garasi kamu",
+    Values = _G.MotorOptions,
+    Value = _G.SelectedMotor,
+    Callback = function(v) _G.SelectedMotor = v end
+})
+
+MainTab:Toggle({
+    Title = "Auto Shifter",
+    Desc = "Otomatis oper gigi setiap 4 detik (E)",
+    Value = _G.IsAutoGear,
+    Callback = function(v) _G.IsAutoGear = v end
+})
+
+MainTab:Section({ Title = "on autorace"})
+MainTab:Toggle({
+    Title = "Auto Drag Loop",
+    Desc = "Mulai siklus balapan otomatis tanpa henti",
+    Value = _G.IsAutoFarm,
+    Callback = function(v)
+        _G.IsAutoFarm = v
+        if _G.IsAutoFarm then task.spawn(startMatrixRace) end
+    end
+})
+
+MainTab:Button({
+    Title = "Force Rescan Garage",
+    Desc = "Paksa pindai ulang isi garasi manual",
+    Callback = function()
+        MotorDropdown:SetValues(getGarageData())
+    end
+})
+
+-- [[ 5. AUTO REFRESH LOOP ]] --
+task.spawn(function()
+    while true do
+        local data = getGarageData()
+        MotorDropdown:SetValues(data)
+        task.wait(10)
+    end
+end)
+
