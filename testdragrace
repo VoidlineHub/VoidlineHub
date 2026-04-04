@@ -5,16 +5,40 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local VIM = game:GetService("VirtualInputManager")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
 local lp = game.Players.LocalPlayer
 
 _G.IsAutoFarm = false
 _G.IsAutoGear = true
+_G.AutoRejoinLimit = true
+_G.LimitTimer = 0 -- Counter buat deteksi limit
+
+local START_CF = CFrame.new(-8909.42871, 2.39137, 758.84540, -0.8551978469, 0.0000000440, -0.5183017254, 0.0000000650, 1.0000000000, -0.0000000224, 0.5183017254, -0.0000000528, -0.8551978469)
 _G.SelectedMotor = "Yamahax-MioSporty"
 _G.MotorOptions = {"Yamahax-MioSporty"}
 
-local START_CF = CFrame.new(-8909.42871, 2.39137, 758.84540, -0.8551978469, 0.0000000440, -0.5183017254, 0.0000000650, 1.0000000000, -0.0000000224, 0.5183017254, -0.0000000528, -0.8551978469)
+--// logic deteksi limit (10 Menit tanpa TimerValue)
+task.spawn(function()
+    while task.wait(1) do
+        if _G.IsAutoFarm and _G.AutoRejoinLimit then
+            local pGui = lp:FindFirstChild("PlayerGui")
+            local timerPath = pGui and pGui:FindFirstChild("TimerGui") and pGui.TimerGui:FindFirstChild("Frame") and pGui.TimerGui.Frame:FindFirstChild("TimeValue")
+            
+            if not timerPath then
+                _G.LimitTimer = _G.LimitTimer + 1
+            else
+                _G.LimitTimer = 0 -- Reset kalau timer muncul (lagi balapan)
+            end
 
---// logic autofarm
+            -- 600 detik = 10 Menit
+            if _G.LimitTimer >= 600 then
+                TeleportService:Teleport(game.PlaceId, lp)
+            end
+        end
+    end
+end)
+
+--// logic garasi
 local function getGarageData()
     local newList = {}
     pcall(function()
@@ -30,13 +54,13 @@ local function getGarageData()
     return newList
 end
 
+--// logic utama
 local function startMatrixRace()
     while _G.IsAutoFarm do
         local char = lp.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         if not char or not hum then break end
 
-        -- Clear Barrier
         pcall(function()
             if workspace.BUILDING_KARTASURA.DRAG_RACE.ACC:FindFirstChild("BAN") then
                 workspace.BUILDING_KARTASURA.DRAG_RACE.ACC.BAN:Destroy()
@@ -81,7 +105,6 @@ local function startMatrixRace()
             end
             task.wait(6)
 
-            -- STEP 1: W -> P -> E (Gigi 1)
             VIM:SendKeyEvent(true, Enum.KeyCode.W, false, game)
             task.wait(0.2)
             VIM:SendKeyEvent(true, Enum.KeyCode.P, false, game)
@@ -96,7 +119,6 @@ local function startMatrixRace()
             local pGui = lp:FindFirstChild("PlayerGui")
             local timer = pGui and pGui:WaitForChild("TimerGui", 10):WaitForChild("Frame", 5):WaitForChild("TimeValue", 5)
 
-            -- STEP 2: Delay 3s -> Gear 2 & Loop 4s
             local gearLoop = task.spawn(function()
                 if not _G.IsAutoGear then return end
                 task.wait(3)
@@ -115,7 +137,6 @@ local function startMatrixRace()
                 end
             end)
 
-            -- Finish Detection
             local connection
             connection = RunService.Heartbeat:Connect(function()
                 if not _G.IsAutoFarm or not targetVehicle.Parent then 
@@ -154,7 +175,11 @@ local Window = Rayfield:CreateWindow({
    Name = "VoidlineHub",
    LoadingTitle = "VoidlineHub",
    LoadingSubtitle = "by Bilzz",
-   ConfigurationSaving = { Enabled = false }
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = "VoidlineHub_Configs",
+      FileName = "EliteDrag_Save"
+   }
 })
 
 local MainTab = Window:CreateTab("Main Drag", 4483362458)
@@ -164,44 +189,65 @@ MainTab:CreateSection("select vehicle")
 
 local MotorDropdown = MainTab:CreateDropdown({
    Name = "Select Motor",
-   Info = "Pilih motor yang sudah kamu punya di garasi",
+   Info = "Otomatis tersimpan ke config",
    Options = _G.MotorOptions,
    CurrentOption = {_G.SelectedMotor},
    MultipleOptions = false,
+   Flag = "MotorFlag",
    Callback = function(Option) _G.SelectedMotor = Option[1] end,
 })
 
 MainTab:CreateButton({
    Name = "Refresh Motor List",
-   Info = "Scan ulang koleksi motor kamu",
+   Info = "Update list motor terbaru",
    Callback = function()
       local data = getGarageData()
       MotorDropdown:Refresh(data, true)
    end,
 })
 
---// toggle farm
+--// farming
 MainTab:CreateSection("on autorace")
 
 MainTab:CreateToggle({
    Name = "Auto Shifter Mode",
-   Info = "Otomatis oper gigi (3s Gigi 2, sisa loop 4s)",
+   Info = "Otomatis oper gigi",
    CurrentValue = _G.IsAutoGear,
+   Flag = "GearFlag",
    Callback = function(v) _G.IsAutoGear = v end,
 })
 
 MainTab:CreateToggle({
    Name = "Main Auto Drag Loop",
-   Info = "Mulai siklus farming drag secara otomatis",
+   Info = "Start farming otomatis",
    CurrentValue = _G.IsAutoFarm,
+   Flag = "FarmFlag",
    Callback = function(v)
       _G.IsAutoFarm = v
       if _G.IsAutoFarm then task.spawn(startMatrixRace) end
    end,
 })
 
--- Initial Refresh
+MainTab:CreateSection("Anti Limit Control")
+
+MainTab:CreateToggle({
+   Name = "Auto Rejoin on Limit",
+   Info = "Rejoin otomatis kalau 10 menit stuck/limit",
+   CurrentValue = _G.AutoRejoinLimit,
+   Flag = "RejoinFlag",
+   Callback = function(v) _G.AutoRejoinLimit = v end,
+})
+
+--// Load Config & Init
+Rayfield:LoadConfiguration()
+
 task.spawn(function()
     local data = getGarageData()
     MotorDropdown:Refresh(data, true)
+    
+    -- Auto run jika FarmFlag di config bernilai true
+    if _G.IsAutoFarm then
+        task.wait(2)
+        task.spawn(startMatrixRace)
+    end
 end)
