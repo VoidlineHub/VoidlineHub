@@ -1,4 +1,4 @@
--- [[ 1. LOAD WINDUI ]] --
+-- [[ 1. INITIALIZE ]] --
 local WindUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua'))()
 
 -- [[ 2. DATA BINDING & VARIABLES (_G) ]] --
@@ -14,7 +14,7 @@ _G.IsAutoGear = true
 
 local START_CF = CFrame.new(-8909.42871, 2.39137, 758.84540, -0.8551978469, 0.0000000440, -0.5183017254, 0.0000000650, 1.0000000000, -0.0000000224, 0.5183017254, -0.0000000528, -0.8551978469)
 
--- [[ 3. CORE LOGIC (PORTED FROM RAYFIELD V3) ]] --
+-- [[ 3. CORE LOGIC ]] --
 local function getGarageData()
     local newList = {}
     pcall(function()
@@ -80,7 +80,6 @@ local function startMatrixRace()
             end
             task.wait(6)
 
-            -- [[ STEP 1: W -> P -> E (GIGI 1) ]] --
             VIM:SendKeyEvent(true, Enum.KeyCode.W, false, game)
             task.wait(0.2)
             VIM:SendKeyEvent(true, Enum.KeyCode.P, false, game)
@@ -95,7 +94,6 @@ local function startMatrixRace()
             local pGui = lp:FindFirstChild("PlayerGui")
             local timer = pGui and pGui:WaitForChild("TimerGui", 10):WaitForChild("Frame", 5):WaitForChild("TimeValue", 5)
 
-            -- [[ STEP 2: DELAY 3S -> G2 & 4S LOOP ]] --
             local gearLoop = task.spawn(function()
                 if not _G.IsAutoGear then return end
                 task.wait(3)
@@ -158,9 +156,11 @@ local Window = WindUI:CreateWindow({
 
 local MainTab = Window:Tab({ Title = "Main", Icon = "home" })
 
+MainTab:Section({ Title = "select vehicle" })
+
 local MotorDropdown = MainTab:Dropdown({
     Title = "Select Motor",
-    Desc = "Pilih motor yang ingin digunakan untuk autorace",
+    Desc = "Pilih motor dari garasi kamu",
     Values = _G.MotorOptions,
     Value = _G.SelectedMotor,
     Callback = function(v) _G.SelectedMotor = v end
@@ -168,14 +168,16 @@ local MotorDropdown = MainTab:Dropdown({
 
 MainTab:Toggle({
     Title = "Auto Shifter Mode",
-    Desc = "Otomatis oper gigi (3s Gigi 2, sisa loop 4s)",
+    Desc = "Oper gigi otomatis (3s Gigi 2, sisa loop 4s)",
     Value = _G.IsAutoGear,
     Callback = function(v) _G.IsAutoGear = v end
 })
 
+MainTab:Section({ Title = "on autorace" })
+
 MainTab:Toggle({
-    Title = "Main Auto Drag Loop",
-    Desc = "Mulai siklus farming drag otomatis",
+    Title = "Auto Drag Loop",
+    Desc = "Jalankan siklus farming drag otomatis",
     Value = _G.IsAutoFarm,
     Callback = function(v)
         _G.IsAutoFarm = v
@@ -184,10 +186,11 @@ MainTab:Toggle({
 })
 
 MainTab:Button({
-    Title = "Force Refresh Motor",
-    Desc = "Pindai ulang daftar motor di garasi kamu",
+    Title = "Force Refresh",
+    Desc = "Pindai ulang motor secara manual",
     Callback = function()
-        MotorDropdown:SetValues(getGarageData())
+        local data = getGarageData()
+        MotorDropdown.Values = data -- Cara manual buat bypass error SetValues
     end
 })
 
@@ -195,7 +198,10 @@ MainTab:Button({
 task.spawn(function()
     while true do
         local data = getGarageData()
-        MotorDropdown:SetValues(data)
+        if #data ~= #_G.MotorOptions then
+            _G.MotorOptions = data
+            MotorDropdown.Values = data
+        end
         task.wait(10)
     end
 end)
