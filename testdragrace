@@ -18,14 +18,30 @@ local START_CF = CFrame.new(-8909.42871, 2.39137, 758.84540, -0.8551978469, 0.00
 local function getGarageData()
     local newList = {}
     pcall(function()
-        local data = ReplicatedStorage.DealershipEvents.InitializeCarData:InvokeServer()
-        if data and type(data) == "table" then
-            for _, info in pairs(data) do
-                if info.Name then table.insert(newList, info.Name) end
+        -- Ambil data dari folder kendaraan yang dimiliki player
+        local ownedFolder = lp:FindFirstChild("OwnedCars") 
+        if ownedFolder then
+            for _, v in pairs(ownedFolder:GetChildren()) do
+                table.insert(newList, v.Name)
+            end
+        end
+        
+        -- Failsafe: Jika folder kosong, coba tarik dari Remote
+        if #newList == 0 then
+            local data = ReplicatedStorage.DealershipEvents.InitializeCarData:InvokeServer()
+            if data and type(data) == "table" then
+                for name, info in pairs(data) do
+                    if info.Owned or info.IsOwned then
+                        table.insert(newList, name)
+                    end
+                end
             end
         end
     end)
-    return #newList > 0 and newList or {"Yamahax-MioSporty"}
+    
+    if #newList == 0 then table.insert(newList, "Yamahax-MioSporty") end
+    table.sort(newList)
+    return newList
 end
 
 local function startMatrixRace()
@@ -34,10 +50,10 @@ local function startMatrixRace()
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         if not char or not hum then break end
 
+        -- Clear Barrier
         pcall(function()
-            if workspace.BUILDING_KARTASURA.DRAG_RACE.ACC:FindFirstChild("BAN") then
-                workspace.BUILDING_KARTASURA.DRAG_RACE.ACC.BAN:Destroy()
-            end
+            local barrier = workspace.BUILDING_KARTASURA.DRAG_RACE.ACC:FindFirstChild("BAN")
+            if barrier then barrier:Destroy() end
         end)
 
         hum.Sit = true
@@ -70,6 +86,7 @@ local function startMatrixRace()
             end
             task.wait(1)
 
+            -- Chat Start
             if game:GetService("TextChatService").ChatVersion == Enum.ChatVersion.TextChatService then
                 game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync("!START")
             else
@@ -77,6 +94,7 @@ local function startMatrixRace()
             end
             task.wait(6)
 
+            -- Start Sequence: W + P + E (Gear 1)
             VIM:SendKeyEvent(true, Enum.KeyCode.W, false, game)
             task.wait(0.2)
             VIM:SendKeyEvent(true, Enum.KeyCode.P, false, game)
@@ -91,16 +109,17 @@ local function startMatrixRace()
             local pGui = lp:FindFirstChild("PlayerGui")
             local timer = pGui and pGui:WaitForChild("TimerGui", 10):WaitForChild("Frame", 5):WaitForChild("TimeValue", 5)
 
+            -- Dynamic Shifter
             local gearLoop = task.spawn(function()
                 if not _G.IsAutoGear then return end
-                task.wait(3) 
+                task.wait(3) -- Delay ke Gigi 2
                 if raceActive then
                     VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                     task.wait(0.05)
                     VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                 end
                 while raceActive do
-                    task.wait(4)
+                    task.wait(4) -- Gigi seterusnya
                     if raceActive then
                         VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                         task.wait(0.05)
@@ -109,6 +128,7 @@ local function startMatrixRace()
                 end
             end)
 
+            -- Finish Logic (170, 255, 0 Detection)
             local connection
             connection = RunService.Heartbeat:Connect(function()
                 if not _G.IsAutoFarm or not targetVehicle.Parent then 
@@ -147,16 +167,17 @@ local Window = WindUI:CreateWindow({
     Title = "VoidlineHub",
     Author = "Bilzz",
     Icon = "flag",
-    Size = UDim2.fromOffset(320, 380),
+    Size = UDim2.fromOffset(350, 400),
     Transparent = true
 })
 
 local MainTab = Window:Tab({ Title = "Main", Icon = "home" })
 
-MainTab:Section({ Title = "select vehicle"})
+MainTab:Section({ Title = "select vehicle" })
+
 local MotorDropdown = MainTab:Dropdown({
     Title = "Select Motor",
-    Desc = "Daftar motor yang tersedia di garasi kamu",
+    Desc = "Daftar motor yang terdeteksi di akun kamu",
     Values = _G.MotorOptions,
     Value = _G.SelectedMotor,
     Callback = function(v) _G.SelectedMotor = v end
@@ -164,15 +185,16 @@ local MotorDropdown = MainTab:Dropdown({
 
 MainTab:Toggle({
     Title = "Auto Shifter",
-    Desc = "Otomatis oper gigi setiap 4 detik (E)",
+    Desc = "Oper gigi otomatis (3s ke G2, lalu 4s loop)",
     Value = _G.IsAutoGear,
     Callback = function(v) _G.IsAutoGear = v end
 })
 
-MainTab:Section({ Title = "on autorace"})
+MainTab:Section({ Title = "on autorace" })
+
 MainTab:Toggle({
     Title = "Auto Drag Loop",
-    Desc = "Mulai siklus balapan otomatis tanpa henti",
+    Desc = "Jalankan siklus balapan otomatis",
     Value = _G.IsAutoFarm,
     Callback = function(v)
         _G.IsAutoFarm = v
@@ -181,19 +203,21 @@ MainTab:Toggle({
 })
 
 MainTab:Button({
-    Title = "Force Rescan Garage",
-    Desc = "Paksa pindai ulang isi garasi manual",
+    Title = "Force Rescan",
+    Desc = "Pindai ulang garasi secara manual",
     Callback = function()
         MotorDropdown:SetValues(getGarageData())
     end
 })
 
--- [[ 5. AUTO REFRESH LOOP ]] --
+-- [[ 5. BACKGROUND AUTO REFRESH ]] --
 task.spawn(function()
     while true do
         local data = getGarageData()
-        MotorDropdown:SetValues(data)
+        if #data ~= #_G.MotorOptions then
+            _G.MotorOptions = data
+            MotorDropdown:SetValues(data)
+        end
         task.wait(10)
     end
 end)
-
