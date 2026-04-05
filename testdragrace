@@ -20,36 +20,29 @@ _G.MotorOptions = {"Yamahax-MioSporty"}
 
 local START_CF = CFrame.new(-8909.42871, 2.39137, 758.84540, -0.8551978469, 0.0000000440, -0.5183017254, 0.0000000650, 1.0000000000, -0.0000000224, 0.5183017254, -0.0000000528, -0.8551978469)
 
---// global limit monitor (Fix Berdasarkan Properti .Enabled)
+--// LOGIC REJOIN (Limit Detector)
 task.spawn(function()
     while task.wait(1) do
         if _G.IsAutoFarm and _G.AutoRejoinLimit then
             local timerGui = lp.PlayerGui:FindFirstChild("TimerGui")
             
-            -- Sesuai script asli: v_u_4.Enabled = true saat start
+            -- Jika AutoFarm ON tapi TimerGui.Enabled TIDAK PERNAH True (artinya event Start ga masuk/Limit)
             if timerGui and timerGui.Enabled == false then
                 _G.LimitTimer = _G.LimitTimer + 1
             else
-                _G.LimitTimer = 0 
+                _G.LimitTimer = 0 -- Reset kalo balapan jalan (Enabled = true)
             end
 
-            -- 180 detik = 3 Menit stuck (Enabled tetap false)
+            -- 180 detik = 3 Menit stuck
             if _G.LimitTimer >= 180 then
                 _G.LimitTimer = 0
-                Rayfield:Notify({
-                    Title = "VoidlineHub",
-                    Content = "Limit/Stuck Detected! Rejoining...",
-                    Duration = 5,
-                    Image = 4483362458,
-                })
-                task.wait(2)
                 TeleportService:Teleport(game.PlaceId, lp)
             end
         end
     end
 end)
 
---// logic garage
+--// garage logic
 local function getGarageData()
     local newList = {}
     pcall(function()
@@ -75,24 +68,22 @@ local function startMatrixRace()
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         if not char or not hum then break end
 
+        -- Hapus pembatas/ban
         pcall(function()
             if workspace.BUILDING_KARTASURA.DRAG_RACE.ACC:FindFirstChild("BAN") then
                 workspace.BUILDING_KARTASURA.DRAG_RACE.ACC.BAN:Destroy()
             end
         end)
 
+        -- Setup Posisi
         hum.Sit = true
-        task.wait(4)
+        task.wait(2)
         char:PivotTo(START_CF)
-        task.wait(4)
+        task.wait(2)
         
-        hum.Sit = false 
-        task.wait(0.1)
-        hum:ChangeState(Enum.HumanoidStateType.Jumping) 
-        task.wait(0.1)
-        
+        -- Spawn Motor
         ReplicatedStorage.SpawnCarEvents.SpawnCar:FireServer(_G.SelectedMotor)
-        task.wait(9) 
+        task.wait(7) 
 
         local targetVehicle = nil
         for _, child in pairs(workspace:GetChildren()) do
@@ -106,13 +97,13 @@ local function startMatrixRace()
             local driveSeat = targetVehicle:FindFirstChild("DriveSeat")
             if driveSeat then
                 char:PivotTo(driveSeat.CFrame)
-                task.wait(0.3)
+                task.wait(0.5)
                 local prompt = driveSeat:FindFirstChildOfClass("ProximityPrompt")
                 if prompt then fireproximityprompt(prompt) end
             end
-            task.wait(1)
+            task.wait(2)
 
-            -- Anti Double Chat !START
+            -- Start Race
             if game:GetService("TextChatService").ChatVersion == Enum.ChatVersion.TextChatService then
                 game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync("!START")
             else
@@ -120,7 +111,7 @@ local function startMatrixRace()
             end
             task.wait(6)
 
-            -- Control Gigi 1
+            -- Masuk Gigi 1 (W + P + E)
             VIM:SendKeyEvent(true, Enum.KeyCode.W, false, game)
             task.wait(0.2)
             VIM:SendKeyEvent(true, Enum.KeyCode.P, false, game)
@@ -134,18 +125,19 @@ local function startMatrixRace()
             local raceActive = true
             local pGui = lp.PlayerGui
             local timerGui = pGui:WaitForChild("TimerGui", 10)
-            local timerValue = timerGui:WaitForChild("Frame", 5):WaitForChild("TimeValue", 5)
+            local timerValue = timerGui:WaitForChild("Frame"):WaitForChild("TimeValue")
 
+            -- Auto Shifter Logic
             local gearLoop = task.spawn(function()
                 if not _G.IsAutoGear then return end
-                task.wait(3) -- Delay Gigi 2
+                task.wait(3) -- Gigi 2
                 if raceActive then
                     VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                     task.wait(0.05)
                     VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                 end
                 while raceActive do
-                    task.wait(4)
+                    task.wait(4) -- Gigi seterusnya
                     if raceActive then
                         VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                         task.wait(0.05)
@@ -154,7 +146,7 @@ local function startMatrixRace()
                 end
             end)
 
-            -- Monitor Selesai (Berdasarkan Warna atau .Enabled false)
+            -- Monitor Selesai
             local connection
             connection = RunService.Heartbeat:Connect(function()
                 if not _G.IsAutoFarm or not targetVehicle.Parent or timerGui.Enabled == false then 
@@ -162,8 +154,8 @@ local function startMatrixRace()
                     if connection then connection:Disconnect() end
                     return 
                 end
-                -- Cek warna Lime (Finish)
-                if timerValue and timerValue.TextColor3.G > 0.8 and timerValue.TextColor3.B < 0.3 then 
+                -- Berhenti kalau warna teks berubah jadi Lime (Finish)
+                if timerValue.TextColor3.G > 0.8 and timerValue.TextColor3.B < 0.3 then 
                     raceActive = false
                     if connection then connection:Disconnect() end
                 end
@@ -179,18 +171,17 @@ local function startMatrixRace()
             if connection then connection:Disconnect() end
             task.cancel(gearLoop)
 
+            -- Berhenti tekan gas & hapus motor lama
             VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game)
-            hum.Sit = false 
-            task.wait(0.1)
-            hum:ChangeState(Enum.HumanoidStateType.Jumping) 
+            task.wait(1)
         end
         if not _G.IsAutoFarm then break end
-        task.wait(2)
+        task.wait(3) -- Jeda antar balapan
     end
     _G.Running = false
 end
 
---// window
+--// GUI Rayfield
 local Window = Rayfield:CreateWindow({
    Name = "VoidlineHub",
    LoadingTitle = "VoidlineHub",
@@ -204,36 +195,33 @@ local Window = Rayfield:CreateWindow({
 
 local MainTab = Window:CreateTab("Main Drag", 4483362458)
 
-MainTab:CreateSection("select vehicle")
-
+MainTab:CreateSection("Garage")
 local MotorDropdown = MainTab:CreateDropdown({
    Name = "Select Motor",
    Options = _G.MotorOptions,
    CurrentOption = {_G.SelectedMotor},
-   MultipleOptions = false,
    Flag = "MotorFlag",
    Callback = function(Option) _G.SelectedMotor = Option[1] end,
 })
 
 MainTab:CreateButton({
-   Name = "Refresh Motor List",
+   Name = "Refresh Motor",
    Callback = function()
       local data = getGarageData()
       MotorDropdown:Refresh(data, true)
    end,
 })
 
-MainTab:CreateSection("on autorace")
-
+MainTab:CreateSection("Auto Race")
 MainTab:CreateToggle({
-   Name = "Auto Shifter Mode",
+   Name = "Auto Shifter",
    CurrentValue = _G.IsAutoGear,
    Flag = "GearFlag",
    Callback = function(v) _G.IsAutoGear = v end,
 })
 
 MainTab:CreateToggle({
-   Name = "Main Auto Drag Loop",
+   Name = "Main Auto Farm",
    CurrentValue = _G.IsAutoFarm,
    Flag = "FarmFlag",
    Callback = function(v)
@@ -242,33 +230,27 @@ MainTab:CreateToggle({
    end,
 })
 
-MainTab:CreateSection("System Control")
-
+MainTab:CreateSection("Settings")
 MainTab:CreateToggle({
    Name = "Auto Start on Load",
-   Info = "Harus di ON-kan untuk Full AFK setelah Rejoin",
    CurrentValue = _G.AutoStartOnLoad,
    Flag = "AutoStartFlag",
    Callback = function(v) _G.AutoStartOnLoad = v end,
 })
 
 MainTab:CreateToggle({
-   Name = "Auto Rejoin on Limit",
-   Info = "Rejoin jika 3 menit balapan tidak terdeteksi",
+   Name = "Auto Rejoin (Anti Limit)",
    CurrentValue = _G.AutoRejoinLimit,
    Flag = "RejoinFlag",
    Callback = function(v) _G.AutoRejoinLimit = v end,
 })
 
---// Load Config
 Rayfield:LoadConfiguration()
 
 task.spawn(function()
     local data = getGarageData()
     MotorDropdown:Refresh(data, true)
-    
     task.wait(2)
-    -- Start jika AutoStart ON dan AutoFarm ON di config
     if _G.AutoStartOnLoad and _G.IsAutoFarm then
         task.spawn(startMatrixRace)
     end
