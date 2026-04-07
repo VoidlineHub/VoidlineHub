@@ -50,6 +50,132 @@ local lastMoney = PlayerData.RPValue.Value
 local pendingIncome = 0
 local isRunning = false
 local cooldownTime = 60
+local WaktuKosong = nil
+
+
+-- [[  UTILITY FUNCTIONS ]]
+local function SwitchToCourier()
+    local TeamRemote = ReplicatedStorage:FindFirstChild("TeamChangeRequest", true)
+    if TeamRemote then
+        if not LP.Team or LP.Team.Name ~= "Courier" then
+            TeamRemote:FireServer("Courier", 11378976, 0, 0, "Detector")
+            task.wait(1.5)
+        end
+    end
+end
+
+local function Tween(targetCFrame)
+
+    local Char = LP.Character
+
+    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+
+    if not Root then return end
+
+    
+
+    local distance = (Root.Position - targetCFrame.Position).Magnitude
+
+    local duration = distance / _G.CourierSpeed
+
+    
+
+    Root.Velocity = Vector3.new(0,0,0)
+
+    Root.RotVelocity = Vector3.new(0,0,0)
+
+    
+
+    local info = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+
+    local tween = TweenService:Create(Root, info, {CFrame = targetCFrame})
+
+    
+
+    tween:Play()
+
+    
+
+    local connection
+
+    connection = game:GetService("RunService").Stepped:Connect(function()
+
+        if tween.PlaybackState == Enum.PlaybackState.Playing then
+
+            Root.Velocity = Vector3.new(0,0,0)
+
+        else
+
+            connection:Disconnect()
+
+        end
+
+    end)
+
+    
+
+    tween.Completed:Wait()
+
+    Root.Velocity = Vector3.new(0,0,0)
+
+end
+
+
+
+local function AutoEquipBox()
+
+    local Char = LP.Character
+
+    if not Char or not Char:FindFirstChild("Humanoid") then return false end
+
+    local held = Char:FindFirstChildOfClass("Tool")
+
+    if held and held.Name:lower() == "box" then return true end
+
+    local bp = LP:FindFirstChild("Backpack")
+
+    if bp then
+
+        for _, item in pairs(bp:GetChildren()) do
+
+            if item:IsA("Tool") and item.Name:lower() == "box" then
+
+                Char.Humanoid:EquipTool(item)
+
+                return true
+
+            end
+
+        end
+
+    end
+
+    return false
+
+end
+
+
+
+local function GetActivePoint()
+
+    for _, folder in ipairs(CourierSettings.Folder.Location:GetChildren()) do
+
+        local block = folder:FindFirstChild("Block")
+
+        local prompt = block and block:FindFirstChildOfClass("ProximityPrompt")
+
+        if prompt and (prompt.Enabled or folder:FindFirstChild("POINT").billboardgui.Enabled) then
+
+            return block, prompt
+
+        end
+
+    end
+
+    return nil, nil
+
+end
+
 
 -- [[ ANTI-AFK SYSTEM ]]
 task.spawn(function()
@@ -269,6 +395,16 @@ RunService.Heartbeat:Connect(function()
 end)
 
 
+
+
+
+-- [[ MAIN ENGINE ]]
+
+task.spawn(function()
+
+    warn("[VOIDLINE] Engine Loaded & Waiting for Toggle...")
+
+
 -- [[  UTILITY FUNCTIONS ]]
 local function SwitchToCourier()
     local TeamRemote = ReplicatedStorage:FindFirstChild("TeamChangeRequest", true)
@@ -281,215 +417,144 @@ local function SwitchToCourier()
 end
 
 local function Tween(targetCFrame)
-
     local Char = LP.Character
-
     local Root = Char and Char:FindFirstChild("HumanoidRootPart")
-
     if not Root then return end
 
-    
-
     local distance = (Root.Position - targetCFrame.Position).Magnitude
-
     local duration = distance / _G.CourierSpeed
 
-    
-
     Root.Velocity = Vector3.new(0,0,0)
-
     Root.RotVelocity = Vector3.new(0,0,0)
 
-    
-
     local info = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-
     local tween = TweenService:Create(Root, info, {CFrame = targetCFrame})
-
-    
 
     tween:Play()
 
-    
-
     local connection
-
     connection = game:GetService("RunService").Stepped:Connect(function()
-
         if tween.PlaybackState == Enum.PlaybackState.Playing then
-
             Root.Velocity = Vector3.new(0,0,0)
-
         else
-
             connection:Disconnect()
-
         end
-
     end)
 
-    
-
     tween.Completed:Wait()
-
     Root.Velocity = Vector3.new(0,0,0)
-
 end
-
-
 
 local function AutoEquipBox()
-
     local Char = LP.Character
-
     if not Char or not Char:FindFirstChild("Humanoid") then return false end
-
     local held = Char:FindFirstChildOfClass("Tool")
-
     if held and held.Name:lower() == "box" then return true end
-
     local bp = LP:FindFirstChild("Backpack")
-
     if bp then
-
         for _, item in pairs(bp:GetChildren()) do
-
             if item:IsA("Tool") and item.Name:lower() == "box" then
-
                 Char.Humanoid:EquipTool(item)
-
                 return true
-
             end
-
         end
-
     end
-
     return false
-
 end
-
-
 
 local function GetActivePoint()
-
     for _, folder in ipairs(CourierSettings.Folder.Location:GetChildren()) do
-
         local block = folder:FindFirstChild("Block")
-
         local prompt = block and block:FindFirstChildOfClass("ProximityPrompt")
-
         if prompt and (prompt.Enabled or folder:FindFirstChild("POINT").billboardgui.Enabled) then
-
             return block, prompt
-
         end
-
     end
-
     return nil, nil
-
 end
 
-
-
 -- [[ MAIN ENGINE ]]
-
 task.spawn(function()
-
     warn("[VOIDLINE] Engine Loaded & Waiting for Toggle...")
-
     
-
     while true do
-
         task.wait(1)
-
         
-
         -- Hanya jalan jika Toggle ON
-
         if _G.AutofarmCourier then
-SwitchToCourier()
+            SwitchToCourier()
 
             local Char = LP.Character
-
             local Hum = Char and Char:FindFirstChild("Humanoid")
-
             local Root = Char and Char:FindFirstChild("HumanoidRootPart")
 
-
-
             if Hum and Root then
-
-                -- PHASE 1: AMBIL PAKET
-
-                if not AutoEquipBox() then
-
-                    if not Hum.Sit then Hum.Sit = true task.wait(0.5) end
-
-                    Tween(TAKE_BOX_CFRAME)
-
-                    task.wait(0.5)
-
-                    
-
-                    if _G.AutofarmCourier and TAKE_PROMPT.Enabled then
-
-                        fireproximityprompt(TAKE_PROMPT)
-
-                        task.wait(1.5)
-
-                    end
-
                 
-
-                -- PHASE 2: ANTER PAKET
-
-                else
-
-                    local TargetBlock, TargetPrompt = GetActivePoint()
-
-                    
-
-                    if TargetBlock and TargetPrompt then
-
-                        task.wait(math.random(0, 1))
-
-                        
-
-                        if not Hum.Sit then Hum.Sit = true task.wait(0.3) end
-
-                        
-
-                        Tween(TargetBlock.CFrame * CFrame.new(0, 2, 0))
-
-                        task.wait(0.8)
-
-                        
-
-                        AutoEquipBox()
-
-                        
-
-                        if _G.AutofarmCourier and TargetPrompt.Enabled then
-
-                            fireproximityprompt(TargetPrompt)
-
-                            task.wait(3.5)
-
-                        end
-
+                -- [[ LOGIC DETEKSI LIMIT / STUCK 4 MENIT ]]
+                if not AutoEquipBox() then
+                    -- Mulai hitung waktu kalau tangan kosong
+                    if not WaktuKosong then 
+                        WaktuKosong = os.clock() 
                     end
-
+                    
+                    -- Jika sudah 240 detik (4 menit) masih kosong
+                    if (os.clock() - WaktuKosong) >= 240 then
+                        warn("[VOIDLINE] Limit Detect / Stuck! Switching Role...")
+                        
+                        -- Remote Civilian buat reset status
+                        local args = {"Civilian", 0, 0, 0, "Detector"}
+                        game:GetService("ReplicatedStorage"):WaitForChild("JobEvents"):WaitForChild("TeamChangeRequest"):FireServer(unpack(args))
+                        
+                        WaktuKosong = nil -- Reset timer
+                        task.wait(5)
+                        continue -- Balik ke atas buat masuk Courier lagi via SwitchToCourier()
+                    end
+                else
+                    -- Kalau pegang box, timer reset jadi nil lagi
+                    WaktuKosong = nil
                 end
 
+                -- PHASE 1: AMBIL PAKET
+                if not AutoEquipBox() then
+                    if not Hum.Sit then Hum.Sit = true task.wait(0.5) end
+                    Tween(TAKE_BOX_CFRAME)
+                    task.wait(0.5)
+                    
+                    if _G.AutofarmCourier and TAKE_PROMPT.Enabled then
+                        fireproximityprompt(TAKE_PROMPT)
+                        task.wait(1.5)
+                    end
+                
+                -- PHASE 2: ANTER PAKET
+                else
+                    local TargetBlock, TargetPrompt = GetActivePoint()
+                    
+                    if TargetBlock and TargetPrompt then
+                        task.wait(math.random(0, 1))
+                        
+                        if not Hum.Sit then Hum.Sit = true task.wait(0.3) end
+                        
+                        Tween(TargetBlock.CFrame * CFrame.new(0, 2, 0))
+                        task.wait(0.8)
+                        
+                        AutoEquipBox()
+                        
+                        if _G.AutofarmCourier and TargetPrompt.Enabled then
+                            fireproximityprompt(TargetPrompt)
+                            task.wait(3.5)
+                        end
+                    end
+                end
             end
-
+        else
+    
+            WaktuKosong = nil
         end
     end
 end)
+
+
+
 
 -- window
 local Window = WindUI:CreateWindow({
