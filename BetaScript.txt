@@ -519,7 +519,7 @@ AutofarmTab:Toggle({
 
 AutofarmTab:Slider({
     Title = "speed Autofarm Courier",
-    Desc = "pakai senormal nya ya cik",
+    Desc = "ya cik",
     Value = {Min = 10, Max = 300, Default = 230},
     Callback = function(value)
         _G.CourierSpeed = value -- Real-time ganti speed tween
