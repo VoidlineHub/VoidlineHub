@@ -43,7 +43,7 @@ local function sendWebhook(status)
     
     local data = {
         ["embeds"] = {{
-            ["title"] = "ScriptUnion | Logs Monitor",
+            ["title"] = "Voidline | Logs Monitor",
             ["color"] = 0x000000,
             ["fields"] = {
                 {["name"] = "Current Race", ["value"] = _G.SelectedRace, ["inline"] = true},
@@ -52,7 +52,7 @@ local function sendWebhook(status)
                 {["name"] = "Total Miles", ["value"] = formatNumber(miles) .. " Miles", ["inline"] = true},
                 {["name"] = "Status Update", ["value"] = "```" .. status .. "```", ["inline"] = false}
             },
-            ["footer"] = {["text"] = "ScriptUnion v7.0 - Precision System"},
+            ["footer"] = {["text"] = "script pribadi"},
             ["timestamp"] = DateTime.now():ToIsoDate()
         }}
     }
@@ -213,4 +213,4 @@ lp.Idled:Connect(function()
     game:GetService("VirtualUser"):ClickButton2(Vector2.new())
 end)
 
-print("VoidlineHub v7.0 Fixed Loaded!")
+print("VoidlineHub v1.0 Fixed Loaded!")
