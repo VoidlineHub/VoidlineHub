@@ -343,8 +343,6 @@ end)
 
 
 
-
-
 -- [[ MAIN ENGINE ]]
 task.spawn(function()
     warn("[VOIDLINE] Engine Loaded & Waiting for Toggle...")
@@ -373,13 +371,22 @@ task.spawn(function()
                     if (os.clock() - WaktuKosong) >= 240 then
                         warn("[VOIDLINE] Limit Detect / Stuck! Switching Role...")
                         
-                        -- Remote Civilian buat reset status
+                        -- 1. Remote Civilian buat reset status
                         local args = {"Civilian", 0, 0, 0, "Detector"}
                         game:GetService("ReplicatedStorage"):WaitForChild("JobEvents"):WaitForChild("TeamChangeRequest"):FireServer(unpack(args))
                         
-                        WaktuKosong = nil -- Reset timer
-                        task.wait(5)
-                        continue -- Balik ke atas buat masuk Courier lagi via SwitchToCourier()
+                        -- 2. Reset timer biar gak looping terus
+                        WaktuKosong = nil 
+                        
+                        -- 3. LOCK SCRIPT: Tunggu sampai team bener-bener jadi Civilian
+                        repeat 
+                            task.wait(1)
+                            warn("[VOIDLINE] Waiting for team change to Civilian...")
+                        until (LP.Team and LP.Team.Name == "Civilian") or not _G.AutofarmCourier
+                        
+                        -- 4. Kasih nafas 2 detik terus paksa balik ke atas (SwitchToCourier)
+                        task.wait(2)
+                        continue 
                     end
                 else
                     -- Kalau pegang box, timer reset jadi nil lagi
@@ -387,6 +394,7 @@ task.spawn(function()
                 end
 
                 -- PHASE 1: AMBIL PAKET
+                -- Baris ini GAK AKAN jalan kalau tadi kena Reset (karena ada 'continue' di atas)
                 if not AutoEquipBox() then
                     if not Hum.Sit then Hum.Sit = true task.wait(0.5) end
                     Tween(TAKE_BOX_CFRAME)
@@ -424,6 +432,9 @@ task.spawn(function()
         end
     end
 end)
+
+
+
 
 
 
