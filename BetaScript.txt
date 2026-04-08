@@ -340,9 +340,6 @@ RunService.Heartbeat:Connect(function()
 end)
 
 
-
-
-
 -- [[ MAIN ENGINE ]]
 task.spawn(function()
     warn("[VOIDLINE] Engine Loaded & Waiting for Toggle...")
@@ -352,11 +349,13 @@ task.spawn(function()
         
         -- Hanya jalan jika Toggle ON
         if _G.AutofarmCourier then
+            -- 1. Masuk Job (Jika respawn/baru mulai)
             SwitchToCourier()
 
-            local Char = LP.Character
-            local Hum = Char and Char:FindFirstChild("Humanoid")
-            local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+            -- Ambil data karakter terbaru setiap kali loop (penting karena sering respawn)
+            local Char = LP.Character or LP.CharacterAdded:Wait()
+            local Hum = Char:WaitForChild("Humanoid")
+            local Root = Char:WaitForChild("HumanoidRootPart")
 
             if Hum and Root then
                 
@@ -371,32 +370,44 @@ task.spawn(function()
                     if (os.clock() - WaktuKosong) >= 240 then
                         warn("[VOIDLINE] Limit Detect / Stuck! Switching Role...")
                         
-                        -- 1. Remote Civilian buat reset status
+                        -- Remote Civilian buat reset status (Ini bakal bikin lu RESPAWN)
                         local args = {"Civilian", 0, 0, 0, "Detector"}
                         game:GetService("ReplicatedStorage"):WaitForChild("JobEvents"):WaitForChild("TeamChangeRequest"):FireServer(unpack(args))
                         
-                        -- 2. Reset timer biar gak looping terus
-                        WaktuKosong = nil 
+                        WaktuKosong = nil -- Reset timer
                         
-                        -- 3. LOCK SCRIPT: Tunggu sampai team bener-bener jadi Civilian
+                        -- LOCK SCRIPT: Tunggu sampai bener-bener jadi Civilian
                         repeat 
                             task.wait(1)
                             warn("[VOIDLINE] Waiting for team change to Civilian...")
                         until (LP.Team and LP.Team.Name == "Civilian") or not _G.AutofarmCourier
                         
-                        -- 4. Kasih nafas 2 detik terus paksa balik ke atas (SwitchToCourier)
-                        task.wait(2)
-                        continue 
+                        -- Jeda istirahat 15 detik (Biar gak disangka spam ganti team)
+                        warn("[VOIDLINE] Resting for 15s...")
+                        task.wait(15) 
+                        
+                        continue -- Balik ke paling atas buat masuk Courier lagi (Bakal RESPAWN lagi)
                     end
                 else
                     -- Kalau pegang box, timer reset jadi nil lagi
                     WaktuKosong = nil
                 end
 
+                -- [[ BYPASS UTAMA: WAJIB SIT SEBELUM TWEEN ]]
+                -- Karena setiap ganti job itu RESPAWN, lu bakal berdiri. 
+                -- Maka di sini wajib dipaksa duduk dulu sebelum gerak (Tween).
+                if not Hum.Sit then
+                    warn("[VOIDLINE] Activating SIT Bypass...")
+                    repeat 
+                        Hum.Sit = true
+                        task.wait(0.5)
+                    until Hum.Sit or not _G.AutofarmCourier
+                    task.wait(1) -- Jeda biar server sinkron posisi duduk lu
+                end
+
                 -- PHASE 1: AMBIL PAKET
-                -- Baris ini GAK AKAN jalan kalau tadi kena Reset (karena ada 'continue' di atas)
                 if not AutoEquipBox() then
-                    if not Hum.Sit then Hum.Sit = true task.wait(0.5) end
+                    -- Tween ke tempat ambil box
                     Tween(TAKE_BOX_CFRAME)
                     task.wait(0.5)
                     
@@ -412,12 +423,11 @@ task.spawn(function()
                     if TargetBlock and TargetPrompt then
                         task.wait(math.random(0, 1))
                         
-                        if not Hum.Sit then Hum.Sit = true task.wait(0.3) end
-                        
+                        -- Tween ke tempat antar
                         Tween(TargetBlock.CFrame * CFrame.new(0, 2, 0))
                         task.wait(0.8)
                         
-                        AutoEquipBox()
+                        AutoEquipBox() -- Pastikan tool masih dipegang sebelum diprompt
                         
                         if _G.AutofarmCourier and TargetPrompt.Enabled then
                             fireproximityprompt(TargetPrompt)
@@ -432,6 +442,8 @@ task.spawn(function()
         end
     end
 end)
+
+
 
 
 
@@ -468,7 +480,7 @@ local HomeTab = Window:Tab({ Title = "Home Tab", Icon = "house" })
 HomeTab:Section({ Title = "Update Log" })
 HomeTab:Button({
 Title = "Version 1.0",
-Desc = "[+]added new autofarm\n[+]added barista\n[+]webhook sistem\n[+]new ui",
+Desc = "[+]added autofarm courier\n[+]added barista\n[+]webhook sistem\n[+]new ui",
 Icon = "file-text"
 })
 
@@ -519,7 +531,7 @@ AutofarmTab:Toggle({
 
 AutofarmTab:Slider({
     Title = "speed Autofarm Courier",
-    Desc = "ya cik",
+    Desc = "i dont know",
     Value = {Min = 10, Max = 300, Default = 230},
     Callback = function(value)
         _G.CourierSpeed = value -- Real-time ganti speed tween
