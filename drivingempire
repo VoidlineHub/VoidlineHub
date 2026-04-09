@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Voidline Hub | Driving Empire",
+   Name = "Driving empire",
    LoadingTitle = "Fixing Queue System...",
    LoadingSubtitle = "by Voidline x Specter",
    ConfigurationSaving = { Enabled = true, FileName = "VoidlineDE_Fix" }
