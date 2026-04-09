@@ -2,94 +2,79 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "Voidline Hub | Driving Empire",
-   LoadingTitle = "Direct Workspace Access...",
+   LoadingTitle = "Fixing Queue System...",
    LoadingSubtitle = "by Voidline x Specter",
-   ConfigurationSaving = { Enabled = true, FileName = "VoidlineDE_FinalFix" }
+   ConfigurationSaving = { Enabled = true, FileName = "VoidlineDE_Fix" }
 })
 
--- [[ SERVICES & REFERENCES ]]
+-- [[ SERVICES ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LP = game.Players.LocalPlayer
 local Remotes = require(ReplicatedStorage.Modules.Shared.Remotes)
 local CriminalConstants = require(ReplicatedStorage.Modules.Shared.Jobs.Criminal.CriminalConstants)
 
 _G.AutoFarm = false
-_G.FarmDelay = 1.5
+_G.FarmDelay = 2.0 -- Jeda antar ATM (Kasih 2 detik biar aman)
 
--- [[ FUNCTIONS ]]
-local function InstantTP(TargetCFrame)
-    if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-        -- Force Turun dari mobil
-        local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
-        if Hum and Hum.SeatPart then Hum.Sit = false task.wait(0.1) end
-        
-        LP.Character:PivotTo(TargetCFrame)
-    end
-end
-
--- Fungsi nyari ATM berdasarkan struktur Workspace lu
+-- [[ FUNCTION FIXED ]]
 local function GetAvailableATM()
-    local Spawners = workspace:WaitForChild("Game"):WaitForChild("Jobs"):WaitForChild("CriminalATMSpawners"):GetChildren()
+    local Spawners = workspace.Game.Jobs.CriminalATMSpawners:GetChildren()
     for _, spawner in ipairs(Spawners) do
-        -- Masuk ke CriminalATM > ATM
         local CriminalATM = spawner:FindFirstChild("CriminalATM")
-        if CriminalATM then
+        if CriminalATM and CriminalATM:GetAttribute("State") ~= "Busted" then
             local ATM = CriminalATM:FindFirstChild("ATM")
-            -- Cek status Busted (Module 1/5)
-            if ATM and CriminalATM:GetAttribute("State") ~= "Busted" then
-                return ATM -- Kita ambil part ATM-nya
-            end
+            if ATM then return ATM end
         end
     end
     return nil
 end
 
--- Cari Drop Off Point (Sesuai Module 4)
-local function GetDropPoint()
-    for _, v in ipairs(game:GetService("CollectionService"):GetTagged("CriminalDropOffPoint")) do
-        if v:FindFirstChild("Zone") then return v.Zone end
+local function ProcessRob(TargetATM)
+    local CriminalATMFolder = TargetATM.Parent
+    
+    -- 1. TP ke ATM
+    LP.Character:PivotTo(TargetATM.CFrame * CFrame.new(0, 0, 3))
+    task.wait(0.5) -- Jeda wajib biar server tau kita udah nyampe
+    
+    -- 2. Tembak Start
+    Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustStart, CriminalATMFolder)
+    
+    -- 3. JEDA PROSES (PENTING!)
+    -- Jangan langsung Complete, kasih jeda biar server gak curiga
+    task.wait(0.5) 
+    
+    -- 4. Tembak Complete
+    local success, res = Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustComplete, CriminalATMFolder)
+    
+    if success then
+        Rayfield:Notify({Title = "Voidline", Content = "ATM Berhasil!"})
+    else
+        warn("Gagal Rob: " .. tostring(res))
     end
-    return nil
 end
 
--- [[ TAB MAIN ]]
-local MainTab = Window:CreateTab("Main Farm", 4483362458)
+-- [[ UI MAIN ]]
+local MainTab = Window:CreateTab("Auto Farm", 4483362458)
 
 MainTab:CreateToggle({
-   Name = "Start Instant Auto Rob",
+   Name = "Fast Auto Rob (Bypass Prompt)",
    CurrentValue = false,
-   Flag = "MainFarmToggle",
    Callback = function(Value)
       _G.AutoFarm = Value
       
       task.spawn(function()
           while _G.AutoFarm do
-              -- 1. Check Wanted Level (Auto Drop)
-              local WantedLevel = LP:GetAttribute(CriminalConstants.PlayerAttributes.CrimesCommitted) or 0
-              if WantedLevel >= 5 then
-                  local Drop = GetDropPoint()
-                  if Drop then
-                      InstantTP(Drop.CFrame)
-                      task.wait(2)
-                  end
-              end
-
-              -- 2. Find ATM from Workspace Path
-              local TargetATM = GetAvailableATM()
-              if TargetATM then
-                  -- TP ke PromptAttachment biar pas (Workspace lu)
-                  local PromptPos = TargetATM:FindFirstChild("PromptAttachment")
-                  local TargetPos = PromptPos and PromptPos.WorldCFrame or TargetATM.CFrame
+              local Target = GetAvailableATM()
+              
+              if Target then
+                  -- Force Dismount
+                  local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
+                  if Hum and Hum.SeatPart then Hum.Sit = false task.wait(0.2) end
                   
-                  InstantTP(TargetPos * CFrame.new(0, 0, 2))
-                  task.wait(0.3)
+                  -- Eksekusi Rob
+                  ProcessRob(Target)
                   
-                  -- BYPASS: Tembak Remote (Target.Parent itu folder CriminalATM)
-                  local CriminalATMFolder = TargetATM.Parent
-                  Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustStart, CriminalATMFolder)
-                  task.wait(0.2)
-                  Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustComplete, CriminalATMFolder)
-                  
+                  -- Jeda antar ATM biar gak kena kick/error nil
                   task.wait(_G.FarmDelay)
               else
                   task.wait(1)
@@ -100,26 +85,10 @@ MainTab:CreateToggle({
 })
 
 MainTab:CreateSlider({
-   Name = "Farming Delay",
-   Min = 0.5,
+   Name = "Wait Delay (Saran: 2s)",
+   Min = 1,
    Max = 5,
-   CurrentValue = 1.5,
+   CurrentValue = 2,
    ValueName = "Detik",
    Callback = function(Value) _G.FarmDelay = Value end,
 })
-
--- [[ VISUAL ]]
-local VisualTab = Window:CreateTab("Visuals", 4483362458)
-
-VisualTab:CreateButton({
-   Name = "Clear All ATM Highlights",
-   Callback = function()
-       -- Lu tadi kasih path Highlight, ini buat bersih-bersih kalau ganggu
-       for _, spawner in ipairs(workspace.Game.Jobs.CriminalATMSpawners:GetChildren()) do
-           if spawner:FindFirstChild("CriminalATM") and spawner.CriminalATM:FindFirstChild("Highlight") then
-               spawner.CriminalATM.Highlight:Destroy()
-           end
-       end
-   end
-})
-
