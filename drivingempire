@@ -2,10 +2,10 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "Voidline",
-   Title = "v1 - Ultimate Criminal",
-   LoadingTitle = "Syncing All Modules...",
+   Title = "v1 - Ultimate Criminal Sync",
+   LoadingTitle = "Bypassing Configs...",
    LoadingSubtitle = "by Voidline",
-   ConfigurationSaving = { Enabled = true, FileName = "Voidline_Ultimate" }
+   ConfigurationSaving = { Enabled = true, FileName = "Voidline_Ultimate_V2" }
 })
 
 -- [[ SERVICES & MODULES ]]
@@ -20,12 +20,14 @@ _G.AutoFarm = false
 
 -- [[ LOGIC HELPERS ]]
 
+-- Logic Pengecekan Server ala Lu
+local function GetServerType()
+    return (#game.Players:GetPlayers() <= 1) and "Private" or "Public"
+end
+
 local function IsSecurityHunting()
-    -- Nangkep logic dari module CriminalWantedState
     local expire = LP:GetAttribute(CriminalConstants.PlayerAttributes.CriminalExpireEpoch)
     local paused = LP:GetAttribute(CriminalConstants.PlayerAttributes.CriminalPausedEpoch)
-    
-    -- Kalau statusnya lagi "Security is on to you", kita harus nunggu
     if paused or (expire and expire > workspace:GetServerTimeNow()) then
         return true
     end
@@ -33,10 +35,12 @@ local function IsSecurityHunting()
 end
 
 local function GetTargetATM()
-    local Spawners = workspace.Game.Jobs.CriminalATMSpawners:GetChildren()
+    -- Langsung nembak ke Spawners Folder
+    local SpawnerPath = workspace:WaitForChild("Game"):WaitForChild("Jobs"):WaitForChild("CriminalATMSpawners")
+    local Spawners = SpawnerPath:GetChildren()
+    
     for _, spawner in ipairs(Spawners) do
         local CriminalATM = spawner:FindFirstChild("CriminalATM")
-        -- Cek state apakah ATM sudah dibust (Attribute State)
         if CriminalATM and CriminalATM:GetAttribute("State") ~= "Busted" then
             local ATM = CriminalATM:FindFirstChild("ATM")
             if ATM then return ATM end
@@ -48,26 +52,27 @@ end
 local function ProcessRob(TargetATM)
     local CriminalATMFolder = TargetATM.Parent
     
-    -- 1. DELAY DULU SEBELUM TP (Method Lu)
-    task.wait(2.5) 
+    -- Jeda dikit biar server gak narik balik posisi lu (Rubberband)
+    task.wait(1) 
     
-    -- 2. PURE TELEPORT
-    LP.Character:PivotTo(TargetATM.CFrame * CFrame.new(0, 0, 3))
+    -- TELEPORT: Pake offset biar ga nyangkut (Sesuai logic Killer v2)
+    LP.Character:PivotTo(TargetATM.CFrame * CFrame.new(0, 0, 3.5))
     
-    -- 3. JEDA SINKRONISASI (Bypass Travel Speed)
-    task.wait(3) 
+    -- JEDA SINKRONISASI: Wajib 3 detik biar anticheat travel speed ga nendang
+    task.wait(3.5) 
     
-    -- 4. START BUSTING
-    local sStart = Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustStart, CriminalATMFolder)
+    -- START BUSTING
+    local sStart, rStart = Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustStart, CriminalATMFolder)
     
     if sStart then
-        -- 5. WAIT BUST TIME (Dinamis: nanya ke module CriminalUtil)
-        -- Ini biar gak kena "Exploiting Bust Time"
+        -- WAIT BUST TIME: Dinamis nanya ke module game
         local waitTime = CriminalUtil.GetATMBustTime(LP) or 5.2
-        task.wait(waitTime + 0.3) 
+        task.wait(waitTime + 0.8) -- Ditambah buffer aman
         
-        -- 6. COMPLETE
+        -- COMPLETE
         Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustComplete, CriminalATMFolder)
+    else
+        warn("Gagal Start: " .. tostring(rStart))
     end
 end
 
@@ -75,21 +80,24 @@ end
 local MainTab = Window:CreateTab("Auto Farm", 4483362458)
 
 MainTab:CreateToggle({
-   Name = "Ultimate Criminal Cycle",
+   Name = "Ultimate Cycle (Auto-Sync Server)",
    CurrentValue = false,
    Callback = function(Value)
       _G.AutoFarm = Value
       
       task.spawn(function()
           while _G.AutoFarm do
+              -- Info Server Type
+              local currentMode = GetServerType()
+              
               -- Emergency Dismount
               local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
-              if Hum and Hum.SeatPart then Hum.Sit = false task.wait(0.3) end
+              if Hum and Hum.SeatPart then Hum.Sit = false task.wait(0.5) end
 
-              -- 1. CEK SECURITY (Logic Bypass)
+              -- 1. CEK SECURITY
               if IsSecurityHunting() then
-                  Rayfield:Notify({Title = "Voidline", Content = "Security detected! Cooling down..."})
-                  repeat task.wait(1) until not IsSecurityOnUs() or not _G.AutoFarm
+                  Rayfield:Notify({Title = "Voidline", Content = "Security detected! Cooling down in "..currentMode.." mode."})
+                  repeat task.wait(1) until not IsSecurityHunting() or not _G.AutoFarm
               end
 
               -- 2. CEK BINTANG (Setor kalau 5)
@@ -98,8 +106,8 @@ MainTab:CreateToggle({
                   local DropPoints = workspace.Game.Jobs.CriminalDropOffPoints:GetChildren()
                   if #DropPoints > 0 then
                       local Point = DropPoints[1]
-                      LP.Character:PivotTo(Point.Zone.CFrame)
-                      task.wait(2)
+                      LP.Character:PivotTo(Point.Zone.CFrame * CFrame.new(0, 2, 0))
+                      task.wait(3) -- Delay setor biar gak kick
                       ATMJobTask.AttemptCompleteJob(Point)
                       task.wait(1)
                   end
@@ -108,10 +116,13 @@ MainTab:CreateToggle({
               -- 3. CARI & ROB ATM
               local Target = GetTargetATM()
               if Target then
-                  pcall(function() ProcessRob(Target) end)
-                  task.wait(1)
+                  -- Eksekusi dengan pcall biar kalau satu ATM gagal, gak ngerusak loop
+                  pcall(function()
+                      ProcessRob(Target)
+                  end)
+                  task.wait(1.5)
               else
-                  task.wait(2) -- Nunggu respawn
+                  task.wait(3) -- Nunggu respawn lebih lama biar server refresh
               end
               
               if not _G.AutoFarm then break end
@@ -122,6 +133,6 @@ MainTab:CreateToggle({
 
 Rayfield:Notify({
    Title = "Voidline Ready",
-   Content = "Semua modul berhasil disinkronisasi!",
+   Content = "Server Type Detected: " .. GetServerType(),
    Duration = 5
 })
