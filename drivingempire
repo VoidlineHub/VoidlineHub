@@ -3,28 +3,25 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
    Name = "Voidline",
    Title = "v1",
-   LoadingTitle = "Executing Golden Method 2-3...",
+   LoadingTitle = "Method: 2s Teleport | 3s Rob",
    LoadingSubtitle = "by Voidline",
-   ConfigurationSaving = { Enabled = true, FileName = "VoidlineDE_Fix" }
+   ConfigurationSaving = { Enabled = true, FileName = "VoidlineDE_PureTP" }
 })
 
 -- [[ SERVICES ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 local LP = game.Players.LocalPlayer
 local Remotes = require(ReplicatedStorage.Modules.Shared.Remotes)
 local CriminalConstants = require(ReplicatedStorage.Modules.Shared.Jobs.Criminal.CriminalConstants)
 
 _G.AutoFarm = false
 
--- [[ DYNAMIC SCANNER ]]
--- Sesuai info lu: Jika spawn, didalam Spawner ada CriminalATM (Billboard & Highlight otomatis ada)
+-- [[ SCANNER ]]
 local function GetAvailableATM()
     local SpawnerPath = workspace:WaitForChild("Game"):WaitForChild("Jobs"):WaitForChild("CriminalATMSpawners")
-    local Spawners = SpawnerPath:GetChildren()
-    
-    for _, spawner in ipairs(Spawners) do
+    for _, spawner in ipairs(SpawnerPath:GetChildren()) do
         local CriminalATM = spawner:FindFirstChild("CriminalATM")
+        -- Jika CriminalATM ada, berarti ATM Spawn (Ada Billboard & Highlight)
         if CriminalATM and CriminalATM:GetAttribute("State") ~= "Busted" then
             local ATM = CriminalATM:FindFirstChild("ATM")
             if ATM then return ATM end
@@ -33,42 +30,39 @@ local function GetAvailableATM()
     return nil
 end
 
--- [[ PROCESS ROB: METHOD 2-3 ]]
+-- [[ THE GOLDEN METHOD: PURE TELEPORT ]]
 local function ProcessRob(TargetATM)
     local CriminalATMFolder = TargetATM.Parent
-    local Root = LP.Character:FindFirstChild("HumanoidRootPart")
-    if not Root then return end
-
-    -- 1. TELEPORT / TRAVEL (METHOD: 2 DETIK)
-    -- Menggunakan Tween agar pergerakan sinkron dengan server (Bypass SuspiciousTravelSpeed)
-    local Info = TweenInfo.new(2, Enum.EasingStyle.Linear)
-    local Tween = TweenService:Create(Root, Info, {CFrame = TargetATM.CFrame * CFrame.new(0, 0, 3)})
     
-    Tween:Play()
-    Tween.Completed:Wait() -- Menunggu tepat 2 detik sampai tujuan
+    -- 1. PURE TELEPORT (INSTAN)
+    LP.Character:PivotTo(TargetATM.CFrame * CFrame.new(0, 0, 3))
     
-    -- 2. START FUNCTION
+    -- 2. DELAY TELEPORT (METHOD LU: 2 DETIK)
+    -- Kita diem di tempat selama 2 detik biar Server gak curiga Travel Speed
+    task.wait(2) 
+    
+    -- 3. START FUNCTION
     Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustStart, CriminalATMFolder)
     
-    -- 3. WAIT FUNCTION (METHOD: 3 DETIK)
-    -- Jeda krusial agar server memvalidasi durasi perampokan
+    -- 4. DELAY FUNCTION (METHOD LU: 3 DETIK)
+    -- Waktu nunggu seolah-olah lagi nahan ProximityPrompt
     task.wait(3) 
     
-    -- 4. COMPLETE FUNCTION
+    -- 5. COMPLETE FUNCTION
     local success, res = Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustComplete, CriminalATMFolder)
     
     if success then
-        Rayfield:Notify({Title = "Voidline", Content = "ATM Berhasil Dirampok! (Method 2-3)"})
+        Rayfield:Notify({Title = "Voidline", Content = "ATM Berhasil (Pure TP Method)"})
     else
-        warn("Gagal Rob: " .. tostring(res))
+        warn("Gagal: " .. tostring(res))
     end
 end
 
--- [[ UI MAIN ]]
+-- [[ UI TAB ]]
 local MainTab = Window:CreateTab("Auto Farm", 4483362458)
 
 MainTab:CreateToggle({
-   Name = "Start Golden Auto Farm (2-3)",
+   Name = "Pure TP Auto Rob (2-3 Method)",
    CurrentValue = false,
    Callback = function(Value)
       _G.AutoFarm = Value
@@ -78,17 +72,13 @@ MainTab:CreateToggle({
               local Target = GetAvailableATM()
               
               if Target then
-                  -- Force Dismount sebelum jalan
+                  -- Force Dismount (Wajib biar aksi gak invalid)
                   local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
-                  if Hum and Hum.SeatPart then Hum.Sit = false task.wait(0.2) end
+                  if Hum and Hum.SeatPart then Hum.Sit = false task.wait(0.1) end
                   
-                  -- Eksekusi Method Lu
                   ProcessRob(Target)
-                  
-                  -- Jeda singkat antar mesin agar loop tidak crash
-                  task.wait(0.5)
+                  task.wait(0.5) -- Jeda napas loop
               else
-                  -- Nunggu ATM spawn di Workspace
                   task.wait(1)
               end
           end
@@ -98,6 +88,6 @@ MainTab:CreateToggle({
 
 Rayfield:Notify({
    Title = "Voidline Loaded",
-   Content = "Method 2s Teleport & 3s Function Berhasil Digabung!",
+   Content = "Pure Teleport Method Active. No Tweens.",
    Duration = 5
 })
