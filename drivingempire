@@ -14,7 +14,7 @@ local Remotes = require(ReplicatedStorage.Modules.Shared.Remotes)
 local CriminalConstants = require(ReplicatedStorage.Modules.Shared.Jobs.Criminal.CriminalConstants)
 
 _G.AutoFarm = false
-_G.FarmDelay = 2.0 -- Jeda antar ATM (Kasih 2 detik biar aman)
+_G.FarmDelay = 5.0 -- Jeda antar ATM (Kasih 2 detik biar aman)
 
 -- [[ FUNCTION FIXED ]]
 local function GetAvailableATM()
