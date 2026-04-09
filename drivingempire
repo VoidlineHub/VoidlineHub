@@ -3,23 +3,26 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
    Name = "Voidline",
    Title = "v1",
-   LoadingTitle = "Fixing Queue System...",
+   LoadingTitle = "Executing Golden Method 2-3...",
    LoadingSubtitle = "by Voidline",
    ConfigurationSaving = { Enabled = true, FileName = "VoidlineDE_Fix" }
 })
 
 -- [[ SERVICES ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local LP = game.Players.LocalPlayer
 local Remotes = require(ReplicatedStorage.Modules.Shared.Remotes)
 local CriminalConstants = require(ReplicatedStorage.Modules.Shared.Jobs.Criminal.CriminalConstants)
 
 _G.AutoFarm = false
-_G.FarmDelay = 5.0 -- Jeda antar ATM (Kasih 2 detik biar aman)
 
--- [[ FUNCTION FIXED ]]
+-- [[ DYNAMIC SCANNER ]]
+-- Sesuai info lu: Jika spawn, didalam Spawner ada CriminalATM (Billboard & Highlight otomatis ada)
 local function GetAvailableATM()
-    local Spawners = workspace.Game.Jobs.CriminalATMSpawners:GetChildren()
+    local SpawnerPath = workspace:WaitForChild("Game"):WaitForChild("Jobs"):WaitForChild("CriminalATMSpawners")
+    local Spawners = SpawnerPath:GetChildren()
+    
     for _, spawner in ipairs(Spawners) do
         local CriminalATM = spawner:FindFirstChild("CriminalATM")
         if CriminalATM and CriminalATM:GetAttribute("State") ~= "Busted" then
@@ -30,25 +33,32 @@ local function GetAvailableATM()
     return nil
 end
 
+-- [[ PROCESS ROB: METHOD 2-3 ]]
 local function ProcessRob(TargetATM)
     local CriminalATMFolder = TargetATM.Parent
+    local Root = LP.Character:FindFirstChild("HumanoidRootPart")
+    if not Root then return end
+
+    -- 1. TELEPORT / TRAVEL (METHOD: 2 DETIK)
+    -- Menggunakan Tween agar pergerakan sinkron dengan server (Bypass SuspiciousTravelSpeed)
+    local Info = TweenInfo.new(2, Enum.EasingStyle.Linear)
+    local Tween = TweenService:Create(Root, Info, {CFrame = TargetATM.CFrame * CFrame.new(0, 0, 3)})
     
-    -- 1. TP ke ATM
-    LP.Character:PivotTo(TargetATM.CFrame * CFrame.new(0, 0, 3))
-    task.wait(2) -- Jeda wajib biar server tau kita udah nyampe
+    Tween:Play()
+    Tween.Completed:Wait() -- Menunggu tepat 2 detik sampai tujuan
     
-    -- 2. Tembak Start
+    -- 2. START FUNCTION
     Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustStart, CriminalATMFolder)
     
-    -- 3. JEDA PROSES (PENTING!)
-    -- Jangan langsung Complete, kasih jeda biar server gak curiga
+    -- 3. WAIT FUNCTION (METHOD: 3 DETIK)
+    -- Jeda krusial agar server memvalidasi durasi perampokan
     task.wait(3) 
     
-    -- 4. Tembak Complete
+    -- 4. COMPLETE FUNCTION
     local success, res = Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustComplete, CriminalATMFolder)
     
     if success then
-        Rayfield:Notify({Title = "Voidline", Content = "ATM Berhasil!"})
+        Rayfield:Notify({Title = "Voidline", Content = "ATM Berhasil Dirampok! (Method 2-3)"})
     else
         warn("Gagal Rob: " .. tostring(res))
     end
@@ -58,7 +68,7 @@ end
 local MainTab = Window:CreateTab("Auto Farm", 4483362458)
 
 MainTab:CreateToggle({
-   Name = "Fast Auto Rob (Bypass Prompt)",
+   Name = "Start Golden Auto Farm (2-3)",
    CurrentValue = false,
    Callback = function(Value)
       _G.AutoFarm = Value
@@ -68,16 +78,17 @@ MainTab:CreateToggle({
               local Target = GetAvailableATM()
               
               if Target then
-                  -- Force Dismount
+                  -- Force Dismount sebelum jalan
                   local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
                   if Hum and Hum.SeatPart then Hum.Sit = false task.wait(0.2) end
                   
-                  -- Eksekusi Rob
+                  -- Eksekusi Method Lu
                   ProcessRob(Target)
                   
-                  -- Jeda antar ATM biar gak kena kick/error nil
-                  task.wait(_G.FarmDelay)
+                  -- Jeda singkat antar mesin agar loop tidak crash
+                  task.wait(0.5)
               else
+                  -- Nunggu ATM spawn di Workspace
                   task.wait(1)
               end
           end
@@ -85,11 +96,8 @@ MainTab:CreateToggle({
    end,
 })
 
-MainTab:CreateSlider({
-   Name = "Wait Delay (Saran: 2s)",
-   Min = 1,
-   Max = 5,
-   CurrentValue = 2,
-   ValueName = "Detik",
-   Callback = function(Value) _G.FarmDelay = Value end,
+Rayfield:Notify({
+   Title = "Voidline Loaded",
+   Content = "Method 2s Teleport & 3s Function Berhasil Digabung!",
+   Duration = 5
 })
