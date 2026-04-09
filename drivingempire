@@ -1,9 +1,10 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Driving empire",
+   Name = "Voidline",
+   Title = "v1",
    LoadingTitle = "Fixing Queue System...",
-   LoadingSubtitle = "by Voidline x Specter",
+   LoadingSubtitle = "by Voidline",
    ConfigurationSaving = { Enabled = true, FileName = "VoidlineDE_Fix" }
 })
 
@@ -34,14 +35,14 @@ local function ProcessRob(TargetATM)
     
     -- 1. TP ke ATM
     LP.Character:PivotTo(TargetATM.CFrame * CFrame.new(0, 0, 3))
-    task.wait(0.5) -- Jeda wajib biar server tau kita udah nyampe
+    task.wait(2) -- Jeda wajib biar server tau kita udah nyampe
     
     -- 2. Tembak Start
     Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustStart, CriminalATMFolder)
     
     -- 3. JEDA PROSES (PENTING!)
     -- Jangan langsung Complete, kasih jeda biar server gak curiga
-    task.wait(0.5) 
+    task.wait(3) 
     
     -- 4. Tembak Complete
     local success, res = Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustComplete, CriminalATMFolder)
