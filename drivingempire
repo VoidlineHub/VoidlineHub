@@ -2,10 +2,10 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "Voidline",
-   Title = "v1 - Ultimate Criminal Sync",
-   LoadingTitle = "Bypassing Configs...",
+   Title = "v1.3 - Radar Edition",
+   LoadingTitle = "Loading Criminal Modules...",
    LoadingSubtitle = "by Voidline",
-   ConfigurationSaving = { Enabled = true, FileName = "Voidline_Ultimate_V2" }
+   ConfigurationSaving = { Enabled = true, FileName = "Voidline_Ultimate" }
 })
 
 -- [[ SERVICES & MODULES ]]
@@ -17,62 +17,82 @@ local CriminalUtil = require(ReplicatedStorage.Modules.Shared.Jobs.Criminal.Crim
 local ATMJobTask = require(ReplicatedStorage.Modules.Client.Jobs.Tasks.CriminalATMJobTask)
 
 _G.AutoFarm = false
+local BlacklistATM = {} 
+
+-- [[ CONFIG ]]
+local DROP_POINT_CFRAME = CFrame.new(-2543.30786, 11.8932114, 4030.31909)
 
 -- [[ LOGIC HELPERS ]]
 
--- Logic Pengecekan Server ala Lu
-local function GetServerType()
-    return (#game.Players:GetPlayers() <= 1) and "Private" or "Public"
+local function GetMoneyBagCount()
+    local count = 0
+    local items = LP.Backpack:GetChildren()
+    for _, tool in pairs(LP.Character:GetChildren()) do
+        if tool:IsA("Tool") then table.insert(items, tool) end
+    end
+    for _, item in pairs(items) do
+        if item.Name:match("MoneyBag") or item:GetAttribute("MoneyAmount") then
+            count = count + (item:GetAttribute("MoneyAmount") or 1)
+        end
+    end
+    return count
 end
 
-local function IsSecurityHunting()
-    local expire = LP:GetAttribute(CriminalConstants.PlayerAttributes.CriminalExpireEpoch)
-    local paused = LP:GetAttribute(CriminalConstants.PlayerAttributes.CriminalPausedEpoch)
-    if paused or (expire and expire > workspace:GetServerTimeNow()) then
-        return true
+-- Fungsi Patroli: Datengin spawner biar ATM-nya "Muncul" (StreamingEnabled Bypass)
+local function PatrolSpawners()
+    print("Patroli Spawner: Mancing ATM muncul...")
+    local Spawners = workspace.Game.Jobs.CriminalATMSpawners:GetChildren()
+    
+    for i, spawner in pairs(Spawners) do
+        if not _G.AutoFarm then break end
+        
+        -- Kita teleport ke spawner setiap beberapa titik buat ngetrigger area
+        -- Gak perlu semua, cukup lompat setiap 3 spawner biar hemat waktu
+        if i % 3 == 0 then
+            LP.Character:PivotTo(spawner.CFrame * CFrame.new(0, 50, 0)) -- TP di langit area spawner
+            task.wait(0.8) -- Kasih waktu buat loading model
+        end
+        
+        -- Cek kalau ada ATM yang muncul pas lagi patroli
+        if spawner:FindFirstChild("ATM", true) then
+            print("ATM Terdeteksi!")
+            return -- Langsung balik ke loop utama buat ngerampok
+        end
     end
-    return false
 end
 
 local function GetTargetATM()
-    -- Langsung nembak ke Spawners Folder
-    local SpawnerPath = workspace:WaitForChild("Game"):WaitForChild("Jobs"):WaitForChild("CriminalATMSpawners")
-    local Spawners = SpawnerPath:GetChildren()
-    
-    for _, spawner in ipairs(Spawners) do
-        local CriminalATM = spawner:FindFirstChild("CriminalATM")
-        if CriminalATM and CriminalATM:GetAttribute("State") ~= "Busted" then
-            local ATM = CriminalATM:FindFirstChild("ATM")
-            if ATM then return ATM end
+    local Spawners = workspace.Game.Jobs.CriminalATMSpawners:GetChildren()
+    for _, spawner in pairs(Spawners) do
+        local ATM = spawner:FindFirstChild("ATM", true) 
+        if ATM and not BlacklistATM[ATM] then
+            local Folder = ATM.Parent
+            local state = Folder:GetAttribute("State")
+            if state ~= CriminalConstants.ATMStates.Busted then
+                local engaging = Folder:GetAttribute("EngagingPlayerId")
+                if not engaging or engaging == 0 or engaging == LP.UserId then
+                    return ATM 
+                end
+            end
         end
     end
     return nil
 end
 
 local function ProcessRob(TargetATM)
-    local CriminalATMFolder = TargetATM.Parent
+    local Folder = TargetATM.Parent
+    LP.Character:PivotTo(TargetATM.CFrame * CFrame.new(0, 2, 4))
+    task.wait(1.2) 
     
-    -- Jeda dikit biar server gak narik balik posisi lu (Rubberband)
-    task.wait(1) 
-    
-    -- TELEPORT: Pake offset biar ga nyangkut (Sesuai logic Killer v2)
-    LP.Character:PivotTo(TargetATM.CFrame * CFrame.new(0, 0, 3.5))
-    
-    -- JEDA SINKRONISASI: Wajib 3 detik biar anticheat travel speed ga nendang
-    task.wait(3.5) 
-    
-    -- START BUSTING
-    local sStart, rStart = Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustStart, CriminalATMFolder)
-    
+    local sStart = Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustStart, Folder)
     if sStart then
-        -- WAIT BUST TIME: Dinamis nanya ke module game
         local waitTime = CriminalUtil.GetATMBustTime(LP) or 5.2
-        task.wait(waitTime + 0.8) -- Ditambah buffer aman
-        
-        -- COMPLETE
-        Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustComplete, CriminalATMFolder)
+        task.wait(waitTime + 0.6) 
+        Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustComplete, Folder)
+        task.wait(5) -- Delay server sesuai request kamu
     else
-        warn("Gagal Start: " .. tostring(rStart))
+        BlacklistATM[TargetATM] = true
+        task.wait(0.5)
     end
 end
 
@@ -80,59 +100,42 @@ end
 local MainTab = Window:CreateTab("Auto Farm", 4483362458)
 
 MainTab:CreateToggle({
-   Name = "Ultimate Cycle (Auto-Sync Server)",
+   Name = "Patrol & Rob Cycle",
    CurrentValue = false,
    Callback = function(Value)
       _G.AutoFarm = Value
       
       task.spawn(function()
           while _G.AutoFarm do
-              -- Info Server Type
-              local currentMode = GetServerType()
-              
-              -- Emergency Dismount
               local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
-              if Hum and Hum.SeatPart then Hum.Sit = false task.wait(0.5) end
+              if Hum and Hum.SeatPart then Hum.Sit = false task.wait(0.3) end
 
-              -- 1. CEK SECURITY
-              if IsSecurityHunting() then
-                  Rayfield:Notify({Title = "Voidline", Content = "Security detected! Cooling down in "..currentMode.." mode."})
-                  repeat task.wait(1) until not IsSecurityHunting() or not _G.AutoFarm
+              -- 1. CEK TAS
+              if GetMoneyBagCount() >= 200 then
+                  -- Setor
+                  LP.Character:PivotTo(DROP_POINT_CFRAME * CFrame.new(0, 5, 0))
+                  task.wait(0.5)
+                  LP.Character:PivotTo(DROP_POINT_CFRAME)
+                  task.wait(3)
+                  pcall(function()
+                      local DropObj = workspace.Game.Jobs:FindFirstChild("CriminalDropOffPoint") or workspace.Game.Jobs:FindFirstChild("CriminalDropOffPoints")
+                      ATMJobTask.AttemptCompleteJob(DropObj)
+                  end)
+                  task.wait(2)
               end
 
-              -- 2. CEK BINTANG (Setor kalau 5)
-              local Stars = CriminalUtil.GetStarValue(LP) or 0
-              if Stars >= 5 then
-                  local DropPoints = workspace.Game.Jobs.CriminalDropOffPoints:GetChildren()
-                  if #DropPoints > 0 then
-                      local Point = DropPoints[1]
-                      LP.Character:PivotTo(Point.Zone.CFrame * CFrame.new(0, 2, 0))
-                      task.wait(3) -- Delay setor biar gak kick
-                      ATMJobTask.AttemptCompleteJob(Point)
-                      task.wait(1)
-                  end
-              end
-
-              -- 3. CARI & ROB ATM
+              -- 2. CARI ATM
               local Target = GetTargetATM()
               if Target then
-                  -- Eksekusi dengan pcall biar kalau satu ATM gagal, gak ngerusak loop
-                  pcall(function()
-                      ProcessRob(Target)
-                  end)
-                  task.wait(1.5)
+                  pcall(function() ProcessRob(Target) end)
               else
-                  task.wait(3) -- Nunggu respawn lebih lama biar server refresh
+                  -- KALAU GAK ADA ATM: Patroli dulu buat ngetrigger StreamingEnabled
+                  PatrolSpawners()
+                  task.wait(2)
               end
               
               if not _G.AutoFarm then break end
           end
       end)
    end,
-})
-
-Rayfield:Notify({
-   Title = "Voidline Ready",
-   Content = "Server Type Detected: " .. GetServerType(),
-   Duration = 5
 })
