@@ -1,43 +1,53 @@
--- [[ VOIDLINEHUB v10.2 - PRIVATE KEY SYSTEM ]]
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- [[ KEY SYSTEM ]]
-local ValidKey = "VOID-8822" -- Ganti sesukamu
-Window = Rayfield:CreateWindow({
-    Name = "VoidlineHub | Key System",
-    LoadingTitle = "Authenticating...",
-    LoadingSubtitle = "by Voidline",
-    ConfigurationSaving = { Enabled = false }
+-- [[ CONFIG KEY ]]
+local ValidKey = "VOID-8822"
+
+-- [[ WINDOW 1: KEY SYSTEM (Jendela Terpisah) ]]
+local KeyWindow = Rayfield:CreateWindow({
+   Name = "VoidlineHub | Authentication",
+   LoadingTitle = "Securing Connection...",
+   LoadingSubtitle = "by Voidline",
+   ConfigurationSaving = { Enabled = false }
 })
 
-local KeyTab = Window:CreateTab("Key", "key")
+local KeyTab = KeyWindow:CreateTab("Verify", "key")
+
 KeyTab:CreateInput({
-    Name = "Enter Key",
-    PlaceholderText = "Input key here...",
-    RemoveTextAfterFocusLost = false,
-    Callback = function(Text)
-        if Text == ValidKey then
-            Rayfield:Notify({Title = "Access Granted", Content = "Welcome to VoidlineHub!", Duration = 5})
-            Window:Destroy()
-            task.wait(0.5)
-            StartMainScript() -- Panggil fungsi utama
-        else
-            Rayfield:Notify({Title = "Access Denied", Content = "Wrong Key!", Duration = 5})
-        end
-    end,
+   Name = "Enter Your Key",
+   PlaceholderText = "Click here to type...",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      if Text == ValidKey then
+         Rayfield:Notify({Title = "Key Correct", Content = "Access Granted! Loading VoidlineHub...", Duration = 3})
+         
+         -- Hancurkan Jendela Key
+         KeyWindow:Destroy()
+         task.wait(0.5)
+         
+         -- Panggil Jendela Utama
+         LoadMainWindow()
+      else
+         Rayfield:Notify({Title = "Error", Content = "Invalid Key! Please check again.", Duration = 3})
+      end
+   end,
 })
 
--- [[ MAIN SCRIPT FUNCTION ]]
-function StartMainScript()
+-- [[ WINDOW 2: MAIN SCRIPT (Fungsi Utama) ]]
+function LoadMainWindow()
     local Window = Rayfield:CreateWindow({
-        Name = "VoidlineHub",
-        Title = "v10.2 - Premium Criminal",
-        LoadingTitle = "VoidlineHub Loading...",
-        LoadingSubtitle = "by Voidline",
-        ConfigurationSaving = { Enabled = true, FolderName = "Voidline_Config" }
+       Name = "VoidlineHub",
+       Title = "v10.2 - Premium CDID Criminal",
+       LoadingTitle = "VoidlineHub is Ready",
+       LoadingSubtitle = "by Voidline",
+       ConfigurationSaving = {
+          Enabled = true,
+          FolderName = "Voidline_Config",
+          FileName = "VoidlineHub_Main"
+       }
     })
 
-    -- [[ SERVICES & MODULES ]]
+    -- SERVICES
     local LP = game.Players.LocalPlayer
     local ReplicatedStorage = game:GetService('ReplicatedStorage')
     local Remotes = require(ReplicatedStorage.Modules.Shared.Remotes)
@@ -45,13 +55,28 @@ function StartMainScript()
     local CriminalUtil = require(ReplicatedStorage.Modules.Shared.Jobs.Criminal.CriminalUtil)
     local ATMJobTask = require(ReplicatedStorage.Modules.Client.Jobs.Tasks.CriminalATMJobTask)
 
+    -- CONFIG
     _G.AutoFarm = false
-    _G.BagLimit = 25
+    _G.BagLimit = 200
     _G.Delays = { Task1 = 1, Task2 = 2, Task4 = 5, Task7 = 0.8 }
     local DROP_POINT_CFRAME = CFrame.new(-2543.30786, 11.8932114, 4030.31909)
     local BlacklistATM = {}
 
-    -- [[ FIX LOGIC: PRIORITAS ATM ]]
+    -- LOGIC HELPERS
+    local function GetMoneyBagCount()
+        local count = 0
+        local items = LP.Backpack:GetChildren()
+        for _, tool in pairs(LP.Character:GetChildren()) do
+            if tool:IsA("Tool") then table.insert(items, tool) end
+        end
+        for _, item in pairs(items) do
+            if item.Name:match("MoneyBag") or item:GetAttribute("MoneyAmount") then
+                count = count + (item:GetAttribute("MoneyAmount") or 1)
+            end
+        end
+        return count
+    end
+
     local function GetTargetATM()
         local Spawners = workspace.Game.Jobs.CriminalATMSpawners:GetChildren()
         for _, spawner in pairs(Spawners) do
@@ -69,27 +94,13 @@ function StartMainScript()
         return nil
     end
 
-    local function GetMoneyBagCount()
-        local count = 0
-        local items = LP.Backpack:GetChildren()
-        for _, tool in pairs(LP.Character:GetChildren()) do
-            if tool:IsA("Tool") then table.insert(items, tool) end
-        end
-        for _, item in pairs(items) do
-            if item.Name:match("MoneyBag") or item:GetAttribute("MoneyAmount") then
-                count = count + (item:GetAttribute("MoneyAmount") or 1)
-            end
-        end
-        return count
-    end
-
-    -- [[ UI TABS ]]
+    -- UI TABS
     local FarmTab = Window:CreateTab("Farming", "tractor")
     local StatsTab = Window:CreateTab("Statistics", "bar-chart-2")
 
     FarmTab:CreateSection("ATM Farm Control")
     local StatusLabel = FarmTab:CreateLabel("Status: Waiting...")
-    local ProgressLabel = FarmTab:CreateLabel("Bag progress: 0 / 25")
+    local ProgressLabel = FarmTab:CreateLabel("Bag progress: 0 / 200")
 
     FarmTab:CreateToggle({
         Name = "Start ATM Farm",
@@ -98,7 +109,6 @@ function StartMainScript()
             _G.AutoFarm = Value
             task.spawn(function()
                 while _G.AutoFarm do
-                    -- 1. CEK TAS
                     if GetMoneyBagCount() >= _G.BagLimit then
                         StatusLabel:Set("Status: Drop-off Cash...")
                         LP.Character:PivotTo(DROP_POINT_CFRAME * CFrame.new(0, 5, 0))
@@ -109,13 +119,12 @@ function StartMainScript()
                             local DropObj = workspace.Game.Jobs:FindFirstChild("CriminalDropOffPoint") or workspace.Game.Jobs:FindFirstChild("CriminalDropOffPoints")
                             ATMJobTask.AttemptCompleteJob(DropObj)
                         end)
-                        task.wait(1)
+                        task.wait(1.5)
                     end
 
-                    -- 2. CARI ATM (PRIORITY CHECK)
                     local Target = GetTargetATM()
                     if Target then
-                        StatusLabel:Set("Status: ATM Found! Robbing...")
+                        StatusLabel:Set("Status: ATM Found! Targeting...")
                         LP.Character:PivotTo(Target.CFrame * CFrame.new(0, 2, 4))
                         task.wait(_G.Delays.Task1)
 
@@ -123,17 +132,15 @@ function StartMainScript()
                         if sStart then
                             task.wait((CriminalUtil.GetATMBustTime(LP) or 5.2) + 0.5)
                             Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustComplete, Target.Parent)
-                            StatusLabel:Set("Status: Bust Complete. Cooldown...")
+                            StatusLabel:Set("Status: Cooldown...")
                             task.wait(_G.Delays.Task4)
                         else
                             BlacklistATM[Target] = true
                         end
                     else
-                        -- 3. PATROLI HANYA JIKA TIDAK ADA ATM
-                        StatusLabel:Set("Status: Patroling (No ATM Active)")
+                        StatusLabel:Set("Status: Patroling...")
                         local Spawners = workspace.Game.Jobs.CriminalATMSpawners:GetChildren()
                         for i=1, #Spawners, 3 do
-                            -- CEK ULANG DI SETIAP LOMPATAN PATROLI
                             if not _G.AutoFarm or GetTargetATM() then break end 
                             LP.Character:PivotTo(Spawners[i].CFrame * CFrame.new(0, 50, 0))
                             task.wait(_G.Delays.Task7)
@@ -146,8 +153,7 @@ function StartMainScript()
         end
     })
 
-    -- [[ DELAY INPUTS ]]
-    FarmTab:CreateSection("Farm Delays")
+    FarmTab:CreateSection("⚙️ Delays")
     FarmTab:CreateInput({
         Name = "Task 1: Teleport Delay",
         Callback = function(Text) _G.Delays.Task1 = tonumber(Text) or 1 end
@@ -157,7 +163,7 @@ function StartMainScript()
         Callback = function(Text) _G.Delays.Task4 = tonumber(Text) or 5 end
     })
 
-    -- [[ AUTO UPDATE STATS ]]
+    -- STATS REFRESH
     task.spawn(function()
         while true do
             ProgressLabel:Set("Bag progress: " .. GetMoneyBagCount() .. " / " .. _G.BagLimit)
