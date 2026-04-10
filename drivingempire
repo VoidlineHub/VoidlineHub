@@ -1,29 +1,30 @@
+-- [[ ADEN SCRIPTS v10.2 - REBUILT BY VOIDLINE ]]
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
-local Window = Rayfield:CreateWindow({
-   Name = "Voidline",
-   Title = "v1.3 - Radar Edition",
-   LoadingTitle = "Loading Criminal Modules...",
-   LoadingSubtitle = "by Voidline",
-   ConfigurationSaving = { Enabled = true, FileName = "Voidline_Ultimate" }
-})
-
--- [[ SERVICES & MODULES ]]
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LP = game.Players.LocalPlayer
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+local VirtualUser = game:GetService('VirtualUser')
+
+-- Modules Original CDID
 local Remotes = require(ReplicatedStorage.Modules.Shared.Remotes)
 local CriminalConstants = require(ReplicatedStorage.Modules.Shared.Jobs.Criminal.CriminalConstants)
 local CriminalUtil = require(ReplicatedStorage.Modules.Shared.Jobs.Criminal.CriminalUtil)
 local ATMJobTask = require(ReplicatedStorage.Modules.Client.Jobs.Tasks.CriminalATMJobTask)
 
+-- Global Config (Connecting UI to Logic)
 _G.AutoFarm = false
-local BlacklistATM = {} 
+_G.BagLimit = 200
+_G.Delays = {
+    Task1 = 1,    -- Teleport Delay
+    Task2 = 2,    -- Sale Processing
+    Task3 = 0.15, -- Start Load
+    Task4 = 5,    -- Robbery Cooldown (Bust Delay)
+    Task7 = 0.8   -- Platform Loading
+}
 
--- [[ CONFIG ]]
 local DROP_POINT_CFRAME = CFrame.new(-2543.30786, 11.8932114, 4030.31909)
+local BlacklistATM = {}
 
--- [[ LOGIC HELPERS ]]
-
+-- [[ FUNCTION HELPERS ]]
 local function GetMoneyBagCount()
     local count = 0
     local items = LP.Backpack:GetChildren()
@@ -38,37 +39,13 @@ local function GetMoneyBagCount()
     return count
 end
 
--- Fungsi Patroli: Datengin spawner biar ATM-nya "Muncul" (StreamingEnabled Bypass)
-local function PatrolSpawners()
-    print("Patroli Spawner: Mancing ATM muncul...")
-    local Spawners = workspace.Game.Jobs.CriminalATMSpawners:GetChildren()
-    
-    for i, spawner in pairs(Spawners) do
-        if not _G.AutoFarm then break end
-        
-        -- Kita teleport ke spawner setiap beberapa titik buat ngetrigger area
-        -- Gak perlu semua, cukup lompat setiap 3 spawner biar hemat waktu
-        if i % 3 == 0 then
-            LP.Character:PivotTo(spawner.CFrame * CFrame.new(0, 50, 0)) -- TP di langit area spawner
-            task.wait(0.8) -- Kasih waktu buat loading model
-        end
-        
-        -- Cek kalau ada ATM yang muncul pas lagi patroli
-        if spawner:FindFirstChild("ATM", true) then
-            print("ATM Terdeteksi!")
-            return -- Langsung balik ke loop utama buat ngerampok
-        end
-    end
-end
-
 local function GetTargetATM()
     local Spawners = workspace.Game.Jobs.CriminalATMSpawners:GetChildren()
     for _, spawner in pairs(Spawners) do
         local ATM = spawner:FindFirstChild("ATM", true) 
         if ATM and not BlacklistATM[ATM] then
             local Folder = ATM.Parent
-            local state = Folder:GetAttribute("State")
-            if state ~= CriminalConstants.ATMStates.Busted then
+            if Folder:GetAttribute("State") ~= CriminalConstants.ATMStates.Busted then
                 local engaging = Folder:GetAttribute("EngagingPlayerId")
                 if not engaging or engaging == 0 or engaging == LP.UserId then
                     return ATM 
@@ -79,63 +56,135 @@ local function GetTargetATM()
     return nil
 end
 
-local function ProcessRob(TargetATM)
-    local Folder = TargetATM.Parent
-    LP.Character:PivotTo(TargetATM.CFrame * CFrame.new(0, 2, 4))
-    task.wait(1.2) 
-    
-    local sStart = Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustStart, Folder)
-    if sStart then
-        local waitTime = CriminalUtil.GetATMBustTime(LP) or 5.2
-        task.wait(waitTime + 0.6) 
-        Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustComplete, Folder)
-        task.wait(5) -- Delay server sesuai request kamu
-    else
-        BlacklistATM[TargetATM] = true
-        task.wait(0.5)
-    end
-end
-
--- [[ UI ]]
-local MainTab = Window:CreateTab("Auto Farm", 4483362458)
-
-MainTab:CreateToggle({
-   Name = "Patrol & Rob Cycle",
-   CurrentValue = false,
-   Callback = function(Value)
-      _G.AutoFarm = Value
-      
-      task.spawn(function()
-          while _G.AutoFarm do
-              local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
-              if Hum and Hum.SeatPart then Hum.Sit = false task.wait(0.3) end
-
-              -- 1. CEK TAS
-              if GetMoneyBagCount() >= 200 then
-                  -- Setor
-                  LP.Character:PivotTo(DROP_POINT_CFRAME * CFrame.new(0, 5, 0))
-                  task.wait(0.5)
-                  LP.Character:PivotTo(DROP_POINT_CFRAME)
-                  task.wait(3)
-                  pcall(function()
-                      local DropObj = workspace.Game.Jobs:FindFirstChild("CriminalDropOffPoint") or workspace.Game.Jobs:FindFirstChild("CriminalDropOffPoints")
-                      ATMJobTask.AttemptCompleteJob(DropObj)
-                  end)
-                  task.wait(2)
-              end
-
-              -- 2. CARI ATM
-              local Target = GetTargetATM()
-              if Target then
-                  pcall(function() ProcessRob(Target) end)
-              else
-                  -- KALAU GAK ADA ATM: Patroli dulu buat ngetrigger StreamingEnabled
-                  PatrolSpawners()
-                  task.wait(2)
-              end
-              
-              if not _G.AutoFarm then break end
-          end
-      end)
-   end,
+-- [[ MAIN WINDOW ]]
+local Window = Rayfield:CreateWindow({
+    Name = "ADEN SCRIPTS v10.2",
+    LoadingTitle = "ADEN SCRIPTS",
+    LoadingSubtitle = "Premium Driving Empire Script",
+    ConfigurationSaving = { Enabled = true, FolderName = "ADEN_SCRIPTS_CONFIG" }
 })
+
+local PlayerTab = Window:CreateTab("Player", "user")
+local FarmTab = Window:CreateTab("Farming", "tractor")
+local StatsTab = Window:CreateTab("Statistics", "bar-chart-2")
+
+-- [[ PLAYER TAB ]]
+PlayerTab:CreateSection("General")
+PlayerTab:CreateToggle({
+    Name = "Anti-AFK",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            LP.Idled:Connect(function()
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new(), workspace.CurrentCamera.CFrame)
+            end)
+            Rayfield:Notify({Title = "Player Settings", Content = "Anti-AFK activated!"})
+        end
+    end
+})
+
+-- [[ FARMING TAB ]]
+FarmTab:CreateSection("ATM Farm Control")
+FarmTab:CreateToggle({
+    Name = "Start ATM Farm",
+    CurrentValue = false,
+    Flag = "ATMFarmToggle",
+    Callback = function(Value)
+        _G.AutoFarm = Value
+        task.spawn(function()
+            while _G.AutoFarm do
+                -- 1. Check Bag
+                local currentBag = GetMoneyBagCount()
+                if currentBag >= _G.BagLimit then
+                    LP.Character:PivotTo(DROP_POINT_CFRAME * CFrame.new(0, 5, 0))
+                    task.wait(0.5)
+                    LP.Character:PivotTo(DROP_POINT_CFRAME)
+                    task.wait(_G.Delays.Task2) -- Sale Processing Delay
+                    pcall(function()
+                        local DropObj = workspace.Game.Jobs:FindFirstChild("CriminalDropOffPoint") or workspace.Game.Jobs:FindFirstChild("CriminalDropOffPoints")
+                        ATMJobTask.AttemptCompleteJob(DropObj)
+                    end)
+                    task.wait(1)
+                end
+
+                -- 2. Find and Rob
+                local Target = GetTargetATM()
+                if Target then
+                    local Folder = Target.Parent
+                    LP.Character:PivotTo(Target.CFrame * CFrame.new(0, 2, 4))
+                    task.wait(_G.Delays.Task1) -- Teleport Delay
+
+                    local sStart = Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustStart, Folder)
+                    if sStart then
+                        local waitTime = CriminalUtil.GetATMBustTime(LP) or 5.2
+                        task.wait(waitTime + 0.5)
+                        Remotes.invokeServer(CriminalConstants.RemoteFunctions.AttemptATMBustComplete, Folder)
+                        task.wait(_G.Delays.Task4) -- Robbery Cooldown (Bust Delay 5s)
+                    else
+                        BlacklistATM[Target] = true
+                    end
+                else
+                    -- Patrol if no ATM (StreamingEnabled fix)
+                    local Spawners = workspace.Game.Jobs.CriminalATMSpawners:GetChildren()
+                    for i=1, #Spawners, 4 do
+                        if not _G.AutoFarm or GetTargetATM() then break end
+                        LP.Character:PivotTo(Spawners[i].CFrame * CFrame.new(0, 50, 0))
+                        task.wait(_G.Delays.Task7) -- Platform Loading Delay
+                    end
+                end
+                task.wait(0.1)
+            end
+        end)
+    end
+})
+
+FarmTab:CreateSlider({
+    Name = "Bag Limit",
+    Range = {6, 200},
+    Increment = 1,
+    CurrentValue = 200,
+    Flag = "BagSlider",
+    Callback = function(Value) _G.BagLimit = Value end
+})
+
+FarmTab:CreateSection("⚙️ FARM SPEED CONFIGURATION (DELAYS)")
+
+FarmTab:CreateInput({
+    Name = "Task 1: Teleport Delay",
+    PlaceholderText = "Default: 1",
+    Callback = function(Text) _G.Delays.Task1 = tonumber(Text) or 1 end
+})
+
+FarmTab:CreateInput({
+    Name = "Task 2: Sale Processing",
+    PlaceholderText = "Default: 2",
+    Callback = function(Text) _G.Delays.Task2 = tonumber(Text) or 2 end
+})
+
+FarmTab:CreateInput({
+    Name = "Task 4: Robbery Cooldown (Bust)",
+    PlaceholderText = "Default: 5",
+    Callback = function(Text) _G.Delays.Task4 = tonumber(Text) or 5 end
+})
+
+FarmTab:CreateInput({
+    Name = "Task 7: Platform Loading",
+    PlaceholderText = "Default: 0.8",
+    Callback = function(Text) _G.Delays.Task7 = tonumber(Text) or 0.8 end
+})
+
+-- [[ STATISTICS TAB ]]
+StatsTab:CreateSection("Live Player Data")
+local BagLabel = StatsTab:CreateLabel("Bag Progress: 0 / 200")
+
+task.spawn(function()
+    while true do
+        if BagLabel then
+            BagLabel:Set("Bag Progress: " .. GetMoneyBagCount() .. " / " .. _G.BagLimit)
+        end
+        task.wait(1)
+    end
+end)
+
+Rayfield:Notify({Title = "ADEN v10.2", Content = "Script Loaded Successfully!"})
