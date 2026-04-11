@@ -1,8 +1,8 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "VoidlineHub | Idle",
-   LoadingTitle = "Bus driving indonesia",
+   Name = "VoidlineHub",
+   LoadingTitle = "Bus explorer Indonesia",
    LoadingSubtitle = "by VoidLineHub",
    Theme = "AmberGlow"
 })
@@ -16,10 +16,6 @@ local jobStarted = false
 
 -- Koordinat Finish Cirebon (End Job)
 local CirebonEndCF = CFrame.new(-26471.1445, -212.441071, 33276.8203, -0.0246282816, 0, 0.999696672, 0, 1, 0, -0.999696672, 0, -0.0246282816)
-
-local function UpdateStatus(msg)
-    Window:Modify({Name = "VoidlineHub | " .. msg})
-end
 
 local function GetMyBus()
     return workspace.SpawnedVehicles:FindFirstChild("Jetbus_3_RM _SHD")
@@ -63,6 +59,13 @@ end
 
 local MainTab = Window:CreateTab("Automation", "play")
 
+-- Label untuk Progress (Biar rapi di bawah toggle)
+local StatusLabel = MainTab:CreateLabel("Status: Idle", "clock")
+
+local function SetStatus(text)
+    StatusLabel:Set("Status: " .. text)
+end
+
 MainTab:CreateToggle({
     Name = "Silent Auto (90s Delay)",
     CurrentValue = false,
@@ -72,7 +75,7 @@ MainTab:CreateToggle({
             lastTarget = nil 
             jobStarted = false
             SetFreeze(false)
-            UpdateStatus("Idle")
+            SetStatus("Idle")
         end
         
         while _G.AutoFull do
@@ -81,7 +84,7 @@ MainTab:CreateToggle({
             
             -- STEP 1: SETUP
             if not jobStarted then
-                UpdateStatus("Spawning Bus...")
+                SetStatus("Spawning Bus...")
                 Remotes:WaitForChild("SpawnCar"):FireServer("Jetbus_3_RM _SHD")
                 task.wait(3)
                 bus = GetMyBus()
@@ -90,7 +93,7 @@ MainTab:CreateToggle({
                     bus.DriveSeat:Sit(hum)
                     task.wait(1.5)
                     
-                    UpdateStatus("Firing Job...")
+                    SetStatus("Firing Job...")
                     Remotes:WaitForChild("StartBusJob"):InvokeServer("Baranangsiang_ke_Cirebon1")
                     task.wait(1)
                     
@@ -121,7 +124,7 @@ MainTab:CreateToggle({
                     -- Timer 1: Freeze 30s
                     for i = 30, 1, -1 do
                         if not _G.AutoFull then break end
-                        UpdateStatus("FREEZE: " .. i .. "s")
+                        SetStatus("FREEZE: " .. i .. "s")
                         task.wait(1)
                     end
                     
@@ -130,7 +133,7 @@ MainTab:CreateToggle({
                     -- Timer 2: Cooldown 60s
                     for i = 60, 1, -1 do
                         if not _G.AutoFull then break end
-                        UpdateStatus("COOLDOWN: " .. i .. "s")
+                        SetStatus("COOLDOWN: " .. i .. "s")
                         task.wait(1)
                     end
                 end
@@ -138,10 +141,10 @@ MainTab:CreateToggle({
                 -- STEP 3: END JOB
                 if jobStarted then
                     noBillboardTime = noBillboardTime + 1
-                    UpdateStatus("Waiting Finish: " .. (40 - noBillboardTime) .. "s")
+                    SetStatus("Scanning Finish: " .. (40 - noBillboardTime) .. "s")
                     
                     if noBillboardTime >= 40 then
-                        UpdateStatus("TP to End Pos")
+                        SetStatus("TP to End Position")
                         InstantTP(CirebonEndCF)
                         task.wait(2)
                         SetFreeze(true)
@@ -149,7 +152,7 @@ MainTab:CreateToggle({
                         -- Payout Timer 90s
                         for i = 90, 1, -1 do
                             if not _G.AutoFull then break end
-                            UpdateStatus("PAYOUT WAIT: " .. i .. "s")
+                            SetStatus("PAYOUT WAIT: " .. i .. "s")
                             task.wait(1)
                         end
                         
@@ -158,6 +161,7 @@ MainTab:CreateToggle({
                         lastTarget = nil
                         noBillboardTime = 0
                         if bus then bus:Destroy() end 
+                        SetStatus("Cycle Finished. Restarting...")
                         task.wait(5)
                     end
                 end
@@ -166,5 +170,3 @@ MainTab:CreateToggle({
         end
     end
 })
-
-UpdateStatus("Ready")
