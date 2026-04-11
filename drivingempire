@@ -1,8 +1,8 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "VoidlineHub",
-   LoadingTitle = "Bus explorer Indonesia",
+   Name = "VoidlineHub | Official",
+   LoadingTitle = "Bus Driving Indonesia",
    LoadingSubtitle = "by VoidLineHub",
    Theme = "AmberGlow"
 })
@@ -17,6 +17,7 @@ local jobStarted = false
 -- Koordinat Finish Cirebon (End Job)
 local CirebonEndCF = CFrame.new(-26471.1445, -212.441071, 33276.8203, -0.0246282816, 0, 0.999696672, 0, 1, 0, -0.999696672, 0, -0.0246282816)
 
+-- --- UTILITY FUNCTIONS ---
 local function GetMyBus()
     return workspace.SpawnedVehicles:FindFirstChild("Jetbus_3_RM _SHD")
 end
@@ -57,17 +58,19 @@ local function GetActiveStop()
     return nil
 end
 
-local MainTab = Window:CreateTab("Automation", "play")
+-- --- UI SETUP ---
+local MainTab = Window:CreateTab("Main Farm", "play")
 
--- Label untuk Progress (Biar rapi di bawah toggle)
-local StatusLabel = MainTab:CreateLabel("Status: Idle", "clock")
+MainTab:CreateSection("Automation Settings")
+
+local StatusLabel = MainTab:CreateLabel("Status: Waiting for Toggle", "clock")
 
 local function SetStatus(text)
     StatusLabel:Set("Status: " .. text)
 end
 
 MainTab:CreateToggle({
-    Name = "Silent Auto (90s Delay)",
+    Name = "Full Auto 110M (3 Min Ultra-Safe)",
     CurrentValue = false,
     Callback = function(Value)
         _G.AutoFull = Value
@@ -82,9 +85,9 @@ MainTab:CreateToggle({
             local bus = GetMyBus()
             local hum = LP.Character and LP.Character:FindFirstChild("Humanoid")
             
-            -- STEP 1: SETUP
+            -- STEP 1: SETUP (Double Spawn Method)
             if not jobStarted then
-                SetStatus("Spawning Bus...")
+                SetStatus("Spawning Initial Bus...")
                 Remotes:WaitForChild("SpawnCar"):FireServer("Jetbus_3_RM _SHD")
                 task.wait(3)
                 bus = GetMyBus()
@@ -93,13 +96,14 @@ MainTab:CreateToggle({
                     bus.DriveSeat:Sit(hum)
                     task.wait(1.5)
                     
-                    SetStatus("Firing Job...")
+                    SetStatus("Firing Job Remote...")
                     Remotes:WaitForChild("StartBusJob"):InvokeServer("Baranangsiang_ke_Cirebon1")
                     task.wait(1)
                     
                     hum.Jump = true
                     task.wait(1)
                     
+                    SetStatus("Refreshing Bus (Final Spawn)...")
                     Remotes:WaitForChild("SpawnCar"):FireServer("Jetbus_3_RM _SHD")
                     task.wait(3)
                     bus = GetMyBus() 
@@ -111,7 +115,7 @@ MainTab:CreateToggle({
                 end
             end
             
-            -- STEP 2: CHECKPOINT (TOTAL 90s)
+            -- STEP 2: CHECKPOINT HANDLING (3 MIN DELAY)
             local target = GetActiveStop()
             if target then
                 noBillboardTime = 0 
@@ -121,38 +125,38 @@ MainTab:CreateToggle({
                     task.wait(2)
                     SetFreeze(true) 
                     
-                    -- Timer 1: Freeze 30s
-                    for i = 30, 1, -1 do
+                    -- Timer 1: Freeze 60s (1 Menit Diam)
+                    for i = 60, 1, -1 do
                         if not _G.AutoFull then break end
-                        SetStatus("FREEZE: " .. i .. "s")
+                        SetStatus("STATIONARY: " .. i .. "s")
                         task.wait(1)
                     end
                     
                     SetFreeze(false)
                     
-                    -- Timer 2: Cooldown 60s
-                    for i = 60, 1, -1 do
+                    -- Timer 2: Cooldown 120s (2 Menit Simulasi Jalan)
+                    for i = 120, 1, -1 do
                         if not _G.AutoFull then break end
-                        SetStatus("COOLDOWN: " .. i .. "s")
+                        SetStatus("ON ROUTE: " .. i .. "s")
                         task.wait(1)
                     end
                 end
             else
-                -- STEP 3: END JOB
+                -- STEP 3: END JOB (PAYOUT)
                 if jobStarted then
                     noBillboardTime = noBillboardTime + 1
-                    SetStatus("Scanning Finish: " .. (40 - noBillboardTime) .. "s")
+                    SetStatus("Finalizing: " .. (60 - noBillboardTime) .. "s")
                     
-                    if noBillboardTime >= 40 then
+                    if noBillboardTime >= 60 then
                         SetStatus("TP to End Position")
                         InstantTP(CirebonEndCF)
                         task.wait(2)
                         SetFreeze(true)
                         
-                        -- Payout Timer 90s
-                        for i = 90, 1, -1 do
+                        -- Payout Timer 180s (3 Menit Payout)
+                        for i = 180, 1, -1 do
                             if not _G.AutoFull then break end
-                            SetStatus("PAYOUT WAIT: " .. i .. "s")
+                            SetStatus("WAITING PAYOUT: " .. i .. "s")
                             task.wait(1)
                         end
                         
@@ -161,7 +165,7 @@ MainTab:CreateToggle({
                         lastTarget = nil
                         noBillboardTime = 0
                         if bus then bus:Destroy() end 
-                        SetStatus("Cycle Finished. Restarting...")
+                        SetStatus("Cycle Done! Resetting...")
                         task.wait(5)
                     end
                 end
@@ -170,3 +174,6 @@ MainTab:CreateToggle({
         end
     end
 })
+
+MainTab:CreateSection("Info")
+MainTab:CreateParagraph("Method Information", "Delay 3 menit digunakan untuk bypass anticheat terbaru. Gunakan di server sepi untuk keamanan maksimal.")
