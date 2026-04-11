@@ -1,17 +1,18 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "VoidlineHub | Full Auto V3",
-   LoadingTitle = "Bus Job 110M Automation",
+   Name = "VoidlineHub | God Mode V4",
+   LoadingTitle = "Cirebon 110M Extreme",
    LoadingSubtitle = "by habilyusuf101",
    Theme = "AmberGlow"
 })
 
 local LP = game.Players.LocalPlayer
+local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
 _G.AutoFull = false
 local lastTarget = nil
 
--- Koordinat Finish Cirebon (End Job)
+-- Koordinat Finish Cirebon
 local CirebonEndCF = CFrame.new(-26471.1445, -212.441071, 33276.8203, -0.0246282816, 0, 0.999696672, 0, 1, 0, -0.999696672, 0, -0.0246282816)
 
 -- Fungsi Ambil Bus
@@ -19,86 +20,28 @@ local function GetMyBus()
     return workspace.SpawnedVehicles:FindFirstChild("Jetbus_3_RM _SHD")
 end
 
--- FUNGSI FORCE CLICK UI
-local function ForceClick(button)
-    if button and button:IsA("GuiButton") then
-        local events = {"MouseButton1Click", "MouseButton1Down", "Activated"}
-        for _, eventName in pairs(events) do
-            local conns = getconnections(button[eventName])
-            for _, connection in pairs(conns) do
-                connection:Fire()
-            end
-        end
-    end
-end
-
--- 1. FUNGSI SPAWN & SETUP (Update: TouchInterest Trigger)
-local function SetupBus()
+-- FUNGSI FREEZE BUS (Biar gak maju sendiri)
+local function FreezeBus(state)
     local bus = GetMyBus()
-    
-    -- Spawn Bus jika tidak ada
-    if not bus then
-        game:GetService("ReplicatedStorage").Remotes.SpawnCar:FireServer("Jetbus_3_RM _SHD")
-        task.wait(3)
-        bus = GetMyBus()
-    end
-    
-    if bus and bus:FindFirstChild("DriveSeat") then
-        -- Force Seat
-        if LP.Character.Humanoid.SeatPart ~= bus.DriveSeat then
-            bus.DriveSeat:Sit(LP.Character.Humanoid)
-            task.wait(1.5)
-        end
-        
-        -- TRIGGER TOUCH (Baranangsiang)
-        local trigger = workspace.BusJobTriggers:FindFirstChild("Baranangsiang")
-        if trigger and trigger:FindFirstChild("TouchInterest") then
-            -- Teleport Bus tepat ke posisi TouchInterest
-            bus:PivotTo(trigger.CFrame)
-            
-            -- Simulasi sentuhan (FireTouchInterest)
-            -- Ini supaya server beneran dapet sinyal kalau bus nempel di trigger
-            if firetouchinterest then
-                firetouchinterest(bus.PrimaryPart, trigger, 0) -- Mulai Sentuh
-                task.wait(0.1)
-                firetouchinterest(bus.PrimaryPart, trigger, 1) -- Lepas Sentuh
-            end
-            
-            Rayfield:Notify({Title = "Setup", Content = "Terminal Touched! Waiting 2s..."})
-            task.wait(2) -- Delay 2 detik sesuai request kamu
-        end
-        
-        -- Pilih Rute Index 3 (Rp 110,000,000)
-        local gui = LP.PlayerGui:FindFirstChild("BusJobGUI")
-        if gui and gui.MainFrame.Visible == true then
-            local targetButton = gui.MainFrame.RouteSelectionFrame.RouteList:GetChildren()[3]
-            if targetButton then
-                ForceClick(targetButton)
-                Rayfield:Notify({Title = "Route", Content = "Rute 110M Cirebon Terpilih!"})
-                task.wait(1)
+    if bus then
+        for _, part in pairs(bus:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Anchored = state
+                if not state then -- Jika unfreeze, bersihkan velocity
+                    part.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                    part.AssemblyAngularVelocity = Vector3.new(0,0,0)
+                end
             end
         end
     end
 end
 
--- 2. FUNGSI TELEPORT STABIL
+-- FUNGSI TELEPORT STABIL
 local function InstantTP(targetCF)
     local bus = GetMyBus()
     if not bus then return end
 
-    if bus.PrimaryPart and bus.PrimaryPart.Anchored then
-        for _, p in pairs(bus:GetDescendants()) do
-            if p:IsA("BasePart") then p.Anchored = false end
-        end
-    end
-
-    for _, part in pairs(bus:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.AssemblyLinearVelocity = Vector3.new(0,0,0)
-            part.AssemblyAngularVelocity = Vector3.new(0,0,0)
-        end
-    end
-
+    FreezeBus(false) -- Lepas anchor dulu buat pindah
     bus:PivotTo(targetCF)
     
     task.wait(0.1)
@@ -109,7 +52,7 @@ local function InstantTP(targetCF)
     end
 end
 
--- 3. SCAN BILLBOARD
+-- SCAN CHECKPOINT
 local function GetActiveStop()
     for _, part in pairs(workspace.Checkpoints:GetChildren()) do
         local bs = part:FindFirstChild("BusStop")
@@ -124,42 +67,80 @@ end
 local MainTab = Window:CreateTab("Automation", "play")
 
 MainTab:CreateToggle({
-    Name = "Full Auto Cirebon 110M",
+    Name = "Extreme Loop 110M (Delay 30s)",
     CurrentValue = false,
     Callback = function(Value)
         _G.AutoFull = Value
-        if not Value then lastTarget = nil end
+        if not Value then 
+            lastTarget = nil 
+            FreezeBus(false)
+        end
         
         while _G.AutoFull do
             local bus = GetMyBus()
             
-            -- Setup & Pilih Rute Otomatis
+            -- STEP: DOUBLE SPAWN & START JOB
             if not bus or (LP.Character.Humanoid.SeatPart == nil) then
-                SetupBus()
+                -- Spawn 1
+                Remotes.SpawnCar:FireServer("Jetbus_3_RM _SHD")
+                task.wait(2)
+                -- Spawn 2 (Sesuai Method Kamu)
+                Remotes.SpawnCar:FireServer("Jetbus_3_RM _SHD")
+                task.wait(2)
+                
+                bus = GetMyBus()
+                if bus and bus:FindFirstChild("DriveSeat") then
+                    bus.DriveSeat:Sit(LP.Character.Humanoid)
+                    task.wait(2)
+                    
+                    -- Fire Remote Start Job
+                    Rayfield:Notify({Title = "Remote", Content = "Starting 110M Route..."})
+                    Remotes.StartBusJob:InvokeServer("Baranangsiang_ke_Cirebon1")
+                    task.wait(1)
+                end
             end
             
-            -- Scan Checkpoint
+            -- STEP: CHECKPOINT HANDLING
             local target = GetActiveStop()
             if target and target ~= lastTarget then
                 InstantTP(target.CFrame)
                 lastTarget = target
-                Rayfield:Notify({Title = "Checkpoint", Content = "TP Berhasil! Delay 25 Detik."})
-                task.wait(25) -- Delay 25 detik (Kesepakatan)
+                
+                -- PAKSA BERHENTI (Freeze) biar gak maju sendiri
+                FreezeBus(true)
+                Rayfield:Notify({Title = "Checkpoint", Content = "Bus Locked! Waiting 30s..."})
+                
+                task.wait(30) -- Delay naik ke 30 detik sesuai request
+                
+                FreezeBus(false) -- Lepas lagi biar sistem game detect kita lewat
+                task.wait(1)
             end
             
             if not target then
                 lastTarget = nil
             end
             
-            -- Cek End Job (Harjamukti Cirebon)
+            -- STEP: FINISH / END SHIFT DETECTION
             local gui = LP.PlayerGui:FindFirstChild("BusJobGUI")
+            local isFinishing = false
+            
             if gui and gui:FindFirstChild("JobStatusFrame") and gui.JobStatusFrame.Visible then
                 local label = gui.JobStatusFrame.InfoLabel.Text
                 if label:find("Cirebon") or label:find("Harjamukti") or label:find("Selesai") then
-                    InstantTP(CirebonEndCF)
-                    Rayfield:Notify({Title = "Finish", Content = "Sampai di Harjamukti! Gaji 110M Masuk."})
-                    task.wait(10)
+                    isFinishing = true
                 end
+            end
+            
+            -- Kalau rute sudah tidak ada billboard dan terdeteksi finish
+            if isFinishing and not target then
+                Rayfield:Notify({Title = "Finish", Content = "Heading to End Point..."})
+                InstantTP(CirebonEndCF)
+                task.wait(5)
+                
+                -- End Shift / Reset buat Loop
+                Remotes.EndBusJob:InvokeServer() 
+                task.wait(3)
+                if bus then bus:Destroy() end -- Hapus bus lama biar bersih buat loop berikutnya
             end
             
             task.wait(1)
@@ -167,4 +148,4 @@ MainTab:CreateToggle({
     end
 })
 
-Rayfield:Notify({Title = "Voidline Loaded", Content = "Full Auto 110M (Touch System) Aktif!"})
+Rayfield:Notify({Title = "Voidline Loaded", Content = "Method Double-Spawn & Freeze Aktif!"})
