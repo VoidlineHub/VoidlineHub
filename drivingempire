@@ -134,7 +134,7 @@ MainTab:CreateToggle({
                     
                     SetFreeze(false)
                     Rayfield:Notify({Title = "Status", Content = "Cooldown 30s before next TP..."})
-                    task.wait(30) -- Split Delay 2 (Total 58s)
+                    task.wait(40) -- Split Delay 2 (Total 58s)
                 end
             else
                 -- STEP 3: LOGIC END POS (DAPET UANG)
