@@ -1,8 +1,8 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "VoidlineHub | Full Auto V9",
-   LoadingTitle = "Cirebon 110M High-Security",
+   Name = "VoidlineHub | Full Auto V10",
+   LoadingTitle = "Cirebon 110M Extreme Method",
    LoadingSubtitle = "by habilyusuf101",
    Theme = "AmberGlow"
 })
@@ -14,7 +14,7 @@ local lastTarget = nil
 local noBillboardTime = 0
 local jobStarted = false
 
--- Koordinat Finish Cirebon (Checkpoint ke-9)
+-- Koordinat Finish Cirebon (End Job)
 local CirebonEndCF = CFrame.new(-26471.1445, -212.441071, 33276.8203, -0.0246282816, 0, 0.999696672, 0, 1, 0, -0.999696672, 0, -0.0246282816)
 
 -- Fungsi Ambil Bus
@@ -22,7 +22,7 @@ local function GetMyBus()
     return workspace.SpawnedVehicles:FindFirstChild("Jetbus_3_RM _SHD")
 end
 
--- FUNGSI FREEZE/ANCHOR
+-- FUNGSI FREEZE
 local function SetFreeze(state)
     local bus = GetMyBus()
     if bus then
@@ -38,7 +38,7 @@ local function SetFreeze(state)
     end
 end
 
--- FUNGSI TELEPORT STABIL (DITAMBAH FORCE POSITION)
+-- FUNGSI TELEPORT FORCE
 local function InstantTP(targetCF)
     local bus = GetMyBus()
     if not bus then return end
@@ -46,13 +46,12 @@ local function InstantTP(targetCF)
     SetFreeze(false) 
     task.wait(0.1)
     
-    -- Coba teleport berkali-kali dalam waktu singkat biar server gak nolak
+    -- Force TP 3x biar nempel
     for i = 1, 3 do
         bus:PivotTo(targetCF)
         task.wait(0.05)
     end
     
-    -- Bersihkan gaya gerak
     for _, part in pairs(bus:GetDescendants()) do
         if part:IsA("BasePart") then
             part.AssemblyLinearVelocity = Vector3.new(0,0,0)
@@ -75,7 +74,7 @@ end
 local MainTab = Window:CreateTab("Automation", "play")
 
 MainTab:CreateToggle({
-    Name = "Extreme Auto (Fire -> Spawn)",
+    Name = "God Mode (Double Spawn Method)",
     CurrentValue = false,
     Callback = function(Value)
         _G.AutoFull = Value
@@ -89,63 +88,73 @@ MainTab:CreateToggle({
             local bus = GetMyBus()
             local hum = LP.Character and LP.Character:FindFirstChild("Humanoid")
             
-            -- STEP 1: SETUP (URUTAN REQUEST: FIRE -> SPAWN -> NAIK)
+            -- STEP 1: SETUP (SPAWN 1 -> DUDUK -> FIRE -> LOMPAT -> SPAWN 2 -> DUDUK)
             if not jobStarted then
-                -- 1. Fire Remote Dulu
-                Rayfield:Notify({Title = "Remote", Content = "Firing Job Remote..."})
-                local args = {"Baranangsiang_ke_Cirebon1"}
-                Remotes:WaitForChild("StartBusJob"):InvokeServer(unpack(args))
-                task.wait(1)
-                
-                -- 2. Spawn Bus
+                -- 1. Spawn Bus Pertama
                 Remotes:WaitForChild("SpawnCar"):FireServer("Jetbus_3_RM _SHD")
                 task.wait(3)
                 bus = GetMyBus()
                 
-                -- 3. Naik Bus
                 if bus and bus:FindFirstChild("DriveSeat") then
+                    -- 2. Duduk
                     bus.DriveSeat:Sit(hum)
-                    jobStarted = true 
-                    Rayfield:Notify({Title = "Voidline", Content = "Bus Ready! Job Synchronized."})
+                    task.wait(1.5)
+                    
+                    -- 3. Fire Remote Job
+                    local args = {"Baranangsiang_ke_Cirebon1"}
+                    Remotes:WaitForChild("StartBusJob"):InvokeServer(unpack(args))
+                    task.wait(1)
+                    
+                    -- 4. Lompat (Reset Ownership)
+                    hum.Jump = true
+                    task.wait(1)
+                    
+                    -- 5. Spawn Bus Kedua (Refresh)
+                    Remotes:WaitForChild("SpawnCar"):FireServer("Jetbus_3_RM _SHD")
+                    task.wait(3)
+                    bus = GetMyBus() -- Update variabel bus ke yang baru
+                    
+                    -- 6. Duduk Lagi di Bus Baru
+                    if bus and bus:FindFirstChild("DriveSeat") then
+                        bus.DriveSeat:Sit(hum)
+                        jobStarted = true
+                        Rayfield:Notify({Title = "Success", Content = "Double Spawn Done! Job Synchronized."})
+                    end
                 end
             end
             
-            -- STEP 2: CHECKPOINT HANDLING (DELAY 15s FREEZE + 20s WAIT)
+            -- STEP 2: CHECKPOINT HANDLING (15s FREEZE + 20s DELAY)
             local target = GetActiveStop()
             
             if target then
                 noBillboardTime = 0 
                 
                 if target ~= lastTarget then
-                    -- 1. TELEPORT KE BILLBOARD
                     InstantTP(target.CFrame)
                     lastTarget = target
                     
-                    -- 2. JEDA 2 DETIK BARU KUNCI (Mastiin posisi pas)
                     task.wait(2)
-                    SetFreeze(true)
+                    SetFreeze(true) -- Freeze 15s sesuai request terakhir
                     
-                    -- 3. DELAY 15 DETIK DI CHECKPOINT (FREEZE)
-                    Rayfield:Notify({Title = "Status", Content = "Freeze 15s di Checkpoint..."})
+                    Rayfield:Notify({Title = "Status", Content = "Locked 15s at Checkpoint..."})
                     task.wait(15)
                     
                     SetFreeze(false)
-                    
-                    -- 4. DELAY 20 DETIK SEBELUM TP LAGI
-                    Rayfield:Notify({Title = "Status", Content = "Unfreeze, Delay 20s buat TP Berikutnya..."})
+                    Rayfield:Notify({Title = "Status", Content = "Cooldown 20s before next TP..."})
                     task.wait(20)
                 end
             else
-                -- STEP 3: END JOB LOGIC
+                -- STEP 3: END JOB LOGIC (AKHIR RUTE)
                 if jobStarted then
                     noBillboardTime = noBillboardTime + 1
                     
+                    -- Tunggu 1 menit tanpa billboard (tanda finish 8 titik)
                     if noBillboardTime >= 60 then
-                        Rayfield:Notify({Title = "Finish", Content = "All Checkpoints Done. Gas End Pos!"})
+                        Rayfield:Notify({Title = "Finish", Content = "TP to Cirebon End Position!"})
                         InstantTP(CirebonEndCF)
-                        task.wait(15)
+                        task.wait(15) -- Delay payout
                         
-                        -- RESET BUAT LOOP BARU
+                        -- Loop Reset
                         jobStarted = false
                         lastTarget = nil
                         noBillboardTime = 0
@@ -159,4 +168,4 @@ MainTab:CreateToggle({
     end
 })
 
-Rayfield:Notify({Title = "Voidline Loaded", Content = "Method Fire-Spawn & 15s+20s Delay Aktif!"})
+Rayfield:Notify({Title = "Voidline Loaded", Content = "Method V10 (Double-Spawn) Aktif!"})
