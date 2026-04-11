@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "VoidlineHub | Full Auto",
+   Name = "VoidlineHub | Full Auto V3",
    LoadingTitle = "Bus Job 110M Automation",
    LoadingSubtitle = "by habilyusuf101",
    Theme = "AmberGlow"
@@ -19,7 +19,7 @@ local function GetMyBus()
     return workspace.SpawnedVehicles:FindFirstChild("Jetbus_3_RM _SHD")
 end
 
--- FUNGSI FORCE CLICK (Klik tombol UI secara paksa)
+-- FUNGSI FORCE CLICK UI
 local function ForceClick(button)
     if button and button:IsA("GuiButton") then
         local events = {"MouseButton1Click", "MouseButton1Down", "Activated"}
@@ -32,7 +32,7 @@ local function ForceClick(button)
     end
 end
 
--- 1. FUNGSI SPAWN & SETUP (Update: TP ke Trigger Terminal)
+-- 1. FUNGSI SPAWN & SETUP (Update: TouchInterest Trigger)
 local function SetupBus()
     local bus = GetMyBus()
     
@@ -50,11 +50,21 @@ local function SetupBus()
             task.wait(1.5)
         end
         
-        -- BARU: Teleport Bus ke Trigger Baranangsiang buat munculin UI
+        -- TRIGGER TOUCH (Baranangsiang)
         local trigger = workspace.BusJobTriggers:FindFirstChild("Baranangsiang")
-        if trigger then
+        if trigger and trigger:FindFirstChild("TouchInterest") then
+            -- Teleport Bus tepat ke posisi TouchInterest
             bus:PivotTo(trigger.CFrame)
-            Rayfield:Notify({Title = "Setup", Content = "TP ke Trigger Terminal..."})
+            
+            -- Simulasi sentuhan (FireTouchInterest)
+            -- Ini supaya server beneran dapet sinyal kalau bus nempel di trigger
+            if firetouchinterest then
+                firetouchinterest(bus.PrimaryPart, trigger, 0) -- Mulai Sentuh
+                task.wait(0.1)
+                firetouchinterest(bus.PrimaryPart, trigger, 1) -- Lepas Sentuh
+            end
+            
+            Rayfield:Notify({Title = "Setup", Content = "Terminal Touched! Waiting 2s..."})
             task.wait(2) -- Delay 2 detik sesuai request kamu
         end
         
@@ -76,14 +86,12 @@ local function InstantTP(targetCF)
     local bus = GetMyBus()
     if not bus then return end
 
-    -- Unanchor biar bisa pindah
     if bus.PrimaryPart and bus.PrimaryPart.Anchored then
         for _, p in pairs(bus:GetDescendants()) do
             if p:IsA("BasePart") then p.Anchored = false end
         end
     end
 
-    -- Reset gaya gerak
     for _, part in pairs(bus:GetDescendants()) do
         if part:IsA("BasePart") then
             part.AssemblyLinearVelocity = Vector3.new(0,0,0)
@@ -116,7 +124,7 @@ end
 local MainTab = Window:CreateTab("Automation", "play")
 
 MainTab:CreateToggle({
-    Name = "Full Auto Loop (Cirebon 110M)",
+    Name = "Full Auto Cirebon 110M",
     CurrentValue = false,
     Callback = function(Value)
         _G.AutoFull = Value
@@ -136,7 +144,7 @@ MainTab:CreateToggle({
                 InstantTP(target.CFrame)
                 lastTarget = target
                 Rayfield:Notify({Title = "Checkpoint", Content = "TP Berhasil! Delay 25 Detik."})
-                task.wait(25) -- Delay 25 detik
+                task.wait(25) -- Delay 25 detik (Kesepakatan)
             end
             
             if not target then
@@ -159,11 +167,4 @@ MainTab:CreateToggle({
     end
 })
 
-MainTab:CreateButton({
-    Name = "Teleport Cirebon Manual",
-    Callback = function()
-        InstantTP(CirebonEndCF)
-    end
-})
-
-Rayfield:Notify({Title = "Voidline Loaded", Content = "Sistem 110M Cirebon (Trigger Mode) Siap!"})
+Rayfield:Notify({Title = "Voidline Loaded", Content = "Full Auto 110M (Touch System) Aktif!"})
