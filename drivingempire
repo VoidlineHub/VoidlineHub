@@ -1,8 +1,8 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "VoidlineHub | Full Auto",
-   LoadingTitle = "Cirebon 110M High-Security",
+   Name = "VoidlineHub | Full Auto V8",
+   LoadingTitle = "Cirebon 110M Precision",
    LoadingSubtitle = "by habilyusuf101",
    Theme = "AmberGlow"
 })
@@ -14,7 +14,7 @@ local lastTarget = nil
 local noBillboardTime = 0
 local jobStarted = false
 
--- Koordinat Finish Cirebon (End Job)
+-- Koordinat Finish Cirebon (End Job - Checkpoint ke-9)
 local CirebonEndCF = CFrame.new(-26471.1445, -212.441071, 33276.8203, -0.0246282816, 0, 0.999696672, 0, 1, 0, -0.999696672, 0, -0.0246282816)
 
 -- Fungsi Ambil Bus
@@ -69,7 +69,7 @@ end
 local MainTab = Window:CreateTab("Automation", "play")
 
 MainTab:CreateToggle({
-    Name = "Extreme Full Auto (Split Delay 30s)",
+    Name = "Extreme Auto (40s Precision)",
     CurrentValue = false,
     Callback = function(Value)
         _G.AutoFull = Value
@@ -83,7 +83,7 @@ MainTab:CreateToggle({
             local bus = GetMyBus()
             local hum = LP.Character and LP.Character:FindFirstChild("Humanoid")
             
-            -- STEP 1: SETUP
+            -- STEP 1: SETUP AWAL
             if not jobStarted then
                 Remotes:WaitForChild("SpawnCar"):FireServer("Jetbus_3_RM _SHD")
                 task.wait(3)
@@ -99,45 +99,49 @@ MainTab:CreateToggle({
                     
                     bus.DriveSeat:Sit(hum)
                     jobStarted = true 
-                    Rayfield:Notify({Title = "Voidline", Content = "Job Active! Nyari Billboard..."})
+                    Rayfield:Notify({Title = "Voidline", Content = "Job Active! Scanning..."})
                 end
             end
             
-            -- STEP 2: CHECKPOINT HANDLING (SPLIT DELAY)
+            -- STEP 2: CHECKPOINT HANDLING (DELAY 40s TOTAL)
             local target = GetActiveStop()
             
             if target then
                 noBillboardTime = 0 
                 
                 if target ~= lastTarget then
-                    -- 1. LANGSUNG TELEPORT
+                    -- 1. TELEPORT KE BILLBOARD
                     InstantTP(target.CFrame)
                     lastTarget = target
                     
-                    -- 2. DELAY 2 DETIK BARU FREEZE
+                    -- 2. JEDA 2 DETIK BARU KUNCI
                     task.wait(2)
                     SetFreeze(true)
                     
-                    -- 3. DELAY 15 DETIK DI CHECKPOINT (DIAM)
-                    Rayfield:Notify({Title = "Status", Content = "Freeze di Checkpoint: 15s..."})
-                    task.wait(15)
+                    -- 3. DELAY 12 DETIK DI CHECKPOINT (DIAM TOTAL)
+                    Rayfield:Notify({Title = "Checkpoint", Content = "Locked 12s..."})
+                    task.wait(12)
                     
                     SetFreeze(false)
                     
-                    -- 4. DELAY 15 DETIK MENUJU TP BERIKUTNYA (JALAN/DIAM TAPI UNFREEZE)
-                    Rayfield:Notify({Title = "Status", Content = "Unfreeze, Menunggu 15s buat TP Berikutnya..."})
-                    task.wait(15)
+                    -- 4. DELAY 20 DETIK SEBELUM BOLEH PINDAH LAGI
+                    Rayfield:Notify({Title = "Security", Content = "Cooldown 20s sebelum TP berikutnya..."})
+                    task.wait(20)
                 end
             else
-                -- STEP 3: LOGIC NO-BILLBOARD 1 MENIT -> END JOB
+                -- STEP 3: LOGIC END POS (HANYA DI AKHIR SETELAH BILLBOARD HILANG)
                 if jobStarted then
                     noBillboardTime = noBillboardTime + 1
                     
+                    -- Jika Billboard sudah hilang selama 60 detik (1 menit)
                     if noBillboardTime >= 60 then
-                        Rayfield:Notify({Title = "Finish", Content = "8 Checkpoint Beres. Gas Cirebon End!"})
-                        InstantTP(CirebonEndCF)
-                        task.wait(10)
+                        Rayfield:Notify({Title = "Finish", Content = "Semua Checkpoint Selesai. Teleport ke End Position!"})
                         
+                        -- Teleport ke Koordinat Cirebon (Checkpoint 9 / Akhir)
+                        InstantTP(CirebonEndCF)
+                        task.wait(15) -- Nunggu payout masuk
+                        
+                        -- RESET SEMUA UNTUK LOOP BERIKUTNYA
                         jobStarted = false
                         lastTarget = nil
                         noBillboardTime = 0
@@ -151,4 +155,4 @@ MainTab:CreateToggle({
     end
 })
 
-Rayfield:Notify({Title = "Voidline Loaded", Content = "Logic Split Delay (15s+15s) Aktif!"})
+Rayfield:Notify({Title = "Voidline Loaded", Content = "Logic V8 (12s Freeze + 20s Cooldown) Aktif!"})
