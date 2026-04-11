@@ -1,8 +1,8 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "VoidlineHub | God Mode V5",
-   LoadingTitle = "Cirebon 110M High-Security",
+   Name = "VoidlineHub | God Mode V6",
+   LoadingTitle = "Cirebon 110M Ultra-Fast",
    LoadingSubtitle = "by habilyusuf101",
    Theme = "AmberGlow"
 })
@@ -12,8 +12,9 @@ local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
 _G.AutoFull = false
 local lastTarget = nil
 local noBillboardTime = 0
+local jobStarted = false
 
--- Koordinat Finish Cirebon (Checkpoint ke-9 / End Job)
+-- Koordinat Finish Cirebon (End Job)
 local CirebonEndCF = CFrame.new(-26471.1445, -212.441071, 33276.8203, -0.0246282816, 0, 0.999696672, 0, 1, 0, -0.999696672, 0, -0.0246282816)
 
 -- Fungsi Ambil Bus
@@ -42,7 +43,7 @@ local function InstantTP(targetCF)
     local bus = GetMyBus()
     if not bus then return end
 
-    SetFreeze(false) -- Lepas freeze dulu
+    SetFreeze(false)
     bus:PivotTo(targetCF)
     
     task.wait(0.1)
@@ -68,12 +69,13 @@ end
 local MainTab = Window:CreateTab("Automation", "play")
 
 MainTab:CreateToggle({
-    Name = "Extreme Full Auto (Lompat-Duduk Method)",
+    Name = "Full Auto 110M (Fixed Flow)",
     CurrentValue = false,
     Callback = function(Value)
         _G.AutoFull = Value
         if not Value then 
             lastTarget = nil 
+            jobStarted = false
             SetFreeze(false)
         end
         
@@ -81,8 +83,8 @@ MainTab:CreateToggle({
             local bus = GetMyBus()
             local hum = LP.Character and LP.Character:FindFirstChild("Humanoid")
             
-            -- STEP 1: SETUP (SPAWN, SIT, JUMP, SIT, REMOTE)
-            if not bus or (hum and hum.SeatPart == nil) then
+            -- STEP 1: SETUP (Hanya jalan kalau Job belum dimulai)
+            if not jobStarted then
                 if not bus then
                     Remotes.SpawnCar:FireServer("Jetbus_3_RM _SHD")
                     task.wait(3)
@@ -90,30 +92,28 @@ MainTab:CreateToggle({
                 end
                 
                 if bus and bus:FindFirstChild("DriveSeat") then
-                    -- 1. Duduk Pertama
+                    -- 1. Duduk
                     bus.DriveSeat:Sit(hum)
                     task.wait(1)
-                    -- 2. Lompat
-                    hum.Jump = true
-                    task.wait(0.5)
-                    -- 3. Duduk Lagi
-                    bus.DriveSeat:Sit(hum)
-                    task.wait(1)
-                    -- 4. Fire Remote
+                    -- 2. Fire Remote
                     Remotes.StartBusJob:InvokeServer("Baranangsiang_ke_Cirebon1")
-                    Rayfield:Notify({Title = "Setup", Content = "Lompat-Duduk Done! Job Started."})
-                    task.wait(1)
+                    task.wait(0.5)
+                    -- 3. Duduk Lagi (Mastiin state)
+                    bus.DriveSeat:Sit(hum)
+                    
+                    jobStarted = true -- Kunci biar gak ngulang setup terus
+                    Rayfield:Notify({Title = "System", Content = "Job Started! Waiting for Billboard..."})
                 end
             end
             
-            -- STEP 2: CHECKPOINT HANDLING
+            -- STEP 2: CHECKPOINT HANDLING (Instant Teleport)
             local target = GetActiveStop()
             
             if target then
-                noBillboardTime = 0 -- Reset timer kalau billboard ada
+                noBillboardTime = 0 
                 
                 if target ~= lastTarget then
-                    -- Teleport dulu
+                    -- Langsung Teleport pas Billboard Muncul
                     InstantTP(target.CFrame)
                     lastTarget = target
                     
@@ -121,32 +121,34 @@ MainTab:CreateToggle({
                     task.wait(2)
                     SetFreeze(true)
                     
-                    Rayfield:Notify({Title = "Checkpoint", Content = "Bus Frozen! Waiting 30s..."})
-                    task.wait(30) -- Delay 30 detik sesuai request
+                    Rayfield:Notify({Title = "Checkpoint", Content = "Frozen! Delay 30s..."})
+                    task.wait(30)
                     
                     SetFreeze(false)
                     task.wait(1)
                 end
             else
-                -- STEP 3: LOGIC NO-BILLBOARD (END JOB)
-                noBillboardTime = noBillboardTime + 1
-                
-                -- Jika Billboard hilang selama 60 detik (1 menit)
-                if noBillboardTime >= 60 then
-                    Rayfield:Notify({Title = "Finish", Content = "Billboard hilang 1 menit. TP ke End Pos."})
-                    InstantTP(CirebonEndCF)
-                    task.wait(10) -- Nunggu payout
+                -- STEP 3: END JOB LOGIC (1 Menit tanpa Billboard)
+                if jobStarted then
+                    noBillboardTime = noBillboardTime + 1
                     
-                    -- Reset buat Loop berikutnya
-                    noBillboardTime = 0
-                    lastTarget = nil
-                    if bus then bus:Destroy() end 
+                    if noBillboardTime >= 60 then
+                        Rayfield:Notify({Title = "Finish", Content = "TP to Cirebon End Pos..."})
+                        InstantTP(CirebonEndCF)
+                        task.wait(10) -- Payout delay
+                        
+                        -- Reset Semuanya buat Loop Baru
+                        jobStarted = false
+                        lastTarget = nil
+                        noBillboardTime = 0
+                        if bus then bus:Destroy() end
+                    end
                 end
             end
             
-            task.wait(1) -- Tick rate tiap 1 detik
+            task.wait(1)
         end
     end
 })
 
-Rayfield:Notify({Title = "Voidline Loaded", Content = "Method V5: Lompat-Duduk & Auto-End Aktif!"})
+Rayfield:Notify({Title = "Voidline Loaded", Content = "Flow V6 (Instant TP) Aktif!"})
