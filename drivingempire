@@ -32,7 +32,7 @@ local function ForceClick(button)
     end
 end
 
--- 1. FUNGSI SPAWN & SETUP (Logic Index 3 Gabungan)
+-- 1. FUNGSI SPAWN & SETUP (Update: TP ke Trigger Terminal)
 local function SetupBus()
     local bus = GetMyBus()
     
@@ -47,10 +47,18 @@ local function SetupBus()
         -- Force Seat
         if LP.Character.Humanoid.SeatPart ~= bus.DriveSeat then
             bus.DriveSeat:Sit(LP.Character.Humanoid)
-            task.wait(1)
+            task.wait(1.5)
         end
         
-        -- Logic Pilih Rute Index 3 (Rp 110,000,000)
+        -- BARU: Teleport Bus ke Trigger Baranangsiang buat munculin UI
+        local trigger = workspace.BusJobTriggers:FindFirstChild("Baranangsiang")
+        if trigger then
+            bus:PivotTo(trigger.CFrame)
+            Rayfield:Notify({Title = "Setup", Content = "TP ke Trigger Terminal..."})
+            task.wait(2) -- Delay 2 detik sesuai request kamu
+        end
+        
+        -- Pilih Rute Index 3 (Rp 110,000,000)
         local gui = LP.PlayerGui:FindFirstChild("BusJobGUI")
         if gui and gui.MainFrame.Visible == true then
             local targetButton = gui.MainFrame.RouteSelectionFrame.RouteList:GetChildren()[3]
@@ -128,7 +136,7 @@ MainTab:CreateToggle({
                 InstantTP(target.CFrame)
                 lastTarget = target
                 Rayfield:Notify({Title = "Checkpoint", Content = "TP Berhasil! Delay 25 Detik."})
-                task.wait(25) -- Update Delay 25 detik
+                task.wait(25) -- Delay 25 detik
             end
             
             if not target then
@@ -158,4 +166,4 @@ MainTab:CreateButton({
     end
 })
 
-Rayfield:Notify({Title = "Voidline Loaded", Content = "Sistem 110M Cirebon (Delay 25s) Ready!"})
+Rayfield:Notify({Title = "Voidline Loaded", Content = "Sistem 110M Cirebon (Trigger Mode) Siap!"})
