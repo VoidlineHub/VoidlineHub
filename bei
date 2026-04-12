@@ -14,17 +14,12 @@ local Window = Rayfield:CreateWindow({
       Subtitle = "Enter your key",
       Note = "join Discord voidlinehub to get other updated information",
       FileName = "VoidlineKey",
-      SaveKey = true,
+      SaveKey = false,
       GrabKeyFromSite = false,
       Key = {"VoidLineOntop1","VoidlinePremium"}
    }
 })
 
-Rayfield:Notify({
-   Title = "Welcome",
-   Content = "Key accepted",
-   Duration = 3
-})
 
 local LP = game.Players.LocalPlayer
 local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
