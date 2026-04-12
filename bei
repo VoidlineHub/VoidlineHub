@@ -12,7 +12,7 @@ local Window = Rayfield:CreateWindow({
    KeySettings = {
       Title = "Voidline Key System",
       Subtitle = "Enter your key",
-      Note = "Put your key here",
+      Note = "join Discord voidlinehub to get other updated information",
       FileName = "VoidlineKey",
       SaveKey = true,
       GrabKeyFromSite = false,
@@ -132,7 +132,7 @@ local function SetStatus(text)
 end
 
 MainTab:CreateToggle({
-    Name = "Full Auto 3 MIN (Dynamic Bus)",
+    Name = "on autofarm",
     CurrentValue = false,
     Callback = function(Value)
         _G.AutoFull = Value
@@ -184,14 +184,17 @@ MainTab:CreateToggle({
                     task.wait(2)
                     SetFreeze(true) 
                     
-                    for i = 60, 1, -1 do
+                    -- Timer 1: Freeze 45 Detik
+                    for i = 45, 1, -1 do
                         if not _G.AutoFull then break end
                         SetStatus("STATIONARY: " .. i .. "s")
                         task.wait(1)
                     end
+                    
                     SetFreeze(false)
                     
-                    for i = 120, 1, -1 do
+                    -- Timer 2: Cooldown 90 Detik (Total 135s / 2m 15s)
+                    for i = 90, 1, -1 do
                         if not _G.AutoFull then break end
                         SetStatus("ON ROUTE: " .. i .. "s")
                         task.wait(1)
@@ -200,15 +203,16 @@ MainTab:CreateToggle({
             else
                 if jobStarted then
                     noBillboardTime = noBillboardTime + 1
-                    SetStatus("Finalizing: " .. (60 - noBillboardTime) .. "s")
+                    SetStatus("Finalizing: " .. (40 - noBillboardTime) .. "s")
                     
-                    if noBillboardTime >= 60 then
+                    if noBillboardTime >= 40 then
                         SetStatus("TP to End Position")
                         InstantTP(CirebonEndCF)
                         task.wait(2)
                         SetFreeze(true)
                         
-                        for i = 180, 1, -1 do
+                        -- Payout Timer: 135 Detik (2m 15s)
+                        for i = 135, 1, -1 do
                             if not _G.AutoFull then break end
                             SetStatus("WAITING PAYOUT: " .. i .. "s")
                             task.wait(1)
