@@ -2,7 +2,7 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "VoidlineHub | Official",
-   LoadingTitle = "Bus Driving Indonesia",
+   LoadingTitle = "Bus explorer Indonesia",
    LoadingSubtitle = "by VoidLineHub",
    Theme = "AmberGlow"
 })
