@@ -127,10 +127,20 @@ local function SetStatus(text)
 end
 
 MainTab:CreateToggle({
-    Name = "on autofarm",
+    Name = "Full Auto 2.15 MIN (Safety V17)",
     CurrentValue = false,
     Callback = function(Value)
         _G.AutoFull = Value
+        
+        -- Logic Hapus Penghalang Cikamurang
+        if Value then
+            pcall(function()
+                if workspace:FindFirstChild("Cikamurang") and workspace.Cikamurang:FindFirstChild("Model") and workspace.Cikamurang.Model:FindFirstChild("SInar") then
+                    workspace.Cikamurang.Model.SInar:Destroy()
+                end
+            end)
+        end
+
         if not Value then 
             lastTarget = nil 
             jobStarted = false
