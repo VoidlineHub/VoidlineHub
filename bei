@@ -1,10 +1,29 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "VoidlineHub | Official",
+   Name = "VoidlineHub",
    LoadingTitle = "Bus explorer Indonesia",
-   LoadingSubtitle = "by VoidLineHub",
-   Theme = "AmberGlow"
+   LoadingSubtitle = "by VoidlineHub,
+   ConfigurationSaving = {
+      Enabled = true,
+      FileName = "VoidlineConfig"
+   },
+   KeySystem = true,
+   KeySettings = {
+      Title = "Voidline key sistem",
+      Subtitle = "Enter your key",
+      Note = "put your key here",
+      FileName = "VoidlineKey",
+      SaveKey = true,
+      GrabKeyFromSite = false,
+      Key = {"VoidLineOntop1","VoidlinePremium"}
+   }
+})
+
+Rayfield:Notify({
+   Title = "Welcome",
+   Content = "key accepted",
+   Duration = 3
 })
 
 local LP = game.Players.LocalPlayer
