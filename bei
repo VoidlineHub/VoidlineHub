@@ -126,21 +126,12 @@ local function SetStatus(text)
     StatusLabel:Set("Status: " .. text)
 end
 
-MainTab:CreateToggle({
+                  MainTab:CreateToggle({
     Name = "Full Auto 2.15 MIN (Safety V17)",
     CurrentValue = false,
     Callback = function(Value)
         _G.AutoFull = Value
         
-        -- Logic Hapus Penghalang Cikamurang
-        if Value then
-            pcall(function()
-                if workspace:FindFirstChild("Cikamurang") and workspace.Cikamurang:FindFirstChild("Model") and workspace.Cikamurang.Model:FindFirstChild("SInar") then
-                    workspace.Cikamurang.Model.SInar:Destroy()
-                end
-            end)
-        end
-
         if not Value then 
             lastTarget = nil 
             jobStarted = false
@@ -149,6 +140,13 @@ MainTab:CreateToggle({
         end
         
         while _G.AutoFull do
+            -- FORCE HIDE PENGHALANG (Setiap detik biar gak respawn)
+            pcall(function()
+                if workspace.Cikamurang.Model:FindFirstChild("SInar") then
+                    workspace.Cikamurang.Model.SInar.Parent = game:GetService("Lighting")
+                end
+            end)
+
             local hum = LP.Character and LP.Character:FindFirstChild("Humanoid")
             
             if not jobStarted then
