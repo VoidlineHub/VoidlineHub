@@ -238,7 +238,7 @@ StatsFolder.Uang:GetPropertyChangedSignal("Value"):Connect(function()
             task.spawn(function()
                 while isRunning do
                     -- Tunggu selama 135 detik (2 Menit 15 Detik) agar pas dengan timer payout
-                    task.wait(135) 
+                    task.wait(65) 
                     
                     if pendingIncome > 0 and _G.WebhookURL ~= "" and _G.WebhookEnabled then
                         sendWebhook(pendingIncome, 0)
