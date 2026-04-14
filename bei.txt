@@ -28,9 +28,17 @@ local StartUang = StatsFolder.Uang.Value
 local StartTime = os.time()
 local CarData = Remotes.GetClientCustomizationData:InvokeServer()
 local OwnedCarsFolder = LP:WaitForChild("PlayerData"):WaitForChild("OwnedCars")
+local HttpService = game:GetService("HttpService")
 
 _G.AutoFull = false
 _G.SelectedBus = "" 
+_G.WebhookURL = "" -- Isi dengan URL Webhook lu
+_G.TotalEarning = 0
+_G.CycleCount = 0
+_G.StartTime = os.time()
+local lastMoney = StatsFolder.Uang.Value
+local pendingIncome = 0
+local isRunning = false
 local busOptions = {}
 
 -- Forward Declaration (HANYA SATU KALI DI SINI)
@@ -141,6 +149,109 @@ local function GetActiveStop()
     return nil
 end
 
+-- // 2. FUNGSI AUTO-AVATAR
+local function getAvatar()
+    return "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LP.UserId .. "&width=420&height=420&format=png"
+end
+
+-- // 3. FORMAT RUPIAH (Disamakan dengan format titik lu tadi)
+local function formatRP(v)
+    local formatted = tostring(v)
+    while true do  
+        formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1.%2')
+        if (k==0) then break end
+    end
+    return "Rp " .. formatted
+end
+
+-- // 4. RUNNING TIME
+local function getRunningTime()
+    local diff = os.time() - _G.StartTime
+    return string.format("%02d:%02d:%02d", math.floor(diff/3600), math.floor((diff%3600)/60), diff%60)
+end
+
+-- // 5. FUNGSI WEBHOOK (VOIDLINE EMBED AUTHOR VERSION)
+local function sendWebhook(income, target)
+    if _G.WebhookURL == "" or not _G.WebhookURL:find("discord.com") then return end
+    
+    _G.CycleCount = _G.CycleCount + 1
+    _G.TotalEarning = _G.TotalEarning + income
+    
+    -- DISESUAIKAN: Pakai StatsFolder.Uang (Bus Explorer)
+    local currentMoney = StatsFolder.Uang.Value
+    local http_request = request or http_request or (syn and syn.request) or (fluxus and fluxus.request)
+
+    local embed = {
+        ["author"] = {
+            ["name"] = "Voidline Webhook",
+            ["icon_url"] = getAvatar()
+        },
+
+        ["title"] = "Bus Route Completed", -- Diubah dikit biar nyambung
+        ["color"] = 0xFFFFFF,
+
+        ["fields"] = {
+            {["name"] = "Username", ["value"] = LP.Name, ["inline"] = false},
+            {["name"] = "Cycle Income", ["value"] = formatRP(income), ["inline"] = false},
+            {["name"] = "Target", ["value"] = "Cirebon Route", ["inline"] = false}, -- Info rute lu
+            {["name"] = "Current Money", ["value"] = formatRP(currentMoney), ["inline"] = false},
+            {["name"] = "Total Earning", ["value"] = formatRP(_G.TotalEarning), ["inline"] = false},
+            {["name"] = "Cycle Count", ["value"] = tostring(_G.CycleCount), ["inline"] = false},
+            {["name"] = "Running Time", ["value"] = getRunningTime(), ["inline"] = false}
+        },
+
+        ["image"] = {
+            ["url"] = "https://cdn.discordapp.com/attachments/1478884254028140611/1484460670211723304/Gemini_Generated_Image_7og1bq7og1bq7og1.png?ex=69be4f3b&is=69bcfdbb&hm=d179409928b7a1277912aedfca658b94b37a4a99b5f3bb6d39ba9850b1302a6d&"
+        },
+
+        ["footer"] = {
+            ["text"] = "Powered by Voidline | " .. os.date("%m/%d/%Y %I:%M %p")
+        }
+    }
+
+    local payload = HttpService:JSONEncode({
+        ["username"] = "Voidline Reports", 
+        ["embeds"] = {embed}
+    })
+
+    if http_request then
+        pcall(function()
+            http_request({
+                Url = _G.WebhookURL,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = payload
+            })
+        end)
+    end
+end
+
+-- // 6. MONEY MONITOR (DISESUAIKAN PATH: StatsFolder.Uang)
+StatsFolder.Uang:GetPropertyChangedSignal("Value"):Connect(function()
+    local newMoney = StatsFolder.Uang.Value
+    if newMoney > lastMoney then
+        pendingIncome = pendingIncome + (newMoney - lastMoney)
+        
+        if not isRunning then
+            isRunning = true
+            task.spawn(function()
+                while isRunning do
+                    -- Lu bisa ganti 60 jadi 10 biar lebih cepet dapet notif pas payout
+                    task.wait(10) 
+                    if pendingIncome > 0 and _G.WebhookURL ~= "" then
+                        sendWebhook(pendingIncome, 0)
+                        pendingIncome = 0
+                    end
+                    -- Auto stop jika autofarm mati
+                    if not _G.AutoFull then
+                        isRunning = false
+                    end
+                end
+            end)
+        end
+    end
+    lastMoney = newMoney
+end)
 
 
 -- --- UI ---
