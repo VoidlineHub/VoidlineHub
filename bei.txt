@@ -25,7 +25,7 @@ local LP = game.Players.LocalPlayer
 local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Ambil data bus dari Server (Sesuai logic GarageController kamu)
+-- --- DATA SETUP ---
 local CarData = Remotes.GetClientCustomizationData:InvokeServer()
 local OwnedCarsFolder = LP:WaitForChild("PlayerData"):WaitForChild("OwnedCars")
 
@@ -33,12 +33,15 @@ _G.AutoFull = false
 _G.SelectedBus = "" 
 local busOptions = {}
 
+-- Forward Declaration (Biar fungsi SetStatus bisa baca label di Tab 3)
+local StatusLabel
+
 -- SCANNING BUS YANG KAMU PUNYA
 for _, car in pairs(OwnedCarsFolder:GetChildren()) do
     local carID = car.Name
     local carInfo = CarData.CarData_Cars[carID]
     if carInfo then
-        table.insert(busOptions, carID) -- Masukin ID internal buat spawner
+        table.insert(busOptions, carID)
     end
 end
 
@@ -51,7 +54,13 @@ local noBillboardTime = 0
 local jobStarted = false
 local CirebonEndCF = CFrame.new(-26471.1445, -212.441071, 33276.8203, -0.0246282816, 0, 0.999696672, 0, 1, 0, -0.999696672, 0, -0.0246282816)
 
--- --- UTILITY ---
+-- --- UTILITY FUNCTIONS ---
+local function SetStatus(text)
+    if StatusLabel then
+        StatusLabel:Set("Status: " .. text)
+    end
+end
+
 local function GetMyBus()
     return workspace.SpawnedVehicles:FindFirstChild(_G.SelectedBus)
 end
@@ -215,8 +224,9 @@ MainTab:CreateToggle({
     end
 })
 
-local ConfigTab = Window:CreateTab("Configuration", "house")
-ConfigTab:CreateSection("select autofarm vehicle")
+
+local ConfigTab = Window:CreateTab("Configuration", "settings")
+ConfigTab:CreateSection("Select Spawner Vehicle")
 
 local BusDropdown = ConfigTab:CreateDropdown({
    Name = "Select Owned Bus",
@@ -225,6 +235,7 @@ local BusDropdown = ConfigTab:CreateDropdown({
    MultipleOptions = false,
    Callback = function(Option)
       _G.SelectedBus = Option[1]
+      SetStatus("Selected: " .. _G.SelectedBus)
    end,
 })
 
@@ -240,9 +251,7 @@ ConfigTab:CreateButton({
 })
 
 local StatsTab = Window:CreateTab("Stats", "trending-up")
-StatsTab:CreateSection("Stats farm")
-local StatusLabel = StatsTab:CreateLabel("Status: Waiting", "clock")
+StatsTab:CreateSection("Farm Info")
 
-local function SetStatus(text)
-    StatusLabel:Set("Status: " .. text)
-end
+-- StatusLabel didefinisikan di sini
+StatusLabel = StatsTab:CreateLabel("Status: Waiting", "clock")
