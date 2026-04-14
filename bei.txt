@@ -20,7 +20,6 @@ local Window = Rayfield:CreateWindow({
    }
 })
 
-
 local LP = game.Players.LocalPlayer
 local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -34,39 +33,48 @@ _G.AutoFull = false
 _G.SelectedBus = "" 
 local busOptions = {}
 
-
--- Forward Declaration
+-- Forward Declaration (HANYA SATU KALI DI SINI)
 local StatusLabel, UangLabel, EarningLabel, TimeLabel, FPSLabel, PingLabel
 
--- Loop Monitoring Stats
+-- --- FORMAT RUPIAH FUNCTION ---
+local function formatRS(amount)
+    local formatted = tostring(amount)
+    while true do  
+        formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1.%2')
+        if (k==0) then break end
+    end
+    return formatted
+end
+
+-- --- LOOP MONITORING STATS ---
 task.spawn(function()
     while task.wait(1) do
-        if StatusLabel then
-            -- Update Financials
-            local currentUang = StatsFolder.Uang.Value
-            UangLabel:Set("Uang: Rp " .. tostring(currentUang))
-            EarningLabel:Set("Earning: Rp " .. tostring(currentUang - StartUang))
-            
-            -- Update Time
-            local diff = os.time() - StartTime
-            local h = math.floor(diff / 3600)
-            local m = math.floor((diff % 3600) / 60)
-            local s = diff % 60
-            TimeLabel:Set(string.format("Time: %02d:%02d:%02d", h, m, s))
-            
-            -- Update Performance
-            local ping = tonumber(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString():split(" ")[1])
-            PingLabel:Set("Ping: " .. math.floor(ping) .. " ms")
-            
-            local fps = math.floor(1 / task.wait())
-            FPSLabel:Set("FPS: " .. fps)
+        -- Cek salah satu label saja buat mastiin UI udah ke-load
+        if UangLabel then
+            pcall(function()
+                -- Update Financials
+                local currentUang = StatsFolder.Uang.Value
+                UangLabel:Set("Uang: Rp " .. formatRS(currentUang))
+                EarningLabel:Set("Earning: Rp " .. formatRS(currentUang - StartUang))
+                
+                -- Update Time
+                local diff = os.time() - StartTime
+                local h = math.floor(diff / 3600)
+                local m = math.floor((diff % 3600) / 60)
+                local s = diff % 60
+                TimeLabel:Set(string.format("Time: %02d:%02d:%02d", h, m, s))
+                
+                -- Update Performance
+                local ping = tonumber(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString():split(" ")[1]) or 0
+                PingLabel:Set("Ping: " .. math.floor(ping) .. " ms")
+                
+                -- Update FPS
+                local fps = math.floor(1 / task.wait())
+                FPSLabel:Set("FPS: " .. fps)
+            end)
         end
     end
 end)
-
-
--- Forward Declaration (Biar fungsi SetStatus bisa baca label di Tab 3)
-local StatusLabel
 
 -- SCANNING BUS YANG KAMU PUNYA
 for _, car in pairs(OwnedCarsFolder:GetChildren()) do
@@ -132,6 +140,8 @@ local function GetActiveStop()
     end
     return nil
 end
+
+
 
 -- --- UI ---
 local MainTab = Window:CreateTab("Main Farm", "play")
