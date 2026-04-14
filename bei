@@ -94,40 +94,8 @@ end
 
 -- --- UI ---
 local MainTab = Window:CreateTab("Main Farm", "play")
-
-MainTab:CreateSection("Garage Scanner")
-
-local BusDropdown = MainTab:CreateDropdown({
-   Name = "Select Owned Bus",
-   Options = busOptions,
-   CurrentOption = {busOptions[1]},
-   MultipleOptions = false,
-   Callback = function(Option)
-      _G.SelectedBus = Option[1]
-   end,
-})
-
--- Tombol Refresh Dropdown (kalau baru beli bus)
-MainTab:CreateButton({
-   Name = "Refresh Garage List",
-   Callback = function()
-       local newOptions = {}
-       for _, car in pairs(OwnedCarsFolder:GetChildren()) do
-           table.insert(newOptions, car.Name)
-       end
-       BusDropdown:Set(newOptions)
-   end,
-})
-
-MainTab:CreateSection("Automation")
-local StatusLabel = MainTab:CreateLabel("Status: Waiting", "clock")
-
-local function SetStatus(text)
-    StatusLabel:Set("Status: " .. text)
-end
-
-                  MainTab:CreateToggle({
-    Name = "Full Auto 2.15 MIN (Safety V17)",
+MainTab:CreateToggle({
+    Name = "On autofarm",
     CurrentValue = false,
     Callback = function(Value)
         _G.AutoFull = Value
@@ -159,14 +127,14 @@ end
                     bus.DriveSeat:Sit(hum)
                     task.wait(2)
                     
-                    SetStatus("Firing Job...")
+                    SetStatus("Start job..")
                     Remotes:WaitForChild("StartBusJob"):InvokeServer("Baranangsiang_ke_Cirebon1")
                     task.wait(1)
                     
                     hum.Jump = true
                     task.wait(1.5)
                     
-                    SetStatus("Final Refresh...")
+                    SetStatus("spawn vehicle..")
                     Remotes:WaitForChild("SpawnCar"):FireServer(_G.SelectedBus)
                     task.wait(4)
                     bus = GetMyBus() 
@@ -190,7 +158,7 @@ end
                     -- Timer 1: Freeze 45 Detik
                     for i = 45, 1, -1 do
                         if not _G.AutoFull then break end
-                        SetStatus("STATIONARY: " .. i .. "s")
+                        SetStatus("Freeze: " .. i .. "s")
                         task.wait(1)
                     end
                     
@@ -199,14 +167,14 @@ end
                     -- Timer 2: Cooldown 90 Detik (Total 135s / 2m 15s)
                     for i = 90, 1, -1 do
                         if not _G.AutoFull then break end
-                        SetStatus("ON ROUTE: " .. i .. "s")
+                        SetStatus("Delay: " .. i .. "s")
                         task.wait(1)
                     end
                 end
             else
                 if jobStarted then
                     noBillboardTime = noBillboardTime + 1
-                    SetStatus("Finalizing: " .. (40 - noBillboardTime) .. "s")
+                    SetStatus("Delay Anticheat: " .. (40 - noBillboardTime) .. "s")
                     
                     if noBillboardTime >= 40 then
                         SetStatus("TP to End Position")
@@ -217,7 +185,7 @@ end
                         -- Payout Timer: 135 Detik (2m 15s)
                         for i = 135, 1, -1 do
                             if not _G.AutoFull then break end
-                            SetStatus("WAITING PAYOUT: " .. i .. "s")
+                            SetStatus("delay teleport: " .. i .. "s")
                             task.wait(1)
                         end
                         
@@ -235,3 +203,37 @@ end
         end
     end
 })
+
+local ConfigurationTab = Window:CreateTab("Configuration", "configuration")
+
+ConfigurationTab:CreateSection("select vehicle autofarm")
+
+local BusDropdown = ConfigurationTab:CreateDropdown({
+   Name = "Select Owned Bus",
+   Options = busOptions,
+   CurrentOption = {busOptions[1]},
+   MultipleOptions = false,
+   Callback = function(Option)
+      _G.SelectedBus = Option[1]
+   end,
+})
+
+ConfigurationTab:CreateButton({
+   Name = "Refresh Garage List",
+   Callback = function()
+       local newOptions = {}
+       for _, car in pairs(OwnedCarsFolder:GetChildren()) do
+           table.insert(newOptions, car.Name)
+       end
+       BusDropdown:Set(newOptions)
+   end,
+})
+
+
+local StatsTab = Window:CreateTab("Stats", "trending-up")
+StatsTab:CreateSection("Stats farm")
+local StatusLabel = MainTab:CreateLabel("Status: Waiting", "clock")
+
+local function SetStatus(text)
+    StatusLabel:Set("Status: " .. text)
+end
