@@ -226,22 +226,25 @@ local function sendWebhook(income, target)
     end
 end
 
--- // 6. MONEY MONITOR (DISESUAIKAN PATH: StatsFolder.Uang)
+-- // 6. MONEY MONITOR (Setiap 2.15 Menit / 135 Detik)
 StatsFolder.Uang:GetPropertyChangedSignal("Value"):Connect(function()
     local newMoney = StatsFolder.Uang.Value
     if newMoney > lastMoney then
+        -- Simpan pendapatan yang masuk
         pendingIncome = pendingIncome + (newMoney - lastMoney)
         
         if not isRunning then
             isRunning = true
             task.spawn(function()
                 while isRunning do
-                    -- Lu bisa ganti 60 jadi 10 biar lebih cepet dapet notif pas payout
-                    task.wait(10) 
-                    if pendingIncome > 0 and _G.WebhookURL ~= "" then
+                    -- Tunggu selama 135 detik (2 Menit 15 Detik) agar pas dengan timer payout
+                    task.wait(135) 
+                    
+                    if pendingIncome > 0 and _G.WebhookURL ~= "" and _G.WebhookEnabled then
                         sendWebhook(pendingIncome, 0)
-                        pendingIncome = 0
+                        pendingIncome = 0 -- Reset setelah kirim
                     end
+                    
                     -- Auto stop jika autofarm mati
                     if not _G.AutoFull then
                         isRunning = false
@@ -252,7 +255,6 @@ StatsFolder.Uang:GetPropertyChangedSignal("Value"):Connect(function()
     end
     lastMoney = newMoney
 end)
-
 
 -- --- UI ---
 local MainTab = Window:CreateTab("Main Farm", "play")
@@ -402,6 +404,45 @@ ConfigTab:CreateButton({
        BusDropdown:Set(newOptions)
    end,
 })
+
+ConfigTab:CreateSection("Webhook")
+
+ConfigTab:CreateInput({
+   Name = "Discord Webhook URL",
+   PlaceholderText = "Paste URL Here",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      _G.WebhookURL = Text
+      Rayfield:Notify({
+         Title = "Webhook Updated",
+         Content = "URL has been saved.",
+         Duration = 3,
+         Image = "link",
+      })
+   end,
+})
+
+ConfigTab:CreateToggle({
+   Name = "Enable Webhook Report",
+   CurrentValue = false,
+   Callback = function(Value)
+      _G.WebhookEnabled = Value -- Variabel tambahan buat kontrol kirim/enggak
+      
+      if Value then
+         if _G.WebhookURL == "" or not _G.WebhookURL:find("discord.com") then
+            Rayfield:Notify({
+               Title = "Webhook Error",
+               Content = "Please enter a valid Discord Webhook URL first!",
+               Duration = 5,
+               Image = "alert-triangle",
+            })
+         else
+            SetStatus("Webhook Active")
+         end
+      end
+   end,
+})
+
 
 local StatsTab = Window:CreateTab("Stats", "trending-up")
 
