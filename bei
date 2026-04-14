@@ -215,7 +215,7 @@ MainTab:CreateToggle({
     end
 })
 
-local ConfigurationTab = Window:CreateTab("Configuration", "configuration")
+local ConfigurationTab = Window:CreateTab("Configuration", "house")
 ConfigurationTab:CreateSection("select autofarm vehicle")
 
 local BusDropdown = ConfigurationTab:CreateDropdown({
