@@ -215,10 +215,10 @@ MainTab:CreateToggle({
     end
 })
 
-local ConfigurationTab = Window:CreateTab("Configuration", "house")
-ConfigurationTab:CreateSection("select autofarm vehicle")
+local ConfigTab = Window:CreateTab("Configuration", "house")
+ConfigTab:CreateSection("select autofarm vehicle")
 
-local BusDropdown = ConfigurationTab:CreateDropdown({
+local BusDropdown = ConfigTab:CreateDropdown({
    Name = "Select Owned Bus",
    Options = busOptions,
    CurrentOption = {busOptions[1]},
@@ -228,7 +228,7 @@ local BusDropdown = ConfigurationTab:CreateDropdown({
    end,
 })
 
-ConfigurationTab:CreateButton({
+ConfigTab:CreateButton({
    Name = "Refresh Garage List",
    Callback = function()
        local newOptions = {}
