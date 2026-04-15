@@ -35,7 +35,6 @@ local HttpService = game:GetService("HttpService")
 _G.AutoFull = false
 _G.AntiAFK = false
 _G.AutoRejoin = false
-_G.AntiStaff = false
 _G.HideChar = false
 _G.SelectedBus = "" 
 _G.WebhookURL = ""
@@ -520,35 +519,6 @@ MoreTab:CreateToggle({
    end,
 })
 
--- ANTI STAFF / SOLO PLAYER (Server Hop if 2 players)
-MoreTab:CreateToggle({
-   Name = "Anti Staff",
-   CurrentValue = false, -- Default False
-   Flag = "AntiStaff",
-   Callback = function(Value)
-      _G.AntiStaff = Value
-      task.spawn(function()
-          while _G.AntiStaff do
-              local players = game.Players:GetPlayers()
-              if #players <= 2 then
-                  SetStatus("Staff/Player Detected! Hopping...")
-                  task.wait(1)
-                  -- Logic Server Hop
-                  local HttpService = game:GetService("HttpService")
-                  local TPS = game:GetService("TeleportService")
-                  local Servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
-                  for _, s in pairs(Servers.data) do
-                      if s.playing < s.maxPlayers and s.id ~= game.JobId then
-                          TPS:TeleportToPlaceInstance(game.PlaceId, s.id, LP)
-                          break
-                      end
-                  end
-              end
-              task.wait(5)
-          end
-      end)
-   end,
-})
 
 MoreTab:CreateSection("Visual & Performance")
 
