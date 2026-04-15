@@ -32,13 +32,14 @@ local HttpService = game:GetService("HttpService")
 
 _G.AutoFull = false
 _G.SelectedBus = "" 
-_G.WebhookURL = "" -- Isi dengan URL Webhook lu
+_G.WebhookURL = ""
 _G.TotalEarning = 0
 _G.CycleCount = 0
 _G.StartTime = os.time()
 local lastMoney = StatsFolder.Uang.Value
 local pendingIncome = 0
-local SelectedLocation = "Dealership"
+local SelectedAction = "Dealership"
+local SelectedTP = "Dealership"
 local isRunning = false
 local busOptions = {}
 
