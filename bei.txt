@@ -30,7 +30,6 @@ local CarData = Remotes.GetClientCustomizationData:InvokeServer()
 local OwnedCarsFolder = LP:WaitForChild("PlayerData"):WaitForChild("OwnedCars")
 local HttpService = game:GetService("HttpService")
 local VirtualUser = game:GetService("VirtualUser")
-game.Players.LocalPlayer.Idled:Connect(function()
 
 -- VARIABEL
 _G.AutoFull = false
