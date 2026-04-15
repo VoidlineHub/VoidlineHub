@@ -32,7 +32,12 @@ local HttpService = game:GetService("HttpService")
 local VirtualUser = game:GetService("VirtualUser")
 game.Players.LocalPlayer.Idled:Connect(function()
 
+-- VARIABEL
 _G.AutoFull = false
+_G.AntiAFK = false
+_G.AutoRejoin = false
+_G.AntiStaff = false
+_G.HideChar = false
 _G.SelectedBus = "" 
 _G.WebhookURL = ""
 _G.TotalEarning = 0
