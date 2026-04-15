@@ -41,6 +41,8 @@ _G.WebhookURL = ""
 _G.TotalEarning = 0
 _G.CycleCount = 0
 _G.StartTime = os.time()
+_G.AutoKickEnabled = false
+local TargetUang = 0
 local lastMoney = StatsFolder.Uang.Value
 local SelectedBusToBuy = ""
 local CarListData = {}
@@ -407,6 +409,57 @@ MainTab:CreateToggle({
             task.wait(1)
         end
     end
+})
+
+MainTab:CreateSection("Auto Stop Settings")
+
+-- INFO CARA PAKAI
+MainTab:CreateParagraph({
+    Title = "How to Use Auto-Kick", 
+    Content = "1. Masukkan target uang (Contoh: 1.500.000)\n2. Nyalakan toggle 'Enable Auto-Kick'\n3. Script akan otomatis kick saat uang tercapai."
+})
+
+-- INPUT NOMINAL
+MainTab:CreateInput({
+   Name = "Set Target Money",
+   PlaceholderText = "input your target",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      -- Logic: Hilangkan titik agar menjadi angka murni
+      local cleanNumber = Text:gsub("%.", "")
+      TargetUang = tonumber(cleanNumber) or 0
+      
+      Rayfield:Notify({
+         Title = "Target Set",
+         Content = "money target is set to: Rp " .. formatRS(TargetUang),
+         Duration = 3
+      })
+   end,
+})
+
+-- TOGGLE ON/OFF
+MainTab:CreateToggle({
+   Name = "Enable Auto-Kick",
+   CurrentValue = false,
+   Flag = "AutoKick",
+   Callback = function(Value)
+      _G.AutoKickEnabled = Value
+      
+      if Value then
+          -- Jalankan Loop Pengecekan
+          task.spawn(function()
+              while _G.AutoKickEnabled do
+                  local currentMoney = StatsFolder.Uang.Value
+                  if TargetUang > 0 and currentMoney >= TargetUang then
+                      LP:Kick("\n[VoidlineHub]\nTarget money reached!\nTotal: Rp " .. formatRS(currentMoney))
+                      break
+                  end
+                  task.wait(2) -- Cek tiap 2 detik biar gak berat
+              end
+          end)
+      else
+      end
+   end,
 })
 
 
