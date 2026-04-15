@@ -396,56 +396,6 @@ MainTab:CreateToggle({
     end
 })
 
-MainTab:CreateSection("World Teleport")
-
-MainTab:CreateDropdown({
-   Name = "Select TP Destination",
-   Options = {"Dealership", "Modifikasi", "Teleport City"},
-   CurrentOption = {"Dealership"},
-   MultipleOptions = false,
-   Callback = function(Option)
-      SelectedTP = Option[1]
-   end,
-})
-
-MainTab:CreateButton({
-   Name = "Teleport Now",
-   Callback = function()
-      local targetCF = TP_Locations[SelectedTP]
-      if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-          LP.Character:PivotTo(targetCF)
-      end
-   end,
-})
-
-MainTab:CreateSection("Open Ui")
-
-MainTab:CreateDropdown({
-   Name = "Select Menu to Open",
-   Options = {"Dealership", "Modifikasi", "Teleport City"},
-   CurrentOption = {"Dealership"},
-   MultipleOptions = false,
-   Callback = function(Option)
-      SelectedAction = Option[1]
-   end,
-})
-
-MainTab:CreateButton({
-   Name = "Open Selected Menu",
-   Callback = function()
-      if SelectedAction == "Dealership" then
-          local p = workspace:FindFirstChild("BigBus_DealershipPart") and workspace.BigBus_DealershipPart:FindFirstChild("ProximityPrompt")
-          if p then fireproximityprompt(p) end
-      elseif SelectedAction == "Modifikasi" then
-          local p = workspace.Modif.ModificationTriggerPart:FindFirstChild("ProximityPrompt")
-          if p then fireproximityprompt(p) end
-      elseif SelectedAction == "Teleport City" then
-          local p = workspace:FindFirstChild("Telportpart") and workspace.Telportpart:FindFirstChild("ProximityPrompt")
-          if p then fireproximityprompt(p) end
-      end
-   end,
-})
-
 
 
 local ConfigTab = Window:CreateTab("Configuration", "settings")
@@ -523,3 +473,102 @@ TimeLabel = StatsTab:CreateLabel("Time: 00:00:00", "timer")
 StatsTab:CreateSection("System Info")
 FPSLabel = StatsTab:CreateLabel("FPS: Scanning...", "monitor")
 PingLabel = StatsTab:CreateLabel("Ping: Scanning...", "wifi")
+
+
+-- // CREATE MORE FEATURES TAB
+local MoreTab = Window:CreateTab("More Features", "plus-circle") -- Kamu bisa ganti icon-nya sesuai selera
+
+-- SECTION: BUS DEALERSHIP
+MoreTab:CreateSection("Bus Dealership (Auto Buy)")
+
+MoreTab:CreateDropdown({
+   Name = "Select Bus to Purchase",
+   Options = CarListData,
+   CurrentOption = {CarListData[1] or "None"},
+   MultipleOptions = false,
+   Callback = function(Option)
+      SelectedBusToBuy = Option[1]
+   end,
+})
+
+MoreTab:CreateButton({
+   Name = "Purchase Selected Bus",
+   Callback = function()
+      if SelectedBusToBuy == "" or SelectedBusToBuy == "None" then
+          Rayfield:Notify({Title = "Error", Content = "Please select a bus first!", Duration = 3})
+          return
+      end
+
+      Rayfield:Notify({
+         Title = "Confirm Purchase",
+         Content = "Buying: " .. SelectedBusToBuy .. ". Please wait...",
+         Duration = 5,
+         Image = "shopping-cart",
+      })
+
+      local success, err = pcall(function()
+          Remotes:WaitForChild("BuyCar"):FireServer(SelectedBusToBuy)
+      end)
+
+      if success then
+          SetStatus("Success Buying " .. SelectedBusToBuy)
+      else
+          SetStatus("Purchase Failed!")
+          warn("Error: " .. tostring(err))
+      end
+   end,
+})
+
+-- SECTION: WORLD TELEPORT
+MoreTab:CreateSection("World Teleport")
+
+MoreTab:CreateDropdown({
+   Name = "Select TP Destination",
+   Options = {"Dealership", "Modifikasi", "Teleport City"},
+   CurrentOption = {"Dealership"},
+   MultipleOptions = false,
+   Callback = function(Option)
+      SelectedTP = Option[1]
+   end,
+})
+
+MoreTab:CreateButton({
+   Name = "Teleport Now",
+   Callback = function()
+      local targetCF = TP_Locations[SelectedTP]
+      if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+          LP.Character:PivotTo(targetCF)
+          SetStatus("Teleported to " .. SelectedTP)
+      end
+   end,
+})
+
+-- SECTION: OPEN UI / PROXIMITY
+MoreTab:CreateSection("Open UI / Actions")
+
+MoreTab:CreateDropdown({
+   Name = "Select Menu to Open",
+   Options = {"Dealership", "Modifikasi", "Teleport City"},
+   CurrentOption = {"Dealership"},
+   MultipleOptions = false,
+   Callback = function(Option)
+      SelectedAction = Option[1]
+   end,
+})
+
+MoreTab:CreateButton({
+   Name = "Open Selected Menu",
+   Callback = function()
+      if SelectedAction == "Dealership" then
+          local p = workspace:FindFirstChild("BigBus_DealershipPart") and workspace.BigBus_DealershipPart:FindFirstChild("ProximityPrompt")
+          if p then fireproximityprompt(p) end
+      elseif SelectedAction == "Modifikasi" then
+          local p = workspace.Modif.ModificationTriggerPart:FindFirstChild("ProximityPrompt")
+          if p then fireproximityprompt(p) end
+      elseif SelectedAction == "Teleport City" then
+          local p = workspace:FindFirstChild("Telportpart") and workspace.Telportpart:FindFirstChild("ProximityPrompt")
+          if p then fireproximityprompt(p) end
+      end
+      SetStatus("Opening " .. SelectedAction)
+   end,
+})
