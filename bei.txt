@@ -380,55 +380,56 @@ MainTab:CreateToggle({
     end
 })
 
-
-MainTab:CreateSection("World Teleport & Actions")
-
-local SelectedLocation = "Dealership"
-local Locations = {
-    ["Dealership"] = CFrame.new(19830.625, 266.913116, -27910.4844, 0.999847949, 0, 0.017436387, 0, 1, 0, -0.017436387, 0, 0.999847949),
-    ["Modifikasi"] = CFrame.new(12035.499, -21.3362789, 12740.0605, -0.573599219, 0, 0.81913656, 0, 1, 0, -0.81913656, 0, -0.573599219),
-    ["Teleport City"] = CFrame.new(21795.2461, 292.439026, -40055.918, 0.707134247, -0, -0.707079291, 0, 1, -0, 0.707079291, 0, 0.707134247)
-}
+MainTab:CreateSection("World Teleport")
 
 MainTab:CreateDropdown({
-   Name = "Select Destination",
+   Name = "Select TP Destination",
    Options = {"Dealership", "Modifikasi", "Teleport City"},
    CurrentOption = {"Dealership"},
    MultipleOptions = false,
    Callback = function(Option)
-      SelectedLocation = Option[1]
+      SelectedTP = Option[1]
    end,
 })
 
-
 MainTab:CreateButton({
-   Name = "Teleport to Location",
+   Name = "Teleport Now",
    Callback = function()
-      local targetCF = Locations[SelectedLocation]
+      local targetCF = TP_Locations[SelectedTP]
       if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
           LP.Character:PivotTo(targetCF)
       end
    end,
 })
 
+MainTab:CreateSection("Open Ui")
+
+MainTab:CreateDropdown({
+   Name = "Select Menu to Open",
+   Options = {"Dealership", "Modifikasi", "Teleport City"},
+   CurrentOption = {"Dealership"},
+   MultipleOptions = false,
+   Callback = function(Option)
+      SelectedAction = Option[1]
+   end,
+})
 
 MainTab:CreateButton({
-   Name = "Open Menu",
+   Name = "Open Selected Menu",
    Callback = function()
-      if SelectedLocation == "Dealership" then
-          local prompt = workspace:FindFirstChild("BigBus_DealershipPart") and workspace.BigBus_DealershipPart:FindFirstChild("ProximityPrompt")
-          if prompt then fireproximityprompt(prompt) else SetStatus("Dealer Prompt Not Found") end
-          
-      elseif SelectedLocation == "Modifikasi" then
-          local prompt = workspace.Modif.ModificationTriggerPart.ProximityPrompt
-          if prompt then fireproximityprompt(prompt) end
-          
-      elseif SelectedLocation == "Teleport City" then
-          local prompt = workspace.Telportpart.ProximityPrompt
-          if prompt then fireproximityprompt(prompt) end
+      if SelectedAction == "Dealership" then
+          local p = workspace:FindFirstChild("BigBus_DealershipPart") and workspace.BigBus_DealershipPart:FindFirstChild("ProximityPrompt")
+          if p then fireproximityprompt(p) end
+      elseif SelectedAction == "Modifikasi" then
+          local p = workspace.Modif.ModificationTriggerPart:FindFirstChild("ProximityPrompt")
+          if p then fireproximityprompt(p) end
+      elseif SelectedAction == "Teleport City" then
+          local p = workspace:FindFirstChild("Telportpart") and workspace.Telportpart:FindFirstChild("ProximityPrompt")
+          if p then fireproximityprompt(p) end
       end
    end,
 })
+
 
 
 local ConfigTab = Window:CreateTab("Configuration", "settings")
