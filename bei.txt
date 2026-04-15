@@ -29,6 +29,8 @@ local StartTime = os.time()
 local CarData = Remotes.GetClientCustomizationData:InvokeServer()
 local OwnedCarsFolder = LP:WaitForChild("PlayerData"):WaitForChild("OwnedCars")
 local HttpService = game:GetService("HttpService")
+local VirtualUser = game:GetService("VirtualUser")
+game.Players.LocalPlayer.Idled:Connect(function()
 
 _G.AutoFull = false
 _G.SelectedBus = "" 
@@ -110,6 +112,13 @@ local TP_Locations = {
     ["Modifikasi"] = CFrame.new(12035.499, -21.3362789, 12740.0605, -0.573599219, 0, 0.81913656, 0, 1, 0, -0.81913656, 0, -0.573599219),
     ["Teleport City"] = CFrame.new(21795.2461, 292.439026, -40055.918, 0.707134247, -0, -0.707079291, 0, 1, -0, 0.707079291, 0, 0.707134247)
 }
+LP.Idled:Connect(function()
+    if _G.AntiAFK then
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+        warn("VoidlineHub: Anti-AFK Aktif!")
+    end
+end)
 -- --- UTILITY FUNCTIONS ---
 local function SetStatus(text)
     if StatusLabel then
@@ -478,8 +487,113 @@ PingLabel = StatsTab:CreateLabel("Ping: Scanning...", "wifi")
 -- // CREATE MORE FEATURES TAB
 local MoreTab = Window:CreateTab("More Features", "plus-circle") -- Kamu bisa ganti icon-nya sesuai selera
 
+-- SECTION: MISC & SECURITY
+MoreTab:CreateSection("important features")
+-- ANTI AFK TOGGLE
+MoreTab:CreateToggle({
+   Name = "Anti-AFK System",
+   CurrentValue = false, -- Sesuai request, start-nya False
+   Flag = "AntiAFK",
+   Callback = function(Value)
+      _G.AntiAFK = Value
+      if _G.AntiAFK then
+          SetStatus("Anti-AFK Enabled")
+      else
+          SetStatus("Anti-AFK Disabled")
+      end
+   end,
+})
+
+
+-- AUTO REJOIN
+MoreTab:CreateToggle({
+   Name = "Auto Rejoin",
+   CurrentValue = false, -- Default False
+   Flag = "AutoRejoin",
+   Callback = function(Value)
+      _G.AutoRejoin = Value
+   end,
+})
+
+-- ANTI STAFF / SOLO PLAYER (Server Hop if 2 players)
+MoreTab:CreateToggle({
+   Name = "Anti Staff",
+   CurrentValue = false, -- Default False
+   Flag = "AntiStaff",
+   Callback = function(Value)
+      _G.AntiStaff = Value
+      task.spawn(function()
+          while _G.AntiStaff do
+              local players = game.Players:GetPlayers()
+              if #players <= 2 then
+                  SetStatus("Staff/Player Detected! Hopping...")
+                  task.wait(1)
+                  -- Logic Server Hop
+                  local HttpService = game:GetService("HttpService")
+                  local TPS = game:GetService("TeleportService")
+                  local Servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
+                  for _, s in pairs(Servers.data) do
+                      if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                          TPS:TeleportToPlaceInstance(game.PlaceId, s.id, LP)
+                          break
+                      end
+                  end
+              end
+              task.wait(5)
+          end
+      end)
+   end,
+})
+
+MoreTab:CreateSection("Visual & Performance")
+
+-- HIDE NAME
+MoreTab:CreateButton({
+   Name = "Hide All Names",
+   Callback = function()
+      for _, v in pairs(workspace:GetDescendants()) do
+          if v:IsA("BillboardGui") then
+              v:Destroy()
+          end
+      end
+      SetStatus("Names Hidden")
+   end,
+})
+
+-- HIDE CHARACTER
+MoreTab:CreateToggle({
+   Name = "Hide Character",
+   CurrentValue = false, -- Default False
+   Flag = "HideChar",
+   Callback = function(Value)
+      local char = LP.Character
+      if char then
+          for _, part in pairs(char:GetDescendants()) do
+              if part:IsA("BasePart") or part:IsA("Decal") then
+                  part.Transparency = Value and 1 or 0
+              end
+          end
+      end
+   end,
+})
+
+-- FPS BOOST
+MoreTab:CreateButton({
+   Name = "FPS Boost",
+   Callback = function()
+      for _, v in pairs(workspace:GetDescendants()) do
+          if v:IsA("Part") or v:IsA("UnionOperation") or v:IsA("MeshPart") then
+              v.Material = Enum.Material.SmoothPlastic
+          elseif v:IsA("Decal") or v:IsA("Texture") then
+              v:Destroy()
+          end
+      end
+      SetStatus("FPS Boosted")
+   end,
+})
+
 -- SECTION: BUS DEALERSHIP
-MoreTab:CreateSection("Bus Dealership (Auto Buy)")
+MoreTab:CreateSection("auto buy bus")
 
 MoreTab:CreateDropdown({
    Name = "Select Bus to Purchase",
