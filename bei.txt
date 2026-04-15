@@ -488,65 +488,60 @@ StatsTab:CreateSection("System Info")
 FPSLabel = StatsTab:CreateLabel("FPS: Scanning...", "monitor")
 PingLabel = StatsTab:CreateLabel("Ping: Scanning...", "wifi")
 
-
 -- // CREATE MORE FEATURES TAB
-local MoreTab = Window:CreateTab("More Features", "plus-circle") -- Kamu bisa ganti icon-nya sesuai selera
+local MoreTab = Window:CreateTab("More Features", "") -- Icon kosongin biar aman dari eror
 
--- SECTION: MISC & SECURITY
-MoreTab:CreateSection("important features")
+-- SECTION: IMPORTANT FEATURES
+MoreTab:CreateSection("Important Features")
+
 -- ANTI AFK TOGGLE
 MoreTab:CreateToggle({
    Name = "Anti-AFK System",
-   CurrentValue = false, -- Sesuai request, start-nya False
+   CurrentValue = false,
    Flag = "AntiAFK",
    Callback = function(Value)
       _G.AntiAFK = Value
-      if _G.AntiAFK then
-          SetStatus("Anti-AFK Enabled")
-      else
-          SetStatus("Anti-AFK Disabled")
-      end
    end,
 })
-
 
 -- AUTO REJOIN
 MoreTab:CreateToggle({
    Name = "Auto Rejoin",
-   CurrentValue = false, -- Default False
+   CurrentValue = false,
    Flag = "AutoRejoin",
    Callback = function(Value)
       _G.AutoRejoin = Value
    end,
 })
 
--- ANTI STAFF / SOLO PLAYER (Server Hop if 2 players)
+-- ANTI STAFF (Server Hop)
 MoreTab:CreateToggle({
    Name = "Anti Staff",
-   CurrentValue = false, -- Default False
+   CurrentValue = false,
    Flag = "AntiStaff",
    Callback = function(Value)
       _G.AntiStaff = Value
-      task.spawn(function()
-          while _G.AntiStaff do
-              local players = game.Players:GetPlayers()
-              if #players <= 2 then
-                  SetStatus("Staff/Player Detected! Hopping...")
-                  task.wait(1)
-                  -- Logic Server Hop
-                  local HttpService = game:GetService("HttpService")
-                  local TPS = game:GetService("TeleportService")
-                  local Servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
-                  for _, s in pairs(Servers.data) do
-                      if s.playing < s.maxPlayers and s.id ~= game.JobId then
-                          TPS:TeleportToPlaceInstance(game.PlaceId, s.id, LP)
-                          break
-                      end
+      if Value then
+          task.spawn(function()
+              while _G.AntiStaff do
+                  local players = game.Players:GetPlayers()
+                  if #players <= 2 then
+                      local success, err = pcall(function()
+                          local HttpService = game:GetService("HttpService")
+                          local TPS = game:GetService("TeleportService")
+                          local Servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
+                          for _, s in pairs(Servers.data) do
+                              if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                                  TPS:TeleportToPlaceInstance(game.PlaceId, s.id, LP)
+                                  break
+                              end
+                          end
+                      end)
                   end
+                  task.wait(5)
               end
-              task.wait(5)
-          end
-      end)
+          end)
+      end
    end,
 })
 
@@ -561,14 +556,13 @@ MoreTab:CreateButton({
               v:Destroy()
           end
       end
-      SetStatus("Names Hidden")
    end,
 })
 
 -- HIDE CHARACTER
 MoreTab:CreateToggle({
    Name = "Hide Character",
-   CurrentValue = false, -- Default False
+   CurrentValue = false,
    Flag = "HideChar",
    Callback = function(Value)
       local char = LP.Character
@@ -593,12 +587,11 @@ MoreTab:CreateButton({
               v:Destroy()
           end
       end
-      SetStatus("FPS Boosted")
    end,
 })
 
--- SECTION: BUS DEALERSHIP
-MoreTab:CreateSection("auto buy bus")
+-- SECTION: AUTO BUY BUS
+MoreTab:CreateSection("Auto Buy Bus")
 
 MoreTab:CreateDropdown({
    Name = "Select Bus to Purchase",
@@ -613,27 +606,10 @@ MoreTab:CreateDropdown({
 MoreTab:CreateButton({
    Name = "Purchase Selected Bus",
    Callback = function()
-      if SelectedBusToBuy == "" or SelectedBusToBuy == "None" then
-          Rayfield:Notify({Title = "Error", Content = "Please select a bus first!", Duration = 3})
-          return
-      end
-
-      Rayfield:Notify({
-         Title = "Confirm Purchase",
-         Content = "Buying: " .. SelectedBusToBuy .. ". Please wait...",
-         Duration = 5,
-         Image = "shopping-cart",
-      })
-
-      local success, err = pcall(function()
-          Remotes:WaitForChild("BuyCar"):FireServer(SelectedBusToBuy)
-      end)
-
-      if success then
-          SetStatus("Success Buying " .. SelectedBusToBuy)
-      else
-          SetStatus("Purchase Failed!")
-          warn("Error: " .. tostring(err))
+      if SelectedBusToBuy ~= "" and SelectedBusToBuy ~= "None" then
+          pcall(function()
+              Remotes:WaitForChild("BuyCar"):FireServer(SelectedBusToBuy)
+          end)
       end
    end,
 })
@@ -657,7 +633,6 @@ MoreTab:CreateButton({
       local targetCF = TP_Locations[SelectedTP]
       if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
           LP.Character:PivotTo(targetCF)
-          SetStatus("Teleported to " .. SelectedTP)
       end
    end,
 })
@@ -678,16 +653,15 @@ MoreTab:CreateDropdown({
 MoreTab:CreateButton({
    Name = "Open Selected Menu",
    Callback = function()
+      local p = nil
       if SelectedAction == "Dealership" then
-          local p = workspace:FindFirstChild("BigBus_DealershipPart") and workspace.BigBus_DealershipPart:FindFirstChild("ProximityPrompt")
-          if p then fireproximityprompt(p) end
+          p = workspace:FindFirstChild("BigBus_DealershipPart") and workspace.BigBus_DealershipPart:FindFirstChild("ProximityPrompt")
       elseif SelectedAction == "Modifikasi" then
-          local p = workspace.Modif.ModificationTriggerPart:FindFirstChild("ProximityPrompt")
-          if p then fireproximityprompt(p) end
+          p = workspace.Modif.ModificationTriggerPart:FindFirstChild("ProximityPrompt")
       elseif SelectedAction == "Teleport City" then
-          local p = workspace:FindFirstChild("Telportpart") and workspace.Telportpart:FindFirstChild("ProximityPrompt")
-          if p then fireproximityprompt(p) end
+          p = workspace:FindFirstChild("Telportpart") and workspace.Telportpart:FindFirstChild("ProximityPrompt")
       end
-      SetStatus("Opening " .. SelectedAction)
+      
+      if p then fireproximityprompt(p) end
    end,
 })
