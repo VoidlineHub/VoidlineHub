@@ -488,7 +488,6 @@ StatsTab:CreateSection("System Info")
 FPSLabel = StatsTab:CreateLabel("FPS: Scanning...", "monitor")
 PingLabel = StatsTab:CreateLabel("Ping: Scanning...", "wifi")
 
-Kok eror dah knp ya
 
 -- // CREATE MORE FEATURES TAB
 local MoreTab = Window:CreateTab("More Features", "plus-circle") -- Kamu bisa ganti icon-nya sesuai selera
