@@ -37,6 +37,8 @@ _G.TotalEarning = 0
 _G.CycleCount = 0
 _G.StartTime = os.time()
 local lastMoney = StatsFolder.Uang.Value
+local SelectedBusToBuy = ""
+local CarListData = {}
 local pendingIncome = 0
 local SelectedAction = "Dealership"
 local SelectedTP = "Dealership"
@@ -261,6 +263,15 @@ StatsFolder.Uang:GetPropertyChangedSignal("Value"):Connect(function()
     end
     lastMoney = newMoney
 end)
+
+local ClientData = Remotes.GetClientCustomizationData:InvokeServer()
+if ClientData and ClientData.CarData_Cars then
+    for carID, data in pairs(ClientData.CarData_Cars) do
+        -- Masukin nama asli bus ke daftar dropdown
+        table.insert(CarListData, carID) 
+    end
+    table.sort(CarListData)
+end
 
 -- --- UI ---
 local MainTab = Window:CreateTab("Main Farm", "play")
