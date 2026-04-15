@@ -117,13 +117,14 @@ local TP_Locations = {
     ["Modifikasi"] = CFrame.new(12035.499, -21.3362789, 12740.0605, -0.573599219, 0, 0.81913656, 0, 1, 0, -0.81913656, 0, -0.573599219),
     ["Teleport City"] = CFrame.new(21795.2461, 292.439026, -40055.918, 0.707134247, -0, -0.707079291, 0, 1, -0, 0.707079291, 0, 0.707134247)
 }
-LP.Idled:Connect(function()
+game.Players.LocalPlayer.Idled:Connect(function()
     if _G.AntiAFK then
         VirtualUser:CaptureController()
         VirtualUser:ClickButton2(Vector2.new())
         warn("VoidlineHub: Anti-AFK Aktif!")
     end
-end)
+end) -- Pastikan ada 'end)' di sini!
+
 -- --- UTILITY FUNCTIONS ---
 local function SetStatus(text)
     if StatusLabel then
@@ -488,60 +489,66 @@ StatsTab:CreateSection("System Info")
 FPSLabel = StatsTab:CreateLabel("FPS: Scanning...", "monitor")
 PingLabel = StatsTab:CreateLabel("Ping: Scanning...", "wifi")
 
+Kok eror dah knp ya
+
 -- // CREATE MORE FEATURES TAB
-local MoreTab = Window:CreateTab("More Features", "") -- Icon kosongin biar aman dari eror
+local MoreTab = Window:CreateTab("More Features", "plus-circle") -- Kamu bisa ganti icon-nya sesuai selera
 
--- SECTION: IMPORTANT FEATURES
-MoreTab:CreateSection("Important Features")
-
+-- SECTION: MISC & SECURITY
+MoreTab:CreateSection("important features")
 -- ANTI AFK TOGGLE
 MoreTab:CreateToggle({
    Name = "Anti-AFK System",
-   CurrentValue = false,
+   CurrentValue = false, -- Sesuai request, start-nya False
    Flag = "AntiAFK",
    Callback = function(Value)
       _G.AntiAFK = Value
+      if _G.AntiAFK then
+          SetStatus("Anti-AFK Enabled")
+      else
+          SetStatus("Anti-AFK Disabled")
+      end
    end,
 })
+
 
 -- AUTO REJOIN
 MoreTab:CreateToggle({
    Name = "Auto Rejoin",
-   CurrentValue = false,
+   CurrentValue = false, -- Default False
    Flag = "AutoRejoin",
    Callback = function(Value)
       _G.AutoRejoin = Value
    end,
 })
 
--- ANTI STAFF (Server Hop)
+-- ANTI STAFF / SOLO PLAYER (Server Hop if 2 players)
 MoreTab:CreateToggle({
    Name = "Anti Staff",
-   CurrentValue = false,
+   CurrentValue = false, -- Default False
    Flag = "AntiStaff",
    Callback = function(Value)
       _G.AntiStaff = Value
-      if Value then
-          task.spawn(function()
-              while _G.AntiStaff do
-                  local players = game.Players:GetPlayers()
-                  if #players <= 2 then
-                      local success, err = pcall(function()
-                          local HttpService = game:GetService("HttpService")
-                          local TPS = game:GetService("TeleportService")
-                          local Servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
-                          for _, s in pairs(Servers.data) do
-                              if s.playing < s.maxPlayers and s.id ~= game.JobId then
-                                  TPS:TeleportToPlaceInstance(game.PlaceId, s.id, LP)
-                                  break
-                              end
-                          end
-                      end)
+      task.spawn(function()
+          while _G.AntiStaff do
+              local players = game.Players:GetPlayers()
+              if #players <= 2 then
+                  SetStatus("Staff/Player Detected! Hopping...")
+                  task.wait(1)
+                  -- Logic Server Hop
+                  local HttpService = game:GetService("HttpService")
+                  local TPS = game:GetService("TeleportService")
+                  local Servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
+                  for _, s in pairs(Servers.data) do
+                      if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                          TPS:TeleportToPlaceInstance(game.PlaceId, s.id, LP)
+                          break
+                      end
                   end
-                  task.wait(5)
               end
-          end)
-      end
+              task.wait(5)
+          end
+      end)
    end,
 })
 
@@ -556,13 +563,14 @@ MoreTab:CreateButton({
               v:Destroy()
           end
       end
+      SetStatus("Names Hidden")
    end,
 })
 
 -- HIDE CHARACTER
 MoreTab:CreateToggle({
    Name = "Hide Character",
-   CurrentValue = false,
+   CurrentValue = false, -- Default False
    Flag = "HideChar",
    Callback = function(Value)
       local char = LP.Character
@@ -587,11 +595,12 @@ MoreTab:CreateButton({
               v:Destroy()
           end
       end
+      SetStatus("FPS Boosted")
    end,
 })
 
--- SECTION: AUTO BUY BUS
-MoreTab:CreateSection("Auto Buy Bus")
+-- SECTION: BUS DEALERSHIP
+MoreTab:CreateSection("auto buy bus")
 
 MoreTab:CreateDropdown({
    Name = "Select Bus to Purchase",
@@ -606,10 +615,27 @@ MoreTab:CreateDropdown({
 MoreTab:CreateButton({
    Name = "Purchase Selected Bus",
    Callback = function()
-      if SelectedBusToBuy ~= "" and SelectedBusToBuy ~= "None" then
-          pcall(function()
-              Remotes:WaitForChild("BuyCar"):FireServer(SelectedBusToBuy)
-          end)
+      if SelectedBusToBuy == "" or SelectedBusToBuy == "None" then
+          Rayfield:Notify({Title = "Error", Content = "Please select a bus first!", Duration = 3})
+          return
+      end
+
+      Rayfield:Notify({
+         Title = "Confirm Purchase",
+         Content = "Buying: " .. SelectedBusToBuy .. ". Please wait...",
+         Duration = 5,
+         Image = "shopping-cart",
+      })
+
+      local success, err = pcall(function()
+          Remotes:WaitForChild("BuyCar"):FireServer(SelectedBusToBuy)
+      end)
+
+      if success then
+          SetStatus("Success Buying " .. SelectedBusToBuy)
+      else
+          SetStatus("Purchase Failed!")
+          warn("Error: " .. tostring(err))
       end
    end,
 })
@@ -633,6 +659,7 @@ MoreTab:CreateButton({
       local targetCF = TP_Locations[SelectedTP]
       if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
           LP.Character:PivotTo(targetCF)
+          SetStatus("Teleported to " .. SelectedTP)
       end
    end,
 })
@@ -653,15 +680,16 @@ MoreTab:CreateDropdown({
 MoreTab:CreateButton({
    Name = "Open Selected Menu",
    Callback = function()
-      local p = nil
       if SelectedAction == "Dealership" then
-          p = workspace:FindFirstChild("BigBus_DealershipPart") and workspace.BigBus_DealershipPart:FindFirstChild("ProximityPrompt")
+          local p = workspace:FindFirstChild("BigBus_DealershipPart") and workspace.BigBus_DealershipPart:FindFirstChild("ProximityPrompt")
+          if p then fireproximityprompt(p) end
       elseif SelectedAction == "Modifikasi" then
-          p = workspace.Modif.ModificationTriggerPart:FindFirstChild("ProximityPrompt")
+          local p = workspace.Modif.ModificationTriggerPart:FindFirstChild("ProximityPrompt")
+          if p then fireproximityprompt(p) end
       elseif SelectedAction == "Teleport City" then
-          p = workspace:FindFirstChild("Telportpart") and workspace.Telportpart:FindFirstChild("ProximityPrompt")
+          local p = workspace:FindFirstChild("Telportpart") and workspace.Telportpart:FindFirstChild("ProximityPrompt")
+          if p then fireproximityprompt(p) end
       end
-      
-      if p then fireproximityprompt(p) end
+      SetStatus("Opening " .. SelectedAction)
    end,
 })
