@@ -437,7 +437,7 @@ MainTab:CreateInput({
    end,
 })
 
--- TOGGLE ON/OFF
+
 MainTab:CreateToggle({
    Name = "Enable Auto-Kick",
    CurrentValue = false,
