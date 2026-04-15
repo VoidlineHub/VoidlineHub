@@ -38,6 +38,7 @@ _G.CycleCount = 0
 _G.StartTime = os.time()
 local lastMoney = StatsFolder.Uang.Value
 local pendingIncome = 0
+local SelectedLocation = "Dealership"
 local isRunning = false
 local busOptions = {}
 
@@ -377,6 +378,56 @@ MainTab:CreateToggle({
             task.wait(1)
         end
     end
+})
+
+
+MainTab:CreateSection("World Teleport & Actions")
+
+local SelectedLocation = "Dealership"
+local Locations = {
+    ["Dealership"] = CFrame.new(19830.625, 266.913116, -27910.4844, 0.999847949, 0, 0.017436387, 0, 1, 0, -0.017436387, 0, 0.999847949),
+    ["Modifikasi"] = CFrame.new(12035.499, -21.3362789, 12740.0605, -0.573599219, 0, 0.81913656, 0, 1, 0, -0.81913656, 0, -0.573599219),
+    ["Teleport City"] = CFrame.new(21795.2461, 292.439026, -40055.918, 0.707134247, -0, -0.707079291, 0, 1, -0, 0.707079291, 0, 0.707134247)
+}
+
+MainTab:CreateDropdown({
+   Name = "Select Destination",
+   Options = {"Dealership", "Modifikasi", "Teleport City"},
+   CurrentOption = {"Dealership"},
+   MultipleOptions = false,
+   Callback = function(Option)
+      SelectedLocation = Option[1]
+   end,
+})
+
+
+MainTab:CreateButton({
+   Name = "Teleport to Location",
+   Callback = function()
+      local targetCF = Locations[SelectedLocation]
+      if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+          LP.Character:PivotTo(targetCF)
+      end
+   end,
+})
+
+
+MainTab:CreateButton({
+   Name = "Open Menu",
+   Callback = function()
+      if SelectedLocation == "Dealership" then
+          local prompt = workspace:FindFirstChild("BigBus_DealershipPart") and workspace.BigBus_DealershipPart:FindFirstChild("ProximityPrompt")
+          if prompt then fireproximityprompt(prompt) else SetStatus("Dealer Prompt Not Found") end
+          
+      elseif SelectedLocation == "Modifikasi" then
+          local prompt = workspace.Modif.ModificationTriggerPart.ProximityPrompt
+          if prompt then fireproximityprompt(prompt) end
+          
+      elseif SelectedLocation == "Teleport City" then
+          local prompt = workspace.Telportpart.ProximityPrompt
+          if prompt then fireproximityprompt(prompt) end
+      end
+   end,
 })
 
 
