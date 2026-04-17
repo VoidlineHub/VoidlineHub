@@ -1,0 +1,116 @@
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- Variabel & WaitForChild
+local carModel = workspace:WaitForChild("2023 Toyota Kijang Innova 2.4")
+local trafficFolder = workspace:WaitForChild("Traffic")
+local trafficEvent = ReplicatedStorage:WaitForChild("TrafficSpawn")
+
+-- Koordinat
+local startCFrame = CFrame.new(184.5, 4.99991989, 460.5, 0, 0, 1, 0, 1, -0, -1, 0, 0)
+local endCFrame = CFrame.new(-16020.5, 4.99992943, 460.500031, 0, 0, -1, 0, 1, 0, 1, 0, 0)
+
+local moveSpeed = 500
+local currentTween = nil
+local tweenValue = nil
+local trafficConnection = nil
+
+-- Fungsi Hitung Durasi (Speed murni)
+local function getDuration()
+    local distance = (startCFrame.Position - endCFrame.Position).Magnitude
+    return distance / moveSpeed
+end
+
+-- UI Setup
+local Window = Rayfield:CreateWindow({
+   Name = "Innova Hub",
+   LoadingTitle = "Innova v1.4.5",
+   ConfigurationSaving = { Enabled = false }
+})
+
+local Tab = Window:CreateTab("Main Menu")
+
+-- Slider Speed
+Tab:CreateSlider({
+   Name = "Kecepatan Innova",
+   Range = {100, 5000},
+   Increment = 100,
+   Suffix = " Spd",
+   CurrentValue = 500,
+   Flag = "SpeedInnova",
+   Callback = function(Value)
+      moveSpeed = Value
+   end,
+})
+
+-- Toggle Looping Innova
+Tab:CreateToggle({
+   Name = "Auto Loop Innova",
+   CurrentValue = false,
+   Flag = "InnovaLoop",
+   Callback = function(Value)
+      if Value then
+         -- Setup awal posisi
+         carModel:PivotTo(startCFrame)
+         
+         if tweenValue then tweenValue:Destroy() end
+         tweenValue = Instance.new("CFrameValue")
+         tweenValue.Value = startCFrame
+         tweenValue.Parent = carModel -- Di-parent ke model agar ikut terhapus jika model hilang
+         
+         tweenValue.Changed:Connect(function(newCFrame)
+            carModel:PivotTo(newCFrame)
+         end)
+         
+         local info = TweenInfo.new(
+            getDuration(),
+            Enum.EasingStyle.Linear,
+            Enum.EasingDirection.InOut,
+            -1,   -- Loop
+            true  -- Reverse (Balik lagi)
+         )
+         
+         currentTween = TweenService:Create(tweenValue, info, {Value = endCFrame})
+         currentTween:Play()
+      else
+         if currentTween then currentTween:Cancel() end
+         if tweenValue then tweenValue:Destroy() end
+         carModel:PivotTo(startCFrame)
+      end
+   end,
+})
+
+-- Toggle Hapus Traffic
+Tab:CreateToggle({
+   Name = "Clear Traffic",
+   CurrentValue = false,
+   Flag = "ClearTraffic",
+   Callback = function(Value)
+      if Value then
+         -- 1. Putuskan koneksi event traffic dari server
+         -- Kita "bajak" koneksinya dengan membuat script LocalPlayer mengabaikan event tersebut
+         trafficConnection = trafficEvent.OnClientEvent:Connect(function()
+            -- Do nothing (menghentikan spawn baru)
+         end)
+         
+         -- 2. Hapus traffic yang sudah ada di folder
+         for _, v in ipairs(trafficFolder:GetChildren()) do
+            v:Destroy()
+         end
+         
+         -- 3. Loop untuk terus menghapus jika ada yang muncul (Extra Safety)
+         task.spawn(function()
+            while Value and task.wait(0.5) do
+               for _, v in ipairs(trafficFolder:GetChildren()) do
+                  v:Destroy()
+               end
+            end
+         end)
+      else
+         if trafficConnection then
+            trafficConnection:Disconnect()
+         end
+      end
+   end,
+})
