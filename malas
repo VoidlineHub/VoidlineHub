@@ -1,116 +1,151 @@
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- Variabel & WaitForChild
-local carModel = workspace:WaitForChild("2023 Toyota Kijang Innova 2.4")
+-- References
+local lplr = Players.LocalPlayer
+local savedCarsFolder = lplr:WaitForChild("SavedCars")
 local trafficFolder = workspace:WaitForChild("Traffic")
-local trafficEvent = ReplicatedStorage:WaitForChild("TrafficSpawn")
 
--- Koordinat
+-- Coordinates
 local startCFrame = CFrame.new(184.5, 4.99991989, 460.5, 0, 0, 1, 0, 1, -0, -1, 0, 0)
 local endCFrame = CFrame.new(-16020.5, 4.99992943, 460.500031, 0, 0, -1, 0, 1, 0, 1, 0, 0)
 
+-- Runtime Variables
+local selectedCarName = ""
 local moveSpeed = 500
 local currentTween = nil
 local tweenValue = nil
-local trafficConnection = nil
+local isTrafficCleared = false
 
--- Fungsi Hitung Durasi (Speed murni)
-local function getDuration()
-    local distance = (startCFrame.Position - endCFrame.Position).Magnitude
-    return distance / moveSpeed
+-- Function to get car list (Names only)
+local function getCarList()
+    local list = {}
+    for _, car in ipairs(savedCarsFolder:GetChildren()) do
+        table.insert(list, car.Name)
+    end
+    return list
 end
 
 -- UI Setup
 local Window = Rayfield:CreateWindow({
-   Name = "Innova Hub",
-   LoadingTitle = "Innova v1.4.5",
+   Name = "VoidlineHub | Vehicle Automation",
+   LoadingTitle = "Loading Assets...",
+   LoadingSubtitle = "by Voidline",
    ConfigurationSaving = { Enabled = false }
 })
 
-local Tab = Window:CreateTab("Main Menu")
+local Tab = Window:CreateTab("Auto Farm", 4483362458)
 
--- Slider Speed
+--- SECTION: VEHICLE SELECTION ---
+Tab:CreateSection("Vehicle Selection")
+
+local CarDropdown = Tab:CreateDropdown({
+   Name = "Select Your Vehicle",
+   Options = getCarList(),
+   CurrentOption = "",
+   Flag = "SelectedVehicle",
+   Callback = function(Option)
+      -- FIX: Rayfield passing table, we take the first index string
+      if type(Option) == "table" then
+         selectedCarName = Option[1]
+      else
+         selectedCarName = Option
+      end
+   end,
+})
+
+Tab:CreateButton({
+   Name = "Refresh Vehicle List",
+   Callback = function()
+      CarDropdown:Set(getCarList())
+   end,
+})
+
+--- SECTION: MOVEMENT CONTROLS ---
+Tab:CreateSection("Movement Controls")
+
 Tab:CreateSlider({
-   Name = "Kecepatan Innova",
+   Name = "Farming Speed",
    Range = {100, 5000},
    Increment = 100,
-   Suffix = " Spd",
+   Suffix = " Studs/s",
    CurrentValue = 500,
-   Flag = "SpeedInnova",
+   Flag = "MoveSpeed",
    Callback = function(Value)
       moveSpeed = Value
    end,
 })
 
--- Toggle Looping Innova
 Tab:CreateToggle({
-   Name = "Auto Loop Innova",
+   Name = "Enable Auto Farm",
    CurrentValue = false,
-   Flag = "InnovaLoop",
+   Flag = "FarmToggle",
    Callback = function(Value)
       if Value then
-         -- Setup awal posisi
-         carModel:PivotTo(startCFrame)
+         if selectedCarName == "" or selectedCarName == nil then
+            Rayfield:Notify({Title = "Error", Content = "Please select a vehicle first!", Duration = 3})
+            return
+         end
+
+         -- Finding the model directly in workspace
+         local carModel = workspace:FindFirstChild(selectedCarName)
          
-         if tweenValue then tweenValue:Destroy() end
-         tweenValue = Instance.new("CFrameValue")
-         tweenValue.Value = startCFrame
-         tweenValue.Parent = carModel -- Di-parent ke model agar ikut terhapus jika model hilang
-         
-         tweenValue.Changed:Connect(function(newCFrame)
-            carModel:PivotTo(newCFrame)
-         end)
-         
-         local info = TweenInfo.new(
-            getDuration(),
-            Enum.EasingStyle.Linear,
-            Enum.EasingDirection.InOut,
-            -1,   -- Loop
-            true  -- Reverse (Balik lagi)
-         )
-         
-         currentTween = TweenService:Create(tweenValue, info, {Value = endCFrame})
-         currentTween:Play()
+         if carModel then
+            carModel:PivotTo(startCFrame)
+            
+            if tweenValue then tweenValue:Destroy() end
+            tweenValue = Instance.new("CFrameValue")
+            tweenValue.Value = startCFrame
+            tweenValue.Parent = carModel
+            
+            tweenValue.Changed:Connect(function(newCFrame)
+                if carModel and carModel.Parent then
+                    carModel:PivotTo(newCFrame)
+                end
+            end)
+
+            local distance = (startCFrame.Position - endCFrame.Position).Magnitude
+            local duration = distance / moveSpeed
+            
+            local info = TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true)
+            currentTween = TweenService:Create(tweenValue, info, {Value = endCFrame})
+            currentTween:Play()
+            
+            Rayfield:Notify({Title = "Success", Content = "Auto Farm activated: " .. selectedCarName, Duration = 3})
+         else
+            Rayfield:Notify({Title = "Not Found", Content = "Make sure " .. selectedCarName .. " is spawned in Workspace!", Duration = 5})
+         end
       else
          if currentTween then currentTween:Cancel() end
          if tweenValue then tweenValue:Destroy() end
-         carModel:PivotTo(startCFrame)
+         
+         local carModel = workspace:FindFirstChild(selectedCarName)
+         if carModel then carModel:PivotTo(startCFrame) end
       end
    end,
 })
 
--- Toggle Hapus Traffic
+--- SECTION: OPTIMIZATION ---
+Tab:CreateSection("World Optimization")
+
 Tab:CreateToggle({
-   Name = "Clear Traffic",
+   Name = "Clear Traffic NPCs",
    CurrentValue = false,
-   Flag = "ClearTraffic",
+   Flag = "TrafficToggle",
    Callback = function(Value)
+      isTrafficCleared = Value
       if Value then
-         -- 1. Putuskan koneksi event traffic dari server
-         -- Kita "bajak" koneksinya dengan membuat script LocalPlayer mengabaikan event tersebut
-         trafficConnection = trafficEvent.OnClientEvent:Connect(function()
-            -- Do nothing (menghentikan spawn baru)
-         end)
-         
-         -- 2. Hapus traffic yang sudah ada di folder
-         for _, v in ipairs(trafficFolder:GetChildren()) do
-            v:Destroy()
-         end
-         
-         -- 3. Loop untuk terus menghapus jika ada yang muncul (Extra Safety)
          task.spawn(function()
-            while Value and task.wait(0.5) do
-               for _, v in ipairs(trafficFolder:GetChildren()) do
-                  v:Destroy()
+            while isTrafficCleared do
+               -- High-speed deletion (0.1s)
+               for _, npc in ipairs(trafficFolder:GetChildren()) do
+                  npc:Destroy()
                end
+               task.wait(0.1)
             end
          end)
-      else
-         if trafficConnection then
-            trafficConnection:Disconnect()
-         end
       end
    end,
 })
