@@ -173,7 +173,7 @@ local Window = WindUI:CreateWindow({
     Icon = "github", 
     Author = "bilzz",
     Size = UDim2.fromOffset(300, 350),
-     Transparecy = true,
+    Transparant = true,
     OpenButton = { Enabled = true, Title = "Safe Barista", Draggable = true }
 })
 
