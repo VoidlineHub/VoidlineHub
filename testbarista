@@ -1,14 +1,12 @@
--- [[ VOIDLINE HUB | BARISTA ONLY EDITION ]]
+-- [[ VOIDLINE HUB | BARISTA SAFE EDITION ]]
 local genv = getgenv()
 local fenv = getfenv()
 
--- // ADONIS & NETWORK FIX
 loadstring(game:HttpGet('https://raw.githubusercontent.com/LynX99-9/komtolmmek2/refs/heads/main/Adonis'))()
 pcall(function()
     game:GetService('CoreGui').RobloxGui['CoreScripts/NetworkPause']:Destroy()
 end)
 
-genv.WindUI = nil
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
 
 -- [[ DATA BINDING ]]
@@ -17,14 +15,7 @@ local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
--- // PROMPTS & CFRAMES
-local Prompts = {
-    Machine = workspace.BaristaJob.Interactions.MachinePart.MachinePart.MachinePrompt,
-    Register = workspace.BaristaJob.Interactions.RegisterPart.RegisterPart.RegisterPrompt,
-    Supply = workspace.BaristaJob.Interactions.SupplyPart.SupplyPart.SupplyPrompt,
-    Job = workspace.BaristaJob.Interactions.StartPart.StartPart.JobPrompt
-}
-
+-- // CFRAMES & PROMPTS
 local CF = {
     Supply = CFrame.new(-5116.78418, 5.78931046, -670.858887),
     Machine = CFrame.new(-4997.1665, 1.58353043, -795.047607),
@@ -32,11 +23,21 @@ local CF = {
     Start = CFrame.new(-4989.80078, 5.30382967, -715.013062)
 }
 
+local Prompts = {
+    Machine = workspace.BaristaJob.Interactions.MachinePart.MachinePart.MachinePrompt,
+    Register = workspace.BaristaJob.Interactions.RegisterPart.RegisterPart.RegisterPrompt,
+    Supply = workspace.BaristaJob.Interactions.SupplyPart.SupplyPart.SupplyPrompt,
+    Job = workspace.BaristaJob.Interactions.StartPart.StartPart.JobPrompt
+}
+
 -- [[ GLOBAL VARIABLES ]]
 _G.AutoFarmBarista = false
-LastActivity = tick()
+local LastActivity = tick()
+local StartSessionTime = tick()
+local IsResting = false
 
 -- [[ UTILITY FUNCTIONS ]]
+
 local function GetBaristaElements()
     local Gui = LP.PlayerGui:FindFirstChild("BaristaGUI")
     if Gui then
@@ -47,49 +48,81 @@ local function GetBaristaElements()
     return nil, nil, nil
 end
 
-local function GetRemote(name)
-    for _, v in pairs(game:GetDescendants()) do
-        if v:IsA("RemoteEvent") and v.Name == name then return v end
-    end
-    return nil
-end
-
-local function BypassTP(targetCF)
+local function BypassTP(targetCF, forceSitBefore)
     local Char = LP.Character or LP.CharacterAdded:Wait()
     local Hum = Char:WaitForChild("Humanoid")
     local Root = Char:WaitForChild("HumanoidRootPart")
     
     if Hum and Root then
-        Hum.Sit = true
-        task.wait(0.5)
+        if forceSitBefore then
+            Hum.Sit = true
+            task.wait(0.8) -- Jeda biar server register status duduk
+        else
+            Hum.Sit = true
+            task.wait(0.5)
+        end
         Root.CFrame = targetCF
         task.wait(0.3)
         Hum.Sit = false
     end
 end
 
+-- // FUNGSI ISTIRAHAT (SETIAP 2 JAM)
+local function RestSystem()
+    IsResting = true
+    warn("[VOIDLINE] Safety limit reached! Resting...")
+    
+    -- 1. Reset Character
+    if LP.Character then
+        LP.Character:BreakJoints()
+    end
+    task.wait(5) -- Tunggu respawn
+    
+    -- 2. Ganti ke Civilian
+    local args = {"Civilian", 0, 0, 0, "Detector"}
+    ReplicatedStorage:WaitForChild("JobEvents"):WaitForChild("TeamChangeRequest"):FireServer(unpack(args))
+    
+    warn("[VOIDLINE] Resting as Civilian for 30 seconds...")
+    task.wait(60) -- Durasi istirahat biar aman
+    
+    StartSessionTime = tick() -- Reset timer sesi
+    IsResting = false
+    warn("[VOIDLINE] Rest finished. Back to work!")
+end
+
 local function ExecuteStartSequence()
-    local tr = GetRemote("TeamChangeRequest")
+    if IsResting then return end
+    
+    local tr = ReplicatedStorage:FindFirstChild("TeamChangeRequest", true)
     if LP.Team and LP.Team.Name ~= "Barista" and tr then
         tr:FireServer("Barista", 11378976, 0, 0, "Detector")
         task.wait(2.5)
     end
     
-    BypassTP(CF.Start)
+    -- KHUSUS START: Duduk dulu baru TP (Sesuai request lu)
+    BypassTP(CF.Start, true)
     task.wait(0.8)
+    
     if Prompts.Job and Prompts.Job.Enabled then
         fireproximityprompt(Prompts.Job)
     end
     LastActivity = tick()
 end
 
--- [[ MAIN FARMING LOOP ]]
+-- [[ MAIN LOOP ]]
 task.spawn(function()
     while task.wait(0.6) do
-        if _G.AutoFarmBarista then
+        if _G.AutoFarmBarista and not IsResting then
+            -- Cek durasi sesi (7200 detik = 2 jam)
+            if (tick() - StartSessionTime) >= 7200 then
+                RestSystem()
+                ExecuteStartSequence()
+                continue
+            end
+
             local _, OrderTextLabel, MinigameFrame = GetBaristaElements()
             
-            -- Cek 4 Menit Tanpa Aktivitas
+            -- Stuck 4 menit auto reset
             if tick() - LastActivity >= 240 then
                 ExecuteStartSequence()
             end
@@ -99,23 +132,23 @@ task.spawn(function()
                 local isBroken = (OrderTextLabel.TextColor3.R > 0.8 and (txt:find("break") or txt:find("down")))
                 
                 if isBroken then
-                    BypassTP(CF.Supply)
+                    BypassTP(CF.Supply, false)
                     task.wait(0.5)
                     fireproximityprompt(Prompts.Supply)
                     LastActivity = tick()
                     task.wait(0.5)
-                    BypassTP(CF.Machine)
+                    BypassTP(CF.Machine, false)
                     fireproximityprompt(Prompts.Machine)
                 elseif Prompts.Machine.Enabled and not (MinigameFrame and MinigameFrame.Visible) then
-                    BypassTP(CF.Machine)
+                    BypassTP(CF.Machine, false)
                     fireproximityprompt(Prompts.Machine)
                     LastActivity = tick()
                     repeat task.wait(0.5)
                         LastActivity = tick()
-                    until not (MinigameFrame and MinigameFrame.Visible) or not _G.AutoFarmBarista
+                    until not (MinigameFrame and MinigameFrame.Visible) or not _G.AutoFarmBarista or IsResting
                 elseif Prompts.Register.Enabled and not (MinigameFrame and MinigameFrame.Visible) then
                     task.wait(0.5)
-                    BypassTP(CF.Register)
+                    BypassTP(CF.Register, false)
                     task.wait(0.5)
                     fireproximityprompt(Prompts.Register)
                     LastActivity = tick()
@@ -125,69 +158,36 @@ task.spawn(function()
     end
 end)
 
--- Persistent Fixes (Minigame Exploit)
+-- TargetZone Exploit
 RunService.Heartbeat:Connect(function()
     local _, _, MinigameFrame = GetBaristaElements()
     if _G.AutoFarmBarista and MinigameFrame and MinigameFrame.Visible then
         local tz = MinigameFrame:FindFirstChild("TargetZone", true)
-        if tz then 
-            tz.Size = UDim2.new(1, 0, 1, 0)
-            tz.Position = UDim2.new(0, 0, 0, 0) 
-        end
+        if tz then tz.Size = UDim2.new(1, 0, 1, 0); tz.Position = UDim2.new(0, 0, 0, 0) end
     end
 end)
 
--- [[ WINDUI WINDOW ]]
+-- [[ UI ]]
 local Window = WindUI:CreateWindow({
     Title = "voidlinehub",
     Icon = "github", 
     Author = "bilzz",
-    Folder = "Voidline_Barista",
-    Transparent = true,
-    Size = UDim2.fromOffset(300, 380),
-    OpenButton = {
-        Enabled = true,
-        Title = "Barista Simulator",
-        Draggable = true,
-    }
+    Size = UDim2.fromOffset(300, 350),
+     Transparecy= true,
+    OpenButton = { Enabled = true, Title = "Safe Barista", Draggable = true }
 })
 
--- Home Tab
-local HomeTab = Window:Tab({ Title = "Home", Icon = "house" })
-HomeTab:Section({ Title = "Update Log" })
-HomeTab:Button({
-    Title = "Version 1.0 (Lite)",
-    Desc = "[+] Focused Barista Autofarm\n[+] Removed Courier & Webhook\n[+] Original Bypass TP",
-    Icon = "file-text"
-})
-
--- Autofarm Tab
-local AutofarmTab = Window:Tab({ Title = "Autofarm", Icon = "coffee" })
-AutofarmTab:Section({ Title = "Barista Work" })
-
-AutofarmTab:Toggle({
+local Tab = Window:Tab({ Title = "Main", Icon = "coffee" })
+Tab:Toggle({
     Title = "Autofarm Barista",
-    Desc = "Semua otomatis, gaji lancar jaya!",
+    Desc = "Auto-rest every 2 hours enabled!",
     Callback = function(state)
         _G.AutoFarmBarista = state 
         if state then
-            LastActivity = tick()
-            task.spawn(ExecuteStartSequence)
-            WindUI:Notify({ Title = "Voidline", Content = "Barista Farm Aktif!" })
+            StartSessionTime = tick()
+            ExecuteStartSequence()
         end
     end
 })
 
--- Social Tab
-local SocialTab = Window:Tab({ Title = "Social", Icon = "share-2" })
-SocialTab:Button({
-    Title = "Copy Tiktok Link",
-    Icon = "music",
-    Callback = function()
-        setclipboard("tiktok.com/@billzzhub")
-        WindUI:Notify({ Title = "Success", Content = "Link copied!" })
-    end
-})
-
-WindUI:Notify({ Title = "Voidline Hub", Content = "Barista Edition Loaded!" })
-
+WindUI:Notify({ Title = "Voidline", Content = "Anti-Detection Logic Active!" })
