@@ -16,7 +16,7 @@ local Window = Rayfield:CreateWindow({
       FileName = "VoidlineKey",
       SaveKey = false,
       GrabKeyFromSite = false,
-      Key = {"gatau","VoidlinePremium"}
+      Key = {"VoidlineKey","VoidlinePremium"}
    }
 })
 
