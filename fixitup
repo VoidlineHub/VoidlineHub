@@ -119,4 +119,4 @@ end
 
 -- // INTERFACE
 local MainTab = Window:CreateTab("Mechanic", 4483362458)
-MainTab:CreateButton({ Name = "🚀 START SPLIT AUTO (V8.23)", Callback = function() FullAutoCycle() end })
+MainTab:CreateButton({ Name = "auto repair engine", Callback = function() FullAutoCycle() end })
