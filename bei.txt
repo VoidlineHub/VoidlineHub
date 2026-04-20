@@ -53,7 +53,7 @@ local SelectedTP = "Dealership"
 local isRunning = false
 local busOptions = {}
 
--- Forward Declaration (HANYA SATU KALI DI SINI)
+-- Forward Declaration
 local StatusLabel, UangLabel, EarningLabel, TimeLabel, FPSLabel, PingLabel
 
 -- --- FORMAT RUPIAH FUNCTION ---
@@ -96,7 +96,7 @@ task.spawn(function()
     end
 end)
 
--- SCANNING BUS YANG KAMU PUNYA
+-- SCANNING BUS 
 for _, car in pairs(OwnedCarsFolder:GetChildren()) do
     local carID = car.Name
     local carInfo = CarData.CarData_Cars[carID]
@@ -105,7 +105,7 @@ for _, car in pairs(OwnedCarsFolder:GetChildren()) do
     end
 end
 
--- Fallback kalau scan gagal
+-- Fallback 
 if #busOptions == 0 then table.insert(busOptions, "Jetbus_3_RM _SHD") end
 _G.SelectedBus = busOptions[1]
 
