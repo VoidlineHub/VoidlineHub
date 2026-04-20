@@ -4,6 +4,7 @@ local Window = Rayfield:CreateWindow({
    Name = "VoidlineHub",
    LoadingTitle = "Bus Explorer Indonesia",
    LoadingSubtitle = "by VoidlineHub",
+   Theme = "Amethyst",
    ConfigurationSaving = {
       Enabled = true,
       FileName = "VoidlineConfig"
