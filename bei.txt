@@ -309,19 +309,14 @@ MainTab:CreateToggle({
         end
         
         while _G.AutoFull do
-            -- LOGIC HAPUS PENGHALANG (Cikamurang > model > SInar)
+            -- LOGIC HAPUS PENGHALANG
             pcall(function()
-                -- Menggunakan FindFirstChild/WaitForChild biar gak error kalau area belum ke-render
                 local cikamurang = workspace:FindFirstChild("Cikamurang")
                 if cikamurang then
-                    -- Kita cari 'model' (sesuaikan m kecil/besar di sini)
                     local folderModel = cikamurang:FindFirstChild("model") or cikamurang:FindFirstChild("Model")
                     if folderModel then
-                        -- Tunggu 0.1 detik aja, kalau ada langsung hapus
                         local targetHapus = folderModel:WaitForChild("SInar", 0.1)
-                        if targetHapus then
-                            targetHapus:Destroy()
-                        end
+                        if targetHapus then targetHapus:Destroy() end
                     end
                 end
             end)
@@ -369,44 +364,42 @@ MainTab:CreateToggle({
                     -- Timer 1: Freeze 45 Detik
                     for i = 45, 1, -1 do
                         if not _G.AutoFull then break end
-                        SetStatus("to stations: " .. i .. "s")
+                        SetStatus("To Stations: " .. i .. "s")
                         task.wait(1)
                     end
                     
                     SetFreeze(false)
                     
-                    -- Timer 2: Cooldown 90 Detik (Total 135s / 2m 15s)
-                    for i = 90, 1, -1 do
+                    -- Timer 2: Cooldown diturunkan (Total 102s / 1m 42s / ~1.70 min)
+                    -- 102 - 45 = 57 detik sisa
+                    for i = 57, 1, -1 do
                         if not _G.AutoFull then break end
-                        SetStatus("delay tp: " .. i .. "s")
+                        SetStatus("Delay TP: " .. i .. "s")
                         task.wait(1)
                     end
                 end
             else
                 if jobStarted then
                     noBillboardTime = noBillboardTime + 1
-                    SetStatus("delay tp: " .. (40 - noBillboardTime) .. "s")
+                    SetStatus("Searching Stop: " .. (40 - noBillboardTime) .. "s")
                     
                     if noBillboardTime >= 40 then
-                        SetStatus("TP to End Position")
+                        SetStatus("Finishing Job...")
                         InstantTP(CirebonEndCF)
                         task.wait(2)
-                        SetFreeze(true)
                         
-                        -- Payout Timer: 135 Detik (2m 15s)
-                        for i = 135, 1, -1 do
-                            if not _G.AutoFull then break end
-                            SetStatus("delay teleport: " .. i .. "s")
-                            task.wait(1)
-                        end
-                        
+                        -- BAGIAN AKHIR: Tidak ada delay lama lagi
+                        -- Langsung reset status untuk loop berikutnya
                         SetFreeze(false)
                         jobStarted = false
                         lastTarget = nil
                         noBillboardTime = 0
+                        
                         local bus = GetMyBus()
                         if bus then bus:Destroy() end 
-                        task.wait(5)
+                        
+                        SetStatus("Job Finished! Restarting...")
+                        task.wait(3) -- Delay kecil agar remote tidak spam
                     end
                 end
             end
@@ -414,6 +407,7 @@ MainTab:CreateToggle({
         end
     end
 })
+
 
 MainTab:CreateSection("Auto Stop Settings")
 
