@@ -1,10 +1,10 @@
--- [[ VOIDLINE HUB | FIX IT UP - V8.23 SPLIT WASH SYNC ]]
+-- [[ VOIDLINE HUB | FIX IT UP - V8.42 ENGINE BLOCK PRIORITY ]]
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "voidlinehub | Fix It Up",
-   LoadingTitle = "private",
+   Name = "voidlinehub | Fix It Up V8.42",
+   LoadingTitle = "Prioritizing Engine Block...",
    LoadingSubtitle = "by bilzz",
    ConfigurationSaving = { Enabled = false }
 })
@@ -15,108 +15,152 @@ local bld = workspace.Map.FirstCity.Buildings:GetChildren()[19]
 local moveable = workspace:FindFirstChild("MoveableParts")
 local TeleportPos = CFrame.new(-573.336792, 3.84983015, -1595.71082, -1, -6.19937055e-07, -1.06341673e-08, -6.19937055e-07, 1, 9.22730351e-07, 1.06335953e-08, 9.22730351e-07, -1)
 
--- // FUNCTIONS
-local function GetClosestVehicle()
-    local closest = nil
-    local dist = 35
-    for _, v in pairs(workspace.Vehicles:GetChildren()) do
-        local primary = v:FindFirstChild("DriveSeat") or v:FindFirstChildWhichIsA("BasePart", true)
-        if primary and LP.Character:FindFirstChild("HumanoidRootPart") then
-            local d = (LP.Character.HumanoidRootPart.Position - primary.Position).Magnitude
-            if d < dist then dist = d; closest = v end
-        end
+-- // UI PROGRESS
+local MainTab = Window:CreateTab("Mechanic", 4483362458)
+local StatusLabel = MainTab:CreateLabel("Status: Idle")
+
+local function UpdateStatus(msg)
+    StatusLabel:Set("Status: "..msg)
+end
+
+local function SecureFire(parent)
+    if not parent then return end
+    local cd = parent:FindFirstChildWhichIsA("ClickDetector", true)
+    if cd then
+        task.wait(1) 
+        fireclickdetector(cd)
+        task.wait(0.5)
+        fireclickdetector(cd)
     end
-    return closest
 end
 
 -- // [ CORE AUTO-REPAIR ]
 local function FullAutoCycle()
-    local target = GetClosestVehicle()
-    if not target then Rayfield:Notify({Title = "Error", Content = "Mobilnya mana?", Duration = 2}) return end
+    local target = (function()
+        local closest = nil
+        local dist = 35
+        for _, v in pairs(workspace.Vehicles:GetChildren()) do
+            local primary = v:FindFirstChild("DriveSeat") or v:FindFirstChildWhichIsA("BasePart", true)
+            if primary and LP.Character:FindFirstChild("HumanoidRootPart") then
+                local d = (LP.Character.HumanoidRootPart.Position - primary.Position).Magnitude
+                if d < dist then dist = d; closest = v end
+            end
+        end
+        return closest
+    end)()
+
+    if not target then UpdateStatus("Mobil Gak Ketemu!") return end
     
     local partsEvent = target:FindFirstChild("PartsEvent")
     local engineBay = target.Body:FindFirstChild("EngineBay")
-    if not engineBay then return end
+    local scanData = {}
 
-    -- 1. ABSEN ENGINEBAY (MEMORIZE)
-    local engineMemory = {}
-    for _, p in pairs(engineBay:GetChildren()) do
-        engineMemory[p.Name] = true
-    end
-
-    -- 2. TELEPORT & BONGKAR
+    -- 1. TELEPORT & HOOD
+    UpdateStatus("Teleporting & Loading...")
     target:PivotTo(TeleportPos)
-    task.wait(0.5)
-    partsEvent:FireServer("ReapplyPart", Instance.new("Model", nil))
-    task.wait(0.2)
-    
-    for name, _ in pairs(engineMemory) do
-        pcall(function() partsEvent:FireServer("RemovePart", name) end)
-        task.wait(0.05)
+    task.wait(2)
+
+    local hood = target:FindFirstChild("Misc") and target.Misc:FindFirstChild("Hood")
+    if hood and hood:FindFirstChild("Detector") then
+        local cd = hood.Detector:FindFirstChild("ClickDetector")
+        if cd then fireclickdetector(cd) end
     end
-    task.wait(2.5)
+    task.wait(1)
 
-    -- 3. MATCHMAKING & SPLIT ROUTING
-    Rayfield:Notify({Title = "Matching", Content = "Routing Parts (AirIntake @ St2, Radiator @ St3)", Duration = 4})
+    -- 2. BONGKAR
+    UpdateStatus("Removing Parts...")
+    for _, folder in pairs(engineBay:GetChildren()) do
+        scanData[folder.Name] = true
+        for _, child in pairs(folder:GetChildren()) do
+            scanData[child.Name] = true
+        end
+    end
 
-    for _, part in pairs(moveable:GetChildren()) do
-        if engineMemory[part.Name] then
-            local name = part.Name
-            
-            -- [ STATION 3 ]
-            if name == "Battery" then
-                part:PivotTo(bld.Station3.BatteryCharger.Detector:GetPivot())
-                task.wait(0.4); fireclickdetector(bld.Station3.BatteryCharger.Button.ClickDetector)
+    partsEvent:FireServer("ReapplyPart", Instance.new("Model", nil))
+    for folderName, _ in pairs(scanData) do
+        if engineBay:FindFirstChild(folderName) then
+            pcall(function() partsEvent:FireServer("RemovePart", folderName) end)
+            task.wait(0.15)
+        end
+    end
 
-            elseif name == "EngineBlock" then
-                part:PivotTo(bld.Station3:GetChildren()[3].Model:GetPivot())
-                task.wait(0.4); fireclickdetector(bld.Station3:GetChildren()[3].Button.ClickDetector)
-
-            elseif string.find(name, "Speed") or string.find(name, "CV") or name == "Transmission" then
-                part:PivotTo(bld.Station3.GrindingMachine:GetPivot())
-                task.wait(0.4)
-                local cd = bld.Station3.GrindingMachine:FindFirstChildWhichIsA("ClickDetector", true)
-                if cd then fireclickdetector(cd) end
-
-            elseif name == "Radiator" then -- RADIATOR DI 3
-                part:PivotTo(bld.Station3.PartsWasher.Faucet:GetPivot())
-                task.wait(0.4)
-                local cd = bld.Station3.PartsWasher.Faucet:FindFirstChildWhichIsA("ClickDetector", true)
-                if cd then fireclickdetector(cd) end
-
-            -- [ STATION 2 ]
-            elseif name == "AirIntake" then -- AIR INTAKE DI 2
-                -- Mencari PartsWasher di Station 2
-                local washer2 = bld.Station2:FindFirstChild("PartsWasher")
-                if washer2 then
-                    part:PivotTo(washer2.Faucet:GetPivot())
-                    task.wait(0.4)
-                    fireclickdetector(washer2.Faucet.ClickDetector)
+    -- 3. REPAIR
+    UpdateStatus("Repairing...")
+    local startTime = tick()
+    while tick() - startTime < 12 do 
+        for _, p in pairs(moveable:GetChildren()) do
+            if (target:GetPivot().Position - p:GetPivot().Position).Magnitude < 25 then 
+                local name = p.Name
+                if name == "Battery" then
+                    p:PivotTo(bld.Station3.BatteryCharger.Detector:GetPivot())
+                    task.wait(1)
+                    local cd = bld.Station3.BatteryCharger.Button:FindFirstChild("ClickDetector")
+                    if cd then fireclickdetector(cd); task.wait(0.2); fireclickdetector(cd) end
+                elseif name == "AirIntake" then
+                    local wash2 = bld.Station2:FindFirstChild("PartsWasher")
+                    if wash2 then
+                        local faucet = wash2:FindFirstChild("Faucet", true)
+                        p:PivotTo(faucet:GetPivot()); SecureFire(faucet)
+                    end
+                elseif name == "CylinderHead" then
+                    local st2_machine = bld.Station2:FindFirstChild("Machine") or bld.Station2:GetChildren()[3]
+                    p:PivotTo(st2_machine.Model:GetPivot()); SecureFire(st2_machine)
+                elseif name == "ExhaustManifold" then
+                    local st2_grind = bld.Station2:FindFirstChild("GrindingMachine")
+                    p:PivotTo(st2_grind:GetPivot()); SecureFire(st2_grind)
+                elseif string.find(name, "Speed") or string.find(name, "DCT") or string.find(name, "Manual") or name == "Transmission" then
+                    local grind3 = bld.Station3.GrindingMachine
+                    p:PivotTo(grind3:GetPivot()); SecureFire(grind3)
+                elseif name == "EngineBlock" then
+                    local machine3 = bld.Station3:GetChildren()[3]
+                    p:PivotTo(machine3.Model:GetPivot()); SecureFire(machine3)
+                elseif name == "Radiator" then
+                    local wash3 = bld.Station3.PartsWasher
+                    p:PivotTo(wash3.Faucet:GetPivot()); SecureFire(wash3.Faucet)
                 end
+            end
+        end
+        task.wait(0.5)
+    end
 
-            elseif name == "CylinderHead" then
-                part:PivotTo(bld.Station2:GetChildren()[3].Model:GetPivot())
-                task.wait(0.4); fireclickdetector(bld.Station2:GetChildren()[3].Button.ClickDetector)
-            
-            elseif name == "ExhaustManifold" then
-                part:PivotTo(bld.Station2.GrindingMachine.Model:GetPivot())
-                task.wait(0.4); fireclickdetector(bld.Station2.GrindingMachine.Button.ClickDetector)
+    UpdateStatus("Waiting (24s)...")
+    task.wait(25)
+    
+    -- 4. SMART ASSEMBLY (Block First Logic)
+    UpdateStatus("Identifying Block...")
+    local mainBlock = nil
+    local otherParts = {}
+
+    for _, p in pairs(moveable:GetChildren()) do
+        if (target:GetPivot().Position - p:GetPivot().Position).Magnitude < 65 then 
+            if p.Name == "EngineBlock" then
+                mainBlock = p
+            else
+                table.insert(otherParts, p)
             end
         end
     end
 
-    -- 4. DELAY & INSTALL
-    task.wait(23)
-    for i = 1, 3 do
-        for name, _ in pairs(engineMemory) do
-            local item = moveable:FindFirstChild(name)
-            if item then pcall(function() partsEvent:FireServer("ReapplyPart", item) end) end
-        end
-        task.wait(0.5); partsEvent:FireServer("ReapplyPart", Instance.new("Model", nil))
+    -- PASANG BLOK DULU
+    if mainBlock then
+        UpdateStatus("Installing EngineBlock (Primary)...")
+        pcall(function() partsEvent:FireServer("ReapplyPart", mainBlock) end)
+        task.wait(3) -- Kasih waktu 3 detik biar blok beneran nempel permanen
     end
-    Rayfield:Notify({Title = "Success", Content = "Repair Split Complete!", Duration = 3})
+
+    -- PASANG SISANYA
+    for i, part in ipairs(otherParts) do
+        UpdateStatus("Installing ("..i.."/"..#otherParts.."): "..part.Name)
+        pcall(function() partsEvent:FireServer("ReapplyPart", part) end)
+        task.wait(2) -- Delay 2 detik per part sesuai saran lu
+    end
+
+    task.wait(1)
+    partsEvent:FireServer("ReapplyPart", Instance.new("Model", nil))
+    UpdateStatus("Selesai, Bre! Blok Utama Aman.")
 end
 
--- // INTERFACE
-local MainTab = Window:CreateTab("Mechanic", 4483362458)
-MainTab:CreateButton({ Name = "auto repair engine", Callback = function() FullAutoCycle() end })
+MainTab:CreateButton({
+   Name = "auto repair",
+   Callback = function() FullAutoCycle() end
+})
