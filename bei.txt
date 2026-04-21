@@ -357,25 +357,26 @@ MainTab:CreateToggle({
             if target then
                 noBillboardTime = 0 
                 if target ~= lastTarget then
+                    -- FIX FREEZE TELAT: Set freeze SEBELUM TP
+                    SetFreeze(true) 
+                    task.wait(0.1)
                     InstantTP(target.CFrame)
                     lastTarget = target
-                    task.wait(2)
-                    SetFreeze(true) 
                     
-                    -- Timer 1: Freeze 45 Detik (Wajib buat loading penumpang)
+                    -- Timer 1: Freeze 45 Detik
                     for i = 45, 1, -1 do
                         if not _G.AutoFull then break end
-                        SetStatus("To Stations: " .. i .. "s")
+                        SetStatus("Loading Passengers: " .. i .. "s")
                         task.wait(1)
                     end
                     
                     SetFreeze(false)
                     
-                    -- Timer 2: Cooldown (Total Durasi 114s / 1.90 min)
-                    -- 114 - 45 (freeze) = 69 detik sisa
-                    for i = 69, 1, -1 do
+                    -- Timer 2: Cooldown (Total 120s / 2 Menit)
+                    -- 120 - 45 (freeze) = 75 detik sisa
+                    for i = 75, 1, -1 do
                         if not _G.AutoFull then break end
-                        SetStatus("Cooldown Delay: " .. i .. "s")
+                        SetStatus("Travel Delay: " .. i .. "s")
                         task.wait(1)
                     end
                 end
@@ -386,12 +387,13 @@ MainTab:CreateToggle({
                     
                     if noBillboardTime >= 40 then
                         SetStatus("Finishing Job...")
-                        InstantTP(CirebonEndCF)
-                        task.wait(2)
-                        
-                        -- Bypass Kick di akhir: Kasih delay kecil 5-10 detik buat sinkronisasi data payout
+                        -- FIX AKHIR: Freeze sebelum TP akhir
                         SetFreeze(true)
-                        for i = 10, 1, -1 do
+                        task.wait(0.1)
+                        InstantTP(CirebonEndCF)
+                        
+                        -- Payout Safety Delay (15 detik biar payout masuk dulu)
+                        for i = 15, 1, -1 do
                             if not _G.AutoFull then break end
                             SetStatus("Processing Payout: " .. i .. "s")
                             task.wait(1)
@@ -405,7 +407,7 @@ MainTab:CreateToggle({
                         local bus = GetMyBus()
                         if bus then bus:Destroy() end 
                         
-                        SetStatus("Job Finished! Restarting Cycle...")
+                        SetStatus("Cycle Finished! Restarting...")
                         task.wait(3) 
                     end
                 end
