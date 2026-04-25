@@ -357,11 +357,11 @@ MainTab:CreateToggle({
             if target then
                 noBillboardTime = 0 
                 if target ~= lastTarget then
-                    -- FIX: SetFreeze dipindah sebelum TP biar gak telat
-                    SetFreeze(true)
+                    -- FIX: FREEZE DULUAN SEBELUM TELEPORT
+                    SetFreeze(true) 
+                    task.wait(0.2) -- Kasih waktu mesin buat nge-lock physics
                     InstantTP(target.CFrame)
                     lastTarget = target
-                    task.wait(1) -- Delay kecil buat sinkronisasi posisi
                     
                     -- Timer 1: Freeze 45 Detik
                     for i = 45, 1, -1 do
@@ -372,7 +372,7 @@ MainTab:CreateToggle({
                     
                     SetFreeze(false)
                     
-                    -- Timer 2: Total 2 menit (120s - 45s = 75s)
+                    -- Timer 2: Total 2 Menit (120s - 45s = 75s)
                     for i = 75, 1, -1 do
                         if not _G.AutoFull then break end
                         SetStatus("Delay TP: " .. i .. "s")
@@ -386,12 +386,12 @@ MainTab:CreateToggle({
                     
                     if noBillboardTime >= 40 then
                         SetStatus("Finishing Job...")
-                        -- FIX: SetFreeze sebelum TP akhir
+                        -- FIX: FREEZE DULUAN SEBELUM TP AKHIR
                         SetFreeze(true)
+                        task.wait(0.2)
                         InstantTP(CirebonEndCF)
-                        task.wait(2)
                         
-                        -- Langsung kelar sesuai permintaan, tanpa delay lama di akhir
+                        task.wait(2)
                         SetFreeze(false)
                         jobStarted = false
                         lastTarget = nil
@@ -401,7 +401,7 @@ MainTab:CreateToggle({
                         if bus then bus:Destroy() end 
                         
                         SetStatus("Job Finished! Restarting...")
-                        task.wait(3)
+                        task.wait(3) 
                     end
                 end
             end
