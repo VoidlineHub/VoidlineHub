@@ -323,6 +323,7 @@ MainTab:CreateToggle({
             end)
 
             local hum = LP.Character and LP.Character:FindFirstChild("Humanoid")
+            local infoLabel = LP.PlayerGui:FindFirstChild("BusJobGUI") and LP.PlayerGui.BusJobGUI.JobStatusFrame.InfoLabel
             
             if not jobStarted then
                 SetStatus("Spawning: " .. _G.SelectedBus)
@@ -357,14 +358,30 @@ MainTab:CreateToggle({
             if target then
                 noBillboardTime = 0 
                 if target ~= lastTarget then
-                    -- FIX: FREEZE DULUAN SEBELUM TELEPORT
+                    -- PROSES TP AWAL
                     SetFreeze(true) 
-                    task.wait(0.2) -- Kasih waktu mesin buat nge-lock physics
+                    task.wait(0.2)
                     InstantTP(target.CFrame)
                     lastTarget = target
                     
-                    -- Timer 1: Freeze 45 Detik
-                    for i = 45, 1, -1 do
+                    -- PENGECEKAN 30 DETIK (Anti-Stuck / Return Zone)
+                    for i = 1, 30 do
+                        if not _G.AutoFull then break end
+                        if infoLabel and string.find(string.upper(infoLabel.Text), "RETURN TO THE CHECKPOINT") then
+                            SetStatus("Correction: TP Again!")
+                            SetFreeze(false)
+                            task.wait(0.5)
+                            InstantTP(target.CFrame)
+                            task.wait(0.5)
+                            SetFreeze(true)
+                        else
+                            SetStatus("Position Secure...")
+                        end
+                        task.wait(1)
+                    end
+                    
+                    -- SISA WAKTU FREEZE (45 - 30 = 15s)
+                    for i = 15, 1, -1 do
                         if not _G.AutoFull then break end
                         SetStatus("To Stations: " .. i .. "s")
                         task.wait(1)
@@ -386,7 +403,6 @@ MainTab:CreateToggle({
                     
                     if noBillboardTime >= 40 then
                         SetStatus("Finishing Job...")
-                        -- FIX: FREEZE DULUAN SEBELUM TP AKHIR
                         SetFreeze(true)
                         task.wait(0.2)
                         InstantTP(CirebonEndCF)
@@ -409,6 +425,7 @@ MainTab:CreateToggle({
         end
     end
 })
+
 
 
 MainTab:CreateSection("Auto Stop Settings")
