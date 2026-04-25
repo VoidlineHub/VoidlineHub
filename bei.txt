@@ -334,14 +334,14 @@ MainTab:CreateToggle({
                     bus.DriveSeat:Sit(hum)
                     task.wait(2)
                     
-                    SetStatus("Getting Job...")
+                    SetStatus("get job...")
                     Remotes:WaitForChild("StartBusJob"):InvokeServer("Baranangsiang_ke_Cirebon1")
                     task.wait(1)
                     
                     hum.Jump = true
                     task.wait(1.5)
                     
-                    SetStatus("Spawn Vehicle..")
+                    SetStatus("Spawn vehicle..")
                     Remotes:WaitForChild("SpawnCar"):FireServer(_G.SelectedBus)
                     task.wait(4)
                     bus = GetMyBus() 
@@ -357,26 +357,25 @@ MainTab:CreateToggle({
             if target then
                 noBillboardTime = 0 
                 if target ~= lastTarget then
-                    -- FIX FREEZE TELAT: Set freeze SEBELUM TP
-                    SetFreeze(true) 
-                    task.wait(0.1)
+                    -- FIX: SetFreeze dipindah sebelum TP biar gak telat
+                    SetFreeze(true)
                     InstantTP(target.CFrame)
                     lastTarget = target
+                    task.wait(1) -- Delay kecil buat sinkronisasi posisi
                     
                     -- Timer 1: Freeze 45 Detik
                     for i = 45, 1, -1 do
                         if not _G.AutoFull then break end
-                        SetStatus("Loading Passengers: " .. i .. "s")
+                        SetStatus("To Stations: " .. i .. "s")
                         task.wait(1)
                     end
                     
                     SetFreeze(false)
                     
-                    -- Timer 2: Cooldown (Total 120s / 2 Menit)
-                    -- 120 - 45 (freeze) = 75 detik sisa
+                    -- Timer 2: Total 2 menit (120s - 45s = 75s)
                     for i = 75, 1, -1 do
                         if not _G.AutoFull then break end
-                        SetStatus("Travel Delay: " .. i .. "s")
+                        SetStatus("Delay TP: " .. i .. "s")
                         task.wait(1)
                     end
                 end
@@ -387,18 +386,12 @@ MainTab:CreateToggle({
                     
                     if noBillboardTime >= 40 then
                         SetStatus("Finishing Job...")
-                        -- FIX AKHIR: Freeze sebelum TP akhir
+                        -- FIX: SetFreeze sebelum TP akhir
                         SetFreeze(true)
-                        task.wait(0.1)
                         InstantTP(CirebonEndCF)
+                        task.wait(2)
                         
-                        -- Payout Safety Delay (15 detik biar payout masuk dulu)
-                        for i = 15, 1, -1 do
-                            if not _G.AutoFull then break end
-                            SetStatus("Processing Payout: " .. i .. "s")
-                            task.wait(1)
-                        end
-                        
+                        -- Langsung kelar sesuai permintaan, tanpa delay lama di akhir
                         SetFreeze(false)
                         jobStarted = false
                         lastTarget = nil
@@ -407,8 +400,8 @@ MainTab:CreateToggle({
                         local bus = GetMyBus()
                         if bus then bus:Destroy() end 
                         
-                        SetStatus("Cycle Finished! Restarting...")
-                        task.wait(3) 
+                        SetStatus("Job Finished! Restarting...")
+                        task.wait(3)
                     end
                 end
             end
@@ -416,6 +409,7 @@ MainTab:CreateToggle({
         end
     end
 })
+
 
 MainTab:CreateSection("Auto Stop Settings")
 
