@@ -8,17 +8,19 @@ local RS = game:GetService("ReplicatedStorage")
 local Remotes = RS:WaitForChild("Remotes")
 local VirtualUser = game:GetService("VirtualUser")
 
--- Data Folder (PASTIKAN NAMANYA BENAR)
-local StatsFolder = LP:WaitForChild("leaderstats", 10)
-local OwnedCarsFolder = RS:WaitForChild("OwnedCars", 5) -- Sesuaikan nama folder
-local CarData = require(RS:WaitForChild("CarData", 5)) -- Sesuaikan jika ini module
+-- FIX DATA FOLDER (Pake PlayerData sesuai kode lama lu yang work)
+local PlayerData = LP:WaitForChild("PlayerData", 10)
+local StatsFolder = PlayerData -- Re-alias biar gak perlu ganti nama variabel di bawah
+local OwnedCarsFolder = PlayerData:WaitForChild("OwnedCars", 10)
 
--- Data Binding & Stats
+-- FIX CAR DATA (Pake InvokeServer sesuai kode lama)
+local CarData = Remotes.GetClientCustomizationData:InvokeServer()
+
+-- Data Binding
 local StartTime = os.time()
+-- Cek uang di dalam PlayerData
 local StartUang = (StatsFolder and StatsFolder:FindFirstChild("Uang")) and StatsFolder.Uang.Value or 0
-local lastTarget = nil
-local jobStarted = false
-local noBillboardTime = 0
+local lastTarget, jobStarted, noBillboardTime = nil, false, 0
 local busOptions = {}
 _G.SelectedBus = "" 
 _G.AutoFull = false
