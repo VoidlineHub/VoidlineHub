@@ -1,0 +1,164 @@
+local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
+
+-- // 1. SERVICES & REMOTES
+local LP = game.Players.LocalPlayer
+local Network = game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Packages"):WaitForChild("Network")
+local TeleportService = game:GetService("TeleportService")
+local VirtualUser = game:GetService("VirtualUser")
+local TweenService = game:GetService("TweenService")
+
+-- // 2. VARIABEL KONTROL
+_G.AutoBrainrot = false
+_G.AutoPower = false
+_G.AutoBonusUI = false
+_G.PowerFireRate = 0.1
+_G.DelayKick = 1.5
+_G.TweenSpeed = 100
+_G.AntiAFK = true
+_G.AutoRejoin = true
+
+-- Area KickReady
+local KickZone = workspace.Areas:FindFirstChild("KickReady")
+local KickCF = KickZone and KickZone.CFrame * CFrame.new(0, 3, 0)
+
+-- // 3. UTILITY FUNCTIONS
+local function TweenTo(targetCF)
+    if not LP.Character or not LP.Character:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = LP.Character.HumanoidRootPart
+    local distance = (hrp.Position - targetCF.Position).Magnitude
+    local info = TweenInfo.new(distance / _G.TweenSpeed, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(hrp, info, {CFrame = targetCF})
+    tween:Play()
+    return tween
+end
+
+-- Fungsi buat "neken" UI secara otomatis
+local function ClickBonusUI()
+    pcall(function()
+        local bonusUI = LP.PlayerGui:FindFirstChild("KickUpgrades") and LP.PlayerGui.KickUpgrades:FindFirstChild("Bonus")
+        if bonusUI and bonusUI.Visible then
+            -- Simulasi klik di posisi UI tersebut
+            for _, connection in pairs(getconnections(bonusUI.MouseButton1Click)) do
+                connection:Fire()
+            end
+            -- Alternatif simulasi input
+            VirtualUser:Button1Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            VirtualUser:Button1Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+        end
+    end)
+end
+
+-- // 4. UI SETUP
+local Window = VelarisUI:Window({
+    Title  = "VoidlineHub",
+    Footer = "Brainrot Lucky Block Edition",
+    Color  = "Default",
+    Icon = "zap",
+    Size = UDim2.fromOffset(550, 500)
+})
+
+local MainTab = Window:AddTab({ Name = "Main", Icon = "play" })
+local FarmSection = MainTab:AddSection({ Title = "Autofarm Gacha", Open = true })
+
+-- TOGGLE UTAMA (TWEEN MODE)
+FarmSection:AddToggle({
+    Title = "On Autofarm (Tween Mode)",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoBrainrot = Value
+        task.spawn(function()
+            while _G.AutoBrainrot do
+                pcall(function()
+                    if KickCF and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+                        local tw = TweenTo(KickCF)
+                        if tw then tw.Completed:Wait() end
+                        Network.rev_Transformed:FireServer()
+                        task.wait(0.1)
+                        Network.rev_KickEvent:FireServer(0.9439757987856865)
+                        Network.rev_KickZman:FireServer()
+                        task.wait(_G.DelayKick)
+                        Network.rev_KickCollect:FireServer()
+                    end
+                end)
+                task.wait(0.3)
+            end
+        end)
+    end
+})
+
+-- TOGGLE AUTO POWER & BONUS UI
+local PowerSection = MainTab:AddSection({ Title = "Power & Upgrades", Open = true })
+
+PowerSection:AddToggle({
+    Title = "Auto Fire Power Remote",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoPower = Value
+        task.spawn(function()
+            while _G.AutoPower do
+                pcall(function()
+                    Network.rev_TaviMishkal:FireServer()
+                end)
+                task.wait(_G.PowerFireRate)
+            end
+        end)
+    end
+})
+
+PowerSection:AddToggle({
+    Title = "Auto Click Bonus UI",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoBonusUI = Value
+        task.spawn(function()
+            while _G.AutoBonusUI do
+                ClickBonusUI()
+                task.wait(0.5) -- Cek UI tiap setengah detik
+            end
+        end)
+    end
+})
+
+-- SETTINGS
+local SettingsSection = MainTab:AddSection({ Title = "Settings", Open = false })
+
+SettingsSection:AddInput({
+    Title = "Power Fire Rate (Seconds)",
+    Placeholder = "Default: 0.1",
+    Callback = function(Text) _G.PowerFireRate = tonumber(Text) or 0.1 end
+})
+
+SettingsSection:AddInput({
+    Title = "Tween Speed",
+    Placeholder = "Default: 100",
+    Callback = function(Text) _G.TweenSpeed = tonumber(Text) or 100 end
+})
+
+-- TAB MISC
+local MiscTab = Window:AddTab({ Name = "Misc", Icon = "shield" })
+local MiscSection = MiscTab:AddSection({ Title = "Security" })
+MiscSection:AddToggle({ Title = "Auto Rejoin", Default = true, Callback = function(v) _G.AutoRejoin = v end })
+MiscSection:AddToggle({ Title = "Anti-AFK", Default = true, Callback = function(v) _G.AntiAFK = v end })
+
+-- // 5. BACKGROUND LOGIC
+LP.Idled:Connect(function()
+    if _G.AntiAFK then
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end
+end)
+
+game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
+    if _G.AutoRejoin and State == Enum.TeleportState.Failed then
+        TeleportService:Teleport(game.PlaceId, LP)
+    end
+end)
+
+game:GetService("CoreGui").ChildAdded:Connect(function(child)
+    if _G.AutoRejoin and child.Name == "ErrorPrompt" then
+        task.wait(2)
+        TeleportService:Teleport(game.PlaceId, LP)
+    end
+end)
+
+VelarisUI:Notify({ Title = "VoidlineHub Loaded", Content = "Gacha, Power, & UI Bonus Ready!" })
