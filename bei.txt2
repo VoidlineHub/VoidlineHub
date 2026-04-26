@@ -1,0 +1,224 @@
+local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
+
+local Window = VelarisUI:Window({
+    Title  = "Voidlinehub",
+    Footer = "",
+    Color  = "Default",
+    Icon = "house",
+    ShowUser = true,
+    Search = true,
+    Version = "v1.0",
+    Size =  UDim2.fromOffset(640, 400)
+})
+
+-- Tambah Tag
+Window:Tag({ Title = "V1.0", Color = "#CCCCCC" })
+Window:Tag({ Title = "Bus Explorer Indonesia", Color = Color3.fromRGB(48, 255, 106) })
+
+--- TAB INFORMATION ---
+local InfoTab = Window:AddTab({ Name = "Information", Icon = "info" })
+
+--- TAB MAIN FARM ---
+local MainTab = Window:AddTab({ Name = "Main Farm", Icon = "play" })
+
+-- SECTION 1: AUTOFARM BUS
+local FarmSection = MainTab:AddSection({ 
+    Title = "Autofarm bus", 
+    Open = false 
+})
+
+-- Paragraph ada di sini
+FarmSection:AddParagraph({
+    Title = "How to Use Auto-Kick", 
+    Content = "1. Masukkan target uang (Contoh: 1.500.000)\n2. Nyalakan toggle 'Enable Auto-Kick'\n3. Script akan otomatis kick saat uang tercapai."
+})
+
+FarmSection:AddToggle({
+    Title = "On Autofarm",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoFull = Value
+        
+        if not Value then 
+            lastTarget = nil 
+            jobStarted = false
+            SetFreeze(false)
+            SetStatus("Idle")
+        end
+        
+        while _G.AutoFull do
+            -- LOGIC HAPUS PENGHALANG
+            pcall(function()
+                local cikamurang = workspace:FindFirstChild("Cikamurang")
+                if cikamurang then
+                    local folderModel = cikamurang:FindFirstChild("model") or cikamurang:FindFirstChild("Model")
+                    if folderModel then
+                        local targetHapus = folderModel:WaitForChild("SInar", 0.1)
+                        if targetHapus then targetHapus:Destroy() end
+                    end
+                end
+            end)
+
+            local hum = LP.Character and LP.Character:FindFirstChild("Humanoid")
+            local infoLabel = LP.PlayerGui:FindFirstChild("BusJobGUI") and LP.PlayerGui.BusJobGUI.JobStatusFrame.InfoLabel
+            
+            if not jobStarted then
+                SetStatus("Spawning: " .. _G.SelectedBus)
+                Remotes:WaitForChild("SpawnCar"):FireServer(_G.SelectedBus)
+                task.wait(4)
+                local bus = GetMyBus()
+                
+                if bus and bus:FindFirstChild("DriveSeat") then
+                    bus.DriveSeat:Sit(hum)
+                    task.wait(2)
+                    
+                    SetStatus("get job...")
+                    Remotes:WaitForChild("StartBusJob"):InvokeServer("Baranangsiang_ke_Cirebon1")
+                    task.wait(1)
+                    
+                    hum.Jump = true
+                    task.wait(1.5)
+                    
+                    SetStatus("Spawn vehicle..")
+                    Remotes:WaitForChild("SpawnCar"):FireServer(_G.SelectedBus)
+                    task.wait(4)
+                    bus = GetMyBus() 
+                    
+                    if bus and bus:FindFirstChild("DriveSeat") then
+                        bus.DriveSeat:Sit(hum)
+                        jobStarted = true
+                    end
+                end
+            end
+            
+            local target = GetActiveStop()
+            if target then
+                noBillboardTime = 0 
+                if target ~= lastTarget then
+                    -- PROSES TP AWAL
+                    SetFreeze(true) 
+                    task.wait(0.2)
+                    InstantTP(target.CFrame)
+                    lastTarget = target
+                    
+                    -- PENGECEKAN 30 DETIK (Anti-Stuck / Return Zone)
+                    for i = 1, 30 do
+                        if not _G.AutoFull then break end
+                        if infoLabel and string.find(string.upper(infoLabel.Text), "RETURN TO THE CHECKPOINT") then
+                            SetStatus("Correction: TP Again!")
+                            SetFreeze(false)
+                            task.wait(0.5)
+                            InstantTP(target.CFrame)
+                            task.wait(0.5)
+                            SetFreeze(true)
+                        else
+                            SetStatus("Position Secure...")
+                        end
+                        task.wait(1)
+                    end
+                    
+                    -- SISA WAKTU FREEZE (45 - 30 = 15s)
+                    for i = 15, 1, -1 do
+                        if not _G.AutoFull then break end
+                        SetStatus("To Stations: " .. i .. "s")
+                        task.wait(1)
+                    end
+                    
+                    SetFreeze(false)
+                    
+                    -- Timer 2: Total 2 Menit (120s - 45s = 75s)
+                    for i = 75, 1, -1 do
+                        if not _G.AutoFull then break end
+                        SetStatus("Delay TP: " .. i .. "s")
+                        task.wait(1)
+                    end
+                end
+            else
+                if jobStarted then
+                    noBillboardTime = noBillboardTime + 1
+                    SetStatus("Searching Stop: " .. (40 - noBillboardTime) .. "s")
+                    
+                    if noBillboardTime >= 40 then
+                        SetStatus("Finishing Job...")
+                        SetFreeze(true)
+                        task.wait(0.2)
+                        InstantTP(CirebonEndCF)
+                        
+                        task.wait(2)
+                        SetFreeze(false)
+                        jobStarted = false
+                        lastTarget = nil
+                        noBillboardTime = 0
+                        
+                        local bus = GetMyBus()
+                        if bus then bus:Destroy() end 
+                        
+                             SetStatus("Job Finished! Restarting...")
+                            task.wait(3) 
+                        end
+                    end
+                end
+                task.wait(1)
+            end
+        end)
+    end
+})
+-- SECTION 2: AUTO STOP SETTINGS
+local StopSection = MainTab:AddSection({ 
+    Title = "Auto Stop Settings", 
+    Open = false 
+})
+
+StopSection:AddInput({
+    Title = "Set Target Money",
+    Placeholder = "input your target",
+    Callback = function(Text)
+        local cleanNumber = Text:gsub("%.", "")
+        TargetUang = tonumber(cleanNumber) or 0
+        
+        Window:Notify({
+            Title = "Target Set",
+            Description = "Success",
+            Content = "Target money set to: Rp " .. tostring(TargetUang),
+            Duration = 3,
+            Type = "Default"
+        })
+    end
+})
+
+StopSection:AddToggle({
+    Title = "Enable Auto-Kick",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoKickEnabled = Value
+        
+        if Value then
+            task.spawn(function()
+                local LP = game:GetService("Players").LocalPlayer
+                -- Pastikan folder leaderstats/uang sesuai dengan gamenya
+                local StatsFolder = LP:WaitForChild("leaderstats", 5)
+                
+                while _G.AutoKickEnabled do
+                    if StatsFolder and StatsFolder:FindFirstChild("Uang") then
+                        local currentMoney = StatsFolder.Uang.Value
+                        if TargetUang and TargetUang > 0 and currentMoney >= TargetUang then
+                            LP:Kick("\n[VoidlineHub]\nTarget money reached!\nTotal: Rp " .. tostring(currentMoney))
+                            break
+                        end
+                    end
+                    task.wait(2)
+                end
+            end)
+        end
+    end
+})
+
+
+-- tab config --
+local ConfigTab = Window:AddTab({ Name = "Configuration", Icon = "Settings" })
+
+-- tab speed -- 
+local SpeedTab = Window:AddTab({ Name = "speed tune", Icon = "bus" })
+
+-- tab more feature --
+local MoreTab = Window:AddTab({ Name = "More Feature", Icon = "plus-circle" })
