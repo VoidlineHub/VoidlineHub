@@ -55,10 +55,11 @@ _G.SelectedBus = busOptions[1]
 local function SetStatus(text)
     if StatusLabel then
         pcall(function()
-            StatusLabel:Set("Status: " .. text) 
+            StatusLabel:Set("Status: " .. text)
         end)
     end
 end
+
 
 
 local function GetMyBus()
