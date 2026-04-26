@@ -1,36 +1,17 @@
 local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
 
-local VirtualUser = game:GetService("VirtualUser")
-local LP = game.Players.LocalPlayer
-local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local StatsFolder = LP:WaitForChild("PlayerData")
-local StartUang = StatsFolder.Uang.Value
-local StartTime = os.time()
-local CarData = Remotes.GetClientCustomizationData:InvokeServer()
-local OwnedCarsFolder = LP:WaitForChild("PlayerData"):WaitForChild("OwnedCars")
-local HttpService = game:GetService("HttpService")
+-- Services
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("Remotes") -- Sesuaikan nama folder Remotes game
 
--- VARIABEL
+-- Data Binding (Variabel Status)
+local lastTarget = nil
+local jobStarted = false
+local noBillboardTime = 0
+_G.SelectedBus = "Jetbus 5" -- Default bus
 _G.AutoFull = false
-_G.AntiAFK = false
-_G.AutoRejoin = false
-_G.HideChar = false
-_G.SelectedBus = "" 
-_G.WebhookURL = ""
-_G.TotalEarning = 0
-_G.CycleCount = 0
-_G.StartTime = os.time()
-_G.AutoKickEnabled = false
-local TargetUang = 0
-local lastMoney = StatsFolder.Uang.Value
-local SelectedBusToBuy = ""
-local CarListData = {}
-local pendingIncome = 0
-local SelectedAction = "Dealership"
-local SelectedTP = "Dealership"
-local isRunning = false
-local busOptions = {}
+TargetUang = 0
 
 -- Forward Declaration
 local StatusLabel, UangLabel, EarningLabel, TimeLabel, FPSLabel, PingLabel
