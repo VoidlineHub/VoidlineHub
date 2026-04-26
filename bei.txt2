@@ -32,6 +32,125 @@ local SelectedTP = "Dealership"
 local isRunning = false
 local busOptions = {}
 
+-- Forward Declaration
+local StatusLabel, UangLabel, EarningLabel, TimeLabel, FPSLabel, PingLabel
+
+-- --- FORMAT RUPIAH FUNCTION ---
+local function formatRS(amount)
+    local formatted = tostring(amount)
+    while true do  
+        formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1.%2')
+        if (k==0) then break end
+    end
+    return formatted
+end
+
+-- --- LOOP MONITORING STATS ---
+task.spawn(function()
+    while task.wait(1) do
+        -- Cek salah satu label saja buat mastiin UI udah ke-load
+        if UangLabel then
+            pcall(function()
+                -- Update Financials
+                local currentUang = StatsFolder.Uang.Value
+                UangLabel:Set("Uang: Rp " .. formatRS(currentUang))
+                EarningLabel:Set("Earning: Rp " .. formatRS(currentUang - StartUang))
+                
+                -- Update Time
+                local diff = os.time() - StartTime
+                local h = math.floor(diff / 3600)
+                local m = math.floor((diff % 3600) / 60)
+                local s = diff % 60
+                TimeLabel:Set(string.format("Time: %02d:%02d:%02d", h, m, s))
+                
+                -- Update Performance
+                local ping = tonumber(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString():split(" ")[1]) or 0
+                PingLabel:Set("Ping: " .. math.floor(ping) .. " ms")
+                
+                -- Update FPS
+                local fps = math.floor(1 / task.wait())
+                FPSLabel:Set("FPS: " .. fps)
+            end)
+        end
+    end
+end)
+
+-- SCANNING BUS 
+for _, car in pairs(OwnedCarsFolder:GetChildren()) do
+    local carID = car.Name
+    local carInfo = CarData.CarData_Cars[carID]
+    if carInfo then
+        table.insert(busOptions, carID)
+    end
+end
+
+-- Fallback 
+if #busOptions == 0 then table.insert(busOptions, "Jetbus_3_RM _SHD") end
+_G.SelectedBus = busOptions[1]
+
+local lastTarget = nil
+local noBillboardTime = 0
+local jobStarted = false
+local CirebonEndCF = CFrame.new(-26471.1445, -212.441071, 33276.8203, -0.0246282816, 0, 0.999696672, 0, 1, 0, -0.999696672, 0, -0.0246282816)
+local TP_Locations = {
+    ["Dealership"] = CFrame.new(19830.625, 266.913116, -27910.4844, 0.999847949, 0, 0.017436387, 0, 1, 0, -0.017436387, 0, 0.999847949),
+    ["Modifikasi"] = CFrame.new(12035.499, -21.3362789, 12740.0605, -0.573599219, 0, 0.81913656, 0, 1, 0, -0.81913656, 0, -0.573599219),
+    ["Teleport City"] = CFrame.new(21795.2461, 292.439026, -40055.918, 0.707134247, -0, -0.707079291, 0, 1, -0, 0.707079291, 0, 0.707134247)
+}
+game.Players.LocalPlayer.Idled:Connect(function()
+    if _G.AntiAFK then
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+        warn("VoidlineHub: Anti-AFK Aktif!")
+    end
+end) -- Pastikan ada 'end)' di sini!
+
+-- --- UTILITY FUNCTIONS ---
+local function SetStatus(text)
+    if StatusLabel then
+        StatusLabel:Set("Status: " .. text)
+    end
+end
+
+local function GetMyBus()
+    return workspace.SpawnedVehicles:FindFirstChild(_G.SelectedBus)
+end
+
+local function SetFreeze(state)
+    local bus = GetMyBus()
+    if bus then
+        for _, part in pairs(bus:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Anchored = state
+                if not state then
+                    part.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                    part.AssemblyAngularVelocity = Vector3.new(0,0,0)
+                end
+            end
+        end
+    end
+end
+
+local function InstantTP(targetCF)
+    local bus = GetMyBus()
+    if not bus then return end
+    SetFreeze(false) 
+    task.wait(0.1)
+    for i = 1, 3 do
+        bus:PivotTo(targetCF)
+        task.wait(0.05)
+    end
+end
+
+local function GetActiveStop()
+    for _, part in pairs(workspace.Checkpoints:GetChildren()) do
+        local bs = part:FindFirstChild("BusStop")
+        if bs and bs:IsA("BillboardGui") and bs.Enabled == true then
+            return part
+        end
+    end
+    return nil
+end
 
 
 local Window = VelarisUI:Window({
