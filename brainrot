@@ -1,14 +1,15 @@
-local RawUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
-local VelarisUI = RawUI()
+-- // 1. LOAD LIBRARY (FIXED)
+local RawLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
+local VelarisUI = RawLibrary
 
--- // 1. SERVICES & REMOTES
+-- // 2. SERVICES & REMOTES
 local LP = game.Players.LocalPlayer
 local Network = game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Packages"):WaitForChild("Network")
 local TeleportService = game:GetService("TeleportService")
 local VirtualUser = game:GetService("VirtualUser")
 local TweenService = game:GetService("TweenService")
 
--- // 2. VARIABEL KONTROL
+-- // 3. VARIABEL KONTROL
 _G.AutoBrainrot = false
 _G.AutoPower = false
 _G.AutoBonusUI = false
@@ -22,7 +23,7 @@ local KickZone = workspace.Areas:FindFirstChild("KickReady")
 local KickCF = KickZone and KickZone.CFrame * CFrame.new(0, 3, 0)
 local SafeZoneCF = CFrame.new(0, 100, 0)
 
--- // 3. UTILITY FUNCTIONS
+-- // 4. UTILITY FUNCTIONS
 local function TweenTo(targetCF, speed)
     if not LP.Character or not LP.Character:FindFirstChild("HumanoidRootPart") then return end
     local hrp = LP.Character.HumanoidRootPart
@@ -33,35 +34,39 @@ local function TweenTo(targetCF, speed)
     return tween
 end
 
--- // 4. TSUNAMI DETECTOR
+-- // 5. TSUNAMI DETECTOR
 task.spawn(function()
     while task.wait(0.5) do
-        pcall(function()
-            local tsunami = workspace:FindFirstChild("Tsunami") or workspace:FindFirstChild("Wave")
-            if tsunami and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-                local dist = (LP.Character.HumanoidRootPart.Position - tsunami.Position).Magnitude
-                if dist < 100 then 
-                    _G.AutoBrainrot = false 
-                    TweenTo(SafeZoneCF, 350)
+        if _G.AutoBrainrot then
+            pcall(function()
+                local tsunami = workspace:FindFirstChild("Tsunami") or workspace:FindFirstChild("Wave")
+                if tsunami and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+                    local dist = (LP.Character.HumanoidRootPart.Position - tsunami.Position).Magnitude
+                    if dist < 100 then 
+                        _G.AutoBrainrot = false 
+                        TweenTo(SafeZoneCF, 350)
+                    end
                 end
-            end
-        end)
+            end)
+        end
     end
 end)
 
--- // 5. UI SETUP (Fixed Nil Call)
-local Window = VelarisUI.Create({
-    Name = "VoidlineHub",
+-- // 6. UI SETUP (LINE 54 FIX)
+local Window = VelarisUI:Window({
+    Title  = "VoidlineHub",
     Footer = "Ultimate Brainrot Edition",
-    Icon = "zap"
+    Color  = "Default",
+    Icon = "zap",
+    Size = UDim2.fromOffset(550, 500)
 })
 
-local MainTab = Window:Tab({ Name = "Main", Icon = "play" })
-local FarmSection = MainTab:Section({ Title = "Autofarm Gacha" })
+local MainTab = Window:AddTab({ Name = "Main", Icon = "play" })
+local FarmSection = MainTab:AddSection({ Title = "Autofarm Gacha", Open = true })
 
 -- TOGGLE UTAMA
-FarmSection:Toggle({
-    Name = "Auto Farm (No-Delay Mode)",
+FarmSection:AddToggle({
+    Title = "Auto Farm (No-Delay Mode)",
     Default = false,
     Callback = function(Value)
         _G.AutoBrainrot = Value
@@ -91,10 +96,10 @@ FarmSection:Toggle({
 })
 
 -- AUTO POWER & BONUS
-local PowerSection = MainTab:Section({ Title = "Power & Upgrades" })
+local PowerSection = MainTab:AddSection({ Title = "Power & Upgrades", Open = true })
 
-PowerSection:Toggle({
-    Name = "Turbo Fire Power Remote",
+PowerSection:AddToggle({
+    Title = "Turbo Fire Power Remote",
     Default = false,
     Callback = function(Value)
         _G.AutoPower = Value
@@ -107,8 +112,8 @@ PowerSection:Toggle({
     end
 })
 
-PowerSection:Toggle({
-    Name = "Auto Click Bonus UI",
+PowerSection:AddToggle({
+    Title = "Auto Click Bonus UI",
     Default = false,
     Callback = function(Value)
         _G.AutoBonusUI = Value
@@ -127,22 +132,20 @@ PowerSection:Toggle({
 })
 
 -- SETTINGS
-local SettingsTab = Window:Tab({ Name = "Settings", Icon = "settings" })
-local SettingsSection = SettingsTab:Section({ Title = "Configurations" })
-
-SettingsSection:Input({
-    Name = "Fly Duration",
-    Placeholder = "1.3",
+local SettingsSection = MainTab:AddSection({ Title = "Settings", Open = false })
+SettingsSection:AddInput({
+    Title = "Fly Duration",
+    Placeholder = "Default: 1.3",
     Callback = function(t) _G.DelayKick = tonumber(t) or 1.3 end
 })
 
 -- MISC
-local MiscSection = SettingsTab:Section({ Title = "Security" })
+local MiscTab = Window:AddTab({ Name = "Misc", Icon = "shield" })
+local MiscSection = MiscTab:AddSection({ Title = "Security" })
+MiscSection:AddToggle({ Title = "Auto Rejoin", Default = true, Callback = function(v) _G.AutoRejoin = v end })
+MiscSection:AddToggle({ Title = "Anti-AFK", Default = true, Callback = function(v) _G.AntiAFK = v end })
 
-MiscSection:Toggle({ Name = "Auto Rejoin", Default = true, Callback = function(v) _G.AutoRejoin = v end })
-MiscSection:Toggle({ Name = "Anti-AFK", Default = true, Callback = function(v) _G.AntiAFK = v end })
-
--- // 6. BACKGROUND LOGIC
+-- // 7. BACKGROUND LOGIC
 LP.Idled:Connect(function() if _G.AntiAFK then VirtualUser:CaptureController() VirtualUser:ClickButton2(Vector2.new()) end end)
 game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(s) if _G.AutoRejoin and s == Enum.TeleportState.Failed then TeleportService:Teleport(game.PlaceId, LP) end end)
 game:GetService("CoreGui").ChildAdded:Connect(function(c) if _G.AutoRejoin and c.Name == "ErrorPrompt" then task.wait(2) TeleportService:Teleport(game.PlaceId, LP) end end)
