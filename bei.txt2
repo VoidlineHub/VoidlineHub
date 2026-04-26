@@ -1,5 +1,6 @@
 local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
 
+
 -- Services
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
@@ -139,8 +140,6 @@ FarmSection:AddParagraph({
     Title = "How to Use Auto-Kick", 
     Content = "1. Masukkan target uang (Contoh: 1.500.000)\n2. Nyalakan toggle 'Enable Auto-Kick'\n3. Script akan otomatis kick saat uang tercapai."
 })
-
-FarmSection:AddToggle({
     Title = "On Autofarm",
     Default = false,
     Callback = function(Value)
@@ -153,123 +152,126 @@ FarmSection:AddToggle({
             SetStatus("Idle")
         end
         
-        while _G.AutoFull do
-            -- LOGIC HAPUS PENGHALANG
-            pcall(function()
-                local cikamurang = workspace:FindFirstChild("Cikamurang")
-                if cikamurang then
-                    local folderModel = cikamurang:FindFirstChild("model") or cikamurang:FindFirstChild("Model")
-                    if folderModel then
-                        local targetHapus = folderModel:WaitForChild("SInar", 0.1)
-                        if targetHapus then targetHapus:Destroy() end
+        -- Bungkus pake spawn biar menu tetep bisa ditekuk/diklik
+        task.spawn(function()
+            while _G.AutoFull do
+                -- LOGIC HAPUS PENGHALANG
+                pcall(function()
+                    local cikamurang = workspace:FindFirstChild("Cikamurang")
+                    if cikamurang then
+                        local folderModel = cikamurang:FindFirstChild("model") or cikamurang:FindFirstChild("Model")
+                        if folderModel then
+                            local targetHapus = folderModel:WaitForChild("SInar", 0.1)
+                            if targetHapus then targetHapus:Destroy() end
+                        end
                     end
-                end
-            end)
+                end)
 
-            local hum = LP.Character and LP.Character:FindFirstChild("Humanoid")
-            local infoLabel = LP.PlayerGui:FindFirstChild("BusJobGUI") and LP.PlayerGui.BusJobGUI.JobStatusFrame.InfoLabel
-            
-            if not jobStarted then
-                SetStatus("Spawning: " .. _G.SelectedBus)
-                Remotes:WaitForChild("SpawnCar"):FireServer(_G.SelectedBus)
-                task.wait(4)
-                local bus = GetMyBus()
+                local hum = LP.Character and LP.Character:FindFirstChild("Humanoid")
+                local infoLabel = LP.PlayerGui:FindFirstChild("BusJobGUI") and LP.PlayerGui.BusJobGUI.JobStatusFrame.InfoLabel
                 
-                if bus and bus:FindFirstChild("DriveSeat") then
-                    bus.DriveSeat:Sit(hum)
-                    task.wait(2)
-                    
-                    SetStatus("get job...")
-                    Remotes:WaitForChild("StartBusJob"):InvokeServer("Baranangsiang_ke_Cirebon1")
-                    task.wait(1)
-                    
-                    hum.Jump = true
-                    task.wait(1.5)
-                    
-                    SetStatus("Spawn vehicle..")
+                if not jobStarted then
+                    SetStatus("Spawning: " .. _G.SelectedBus)
                     Remotes:WaitForChild("SpawnCar"):FireServer(_G.SelectedBus)
                     task.wait(4)
-                    bus = GetMyBus() 
+                    local bus = GetMyBus()
                     
                     if bus and bus:FindFirstChild("DriveSeat") then
                         bus.DriveSeat:Sit(hum)
-                        jobStarted = true
-                    end
-                end
-            end
-            
-            local target = GetActiveStop()
-            if target then
-                noBillboardTime = 0 
-                if target ~= lastTarget then
-                    -- PROSES TP AWAL
-                    SetFreeze(true) 
-                    task.wait(0.2)
-                    InstantTP(target.CFrame)
-                    lastTarget = target
-                    
-                    -- PENGECEKAN 30 DETIK (Anti-Stuck / Return Zone)
-                    for i = 1, 30 do
-                        if not _G.AutoFull then break end
-                        if infoLabel and string.find(string.upper(infoLabel.Text), "RETURN TO THE CHECKPOINT") then
-                            SetStatus("Correction: TP Again!")
-                            SetFreeze(false)
-                            task.wait(0.5)
-                            InstantTP(target.CFrame)
-                            task.wait(0.5)
-                            SetFreeze(true)
-                        else
-                            SetStatus("Position Secure...")
-                        end
-                        task.wait(1)
-                    end
-                    
-                    -- SISA WAKTU FREEZE (45 - 30 = 15s)
-                    for i = 15, 1, -1 do
-                        if not _G.AutoFull then break end
-                        SetStatus("To Stations: " .. i .. "s")
-                        task.wait(1)
-                    end
-                    
-                    SetFreeze(false)
-                    
-                    -- Timer 2: Total 2 Menit (120s - 45s = 75s)
-                    for i = 75, 1, -1 do
-                        if not _G.AutoFull then break end
-                        SetStatus("Delay TP: " .. i .. "s")
-                        task.wait(1)
-                    end
-                end
-            else
-                if jobStarted then
-                    noBillboardTime = noBillboardTime + 1
-                    SetStatus("Searching Stop: " .. (40 - noBillboardTime) .. "s")
-                    
-                    if noBillboardTime >= 40 then
-                        SetStatus("Finishing Job...")
-                        SetFreeze(true)
-                        task.wait(0.2)
-                        InstantTP(CirebonEndCF)
-                        
                         task.wait(2)
+                        
+                        SetStatus("get job...")
+                        Remotes:WaitForChild("StartBusJob"):InvokeServer("Baranangsiang_ke_Cirebon1")
+                        task.wait(1)
+                        
+                        hum.Jump = true
+                        task.wait(1.5)
+                        
+                        SetStatus("Spawn vehicle..")
+                        Remotes:WaitForChild("SpawnCar"):FireServer(_G.SelectedBus)
+                        task.wait(4)
+                        bus = GetMyBus() 
+                        
+                        if bus and bus:FindFirstChild("DriveSeat") then
+                            bus.DriveSeat:Sit(hum)
+                            jobStarted = true
+                        end
+                    end
+                end
+                
+                local target = GetActiveStop()
+                if target then
+                    noBillboardTime = 0 
+                    if target ~= lastTarget then
+                        -- PROSES TP AWAL
+                        SetFreeze(true) 
+                        task.wait(0.2)
+                        InstantTP(target.CFrame)
+                        lastTarget = target
+                        
+                        -- PENGECEKAN 30 DETIK (Anti-Stuck / Return Zone)
+                        for i = 1, 30 do
+                            if not _G.AutoFull then break end
+                            if infoLabel and string.find(string.upper(infoLabel.Text), "RETURN TO THE CHECKPOINT") then
+                                SetStatus("Correction: TP Again!")
+                                SetFreeze(false)
+                                task.wait(0.5)
+                                InstantTP(target.CFrame)
+                                task.wait(0.5)
+                                SetFreeze(true)
+                            else
+                                SetStatus("Position Secure...")
+                            end
+                            task.wait(1)
+                        end
+                        
+                        -- SISA WAKTU FREEZE (45 - 30 = 15s)
+                        for i = 15, 1, -1 do
+                            if not _G.AutoFull then break end
+                            SetStatus("To Stations: " .. i .. "s")
+                            task.wait(1)
+                        end
+                        
                         SetFreeze(false)
-                        jobStarted = false
-                        lastTarget = nil
-                        noBillboardTime = 0
                         
-                        local bus = GetMyBus()
-                        if bus then bus:Destroy() end 
+                        -- Timer 2: Total 2 Menit (120s - 45s = 75s)
+                        for i = 75, 1, -1 do
+                            if not _G.AutoFull then break end
+                            SetStatus("Delay TP: " .. i .. "s")
+                            task.wait(1)
+                        end
+                    end
+                else
+                    if jobStarted then
+                        noBillboardTime = noBillboardTime + 1
+                        SetStatus("Searching Stop: " .. (40 - noBillboardTime) .. "s")
                         
-                             SetStatus("Job Finished! Restarting...")
+                        if noBillboardTime >= 40 then
+                            SetStatus("Finishing Job...")
+                            SetFreeze(true)
+                            task.wait(0.2)
+                            InstantTP(CirebonEndCF)
+                            
+                            task.wait(2)
+                            SetFreeze(false)
+                            jobStarted = false
+                            lastTarget = nil
+                            noBillboardTime = 0
+                            
+                            local bus = GetMyBus()
+                            if bus then bus:Destroy() end 
+                            
+                            SetStatus("Job Finished! Restarting...")
                             task.wait(3) 
                         end
                     end
                 end
                 task.wait(1)
             end
-        end)
+        end) -- Penutup task.spawn
     end
 })
+
 -- SECTION 2: AUTO STOP SETTINGS
 local StopSection = MainTab:AddSection({ 
     Title = "Auto Stop Settings", 
@@ -323,13 +325,13 @@ StopSection:AddToggle({
 --- TAB STATS ---
 local StatsTab = Window:AddTab({ Name = "Stats", Icon = "trending-up" })
 
--- SECTION 1: INFO FARM
-local InfoSection = StatsTab:AddSection({ Title = "Info Farm", Open = false })
+-- SECTION 1: INFO FARM (Set Open = true biar langsung kelihatan angkanya)
+local InfoSection = StatsTab:AddSection({ Title = "Info Farm", Open = true })
 
--- Kita pakai AddParagraph supaya bisa nampung Title & Content (Icon biasanya di Section)
+-- Definisi Label sebagai Global agar bisa diupdate Loop Monitoring
 StatusLabel = InfoSection:AddParagraph({
     Title = "Status",
-    Content = "Waiting"
+    Content = "Waiting..."
 })
 
 UangLabel = InfoSection:AddParagraph({
@@ -348,7 +350,7 @@ TimeLabel = InfoSection:AddParagraph({
 })
 
 -- SECTION 2: SYSTEM INFO
-local SystemSection = StatsTab:AddSection({ Title = "System Info", Open = false })
+local SystemSection = StatsTab:AddSection({ Title = "System Info", Open = true })
 
 FPSLabel = SystemSection:AddParagraph({
     Title = "FPS",
