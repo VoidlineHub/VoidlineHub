@@ -54,12 +54,14 @@ _G.SelectedBus = busOptions[1]
 -- --- UTILITY FUNCTIONS ---
 local function SetStatus(text)
     if StatusLabel then
-        StatusLabel:Set({ Title = "Status", Content = text })
+        pcall(function()
+            StatusLabel:Set("Status: " .. text) 
+        end)
     end
 end
 
+
 local function GetMyBus()
-    -- Cek di folder mana bus kamu spawn biasanya (workspace.Vehicles atau sejenisnya)
     return workspace:FindFirstChild("SpawnedVehicles") and workspace.SpawnedVehicles:FindFirstChild(_G.SelectedBus) or workspace:FindFirstChild(_G.SelectedBus)
 end
 
