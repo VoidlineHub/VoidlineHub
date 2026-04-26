@@ -320,6 +320,46 @@ StopSection:AddToggle({
     end
 })
 
+--- TAB STATS ---
+local StatsTab = Window:AddTab({ Name = "Stats", Icon = "trending-up" })
+
+-- SECTION 1: INFO FARM
+local InfoSection = StatsTab:AddSection({ Title = "Info Farm", Open = false })
+
+-- Kita pakai AddParagraph supaya bisa nampung Title & Content (Icon biasanya di Section)
+StatusLabel = InfoSection:AddParagraph({
+    Title = "Status",
+    Content = "Waiting"
+})
+
+UangLabel = InfoSection:AddParagraph({
+    Title = "Uang",
+    Content = "Rp 0"
+})
+
+EarningLabel = InfoSection:AddParagraph({
+    Title = "Earning",
+    Content = "Rp 0"
+})
+
+TimeLabel = InfoSection:AddParagraph({
+    Title = "Time",
+    Content = "00:00:00"
+})
+
+-- SECTION 2: SYSTEM INFO
+local SystemSection = StatsTab:AddSection({ Title = "System Info", Open = false })
+
+FPSLabel = SystemSection:AddParagraph({
+    Title = "FPS",
+    Content = "Scanning..."
+})
+
+PingLabel = SystemSection:AddParagraph({
+    Title = "Ping",
+    Content = "Scanning..."
+})
+
 
 -- tab config --
 local ConfigTab = Window:AddTab({ Name = "Configuration", Icon = "Settings" })
