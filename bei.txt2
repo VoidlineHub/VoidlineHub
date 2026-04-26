@@ -119,7 +119,8 @@ FarmSection:AddParagraph({
     Title = "How to Use Auto-Kick", 
     Content = "1. Masukkan target uang (Contoh: 1.500.000)\n2. Nyalakan toggle 'Enable Auto-Kick'\n3. Script akan otomatis kick saat uang tercapai."
 })
- FarmSection:AddToggle({Title = "On Autofarm",
+ FarmSection:AddToggle({
+    Title = "On Autofarm",
     Default = false,
     Callback = function(Value)
         _G.AutoFull = Value
@@ -247,9 +248,10 @@ FarmSection:AddParagraph({
                 end
                 task.wait(1)
             end
-        end) -- Penutup task.spawn
+        end)
     end
-})
+}) 
+
 
 -- SECTION 2: AUTO STOP SETTINGS
 local StopSection = MainTab:AddSection({ 
