@@ -32,6 +32,39 @@ local SelectedTP = "Dealership"
 local isRunning = false
 local busOptions = {}
 
+-- Fungsi Update Status (Agar bisa dibaca user)
+local function SetStatus(text)
+    print("[VoidlineHub] Status: " .. text)
+    -- Kalau ada label di UI buat status, binding ke sini
+end
+
+-- Fungsi Freeze Bus
+local function SetFreeze(bool)
+    local bus = GetMyBus()
+    if bus and bus:FindFirstChild("DriveSeat") then
+        bus.DriveSeat.Anchored = bool
+    end
+end
+
+-- Fungsi Ambil Bus Milik Sendiri
+function GetMyBus()
+    for _, v in pairs(workspace.Vehicles:GetChildren()) do -- Sesuaikan folder kendaraan game
+        if v:FindFirstChild("Owner") and v.Owner.Value == LP.Name then
+            return v
+        end
+    end
+    return nil
+end
+
+-- Fungsi Instant Teleport
+function InstantTP(cframe)
+    local char = LP.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = cframe
+    end
+end
+
+
 local Window = VelarisUI:Window({
     Title  = "Voidlinehub",
     Footer = "",
