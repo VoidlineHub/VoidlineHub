@@ -52,7 +52,7 @@ _G.SelectedBus = busOptions[1]
 -- --- UTILITY FUNCTIONS ---
 local function SetStatus(text)
     if StatusLabel then
-        StatusLabel:SetContent("Status: " .. text) -- Pakai SetContent untuk Paragraph Velaris
+        StatusLabel:Set({ Title = "Status", Content = text })
     end
 end
 
@@ -75,29 +75,6 @@ local function SetFreeze(state)
         end
     end
 end
-
--- --- LOOP MONITORING ---
-task.spawn(function()
-    while task.wait(1) do
-        if UangLabel and StatsFolder then
-            pcall(function()
-                local currentUang = StatsFolder.Uang.Value
-                UangLabel:SetContent(formatRS(currentUang))
-                EarningLabel:SetContent(formatRS(currentUang - StartUang))
-                
-                local diff = os.time() - StartTime
-                local h, m, s = math.floor(diff/3600), math.floor((diff%3600)/60), diff%60
-                TimeLabel:SetContent(string.format("%02d:%02d:%02d", h, m, s))
-                
-                local ping = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString():split(" ")[1]
-                PingLabel:SetContent(math.floor(tonumber(ping) or 0) .. " ms")
-                
-                local fps = math.floor(1/task.wait())
-                FPSLabel:SetContent(tostring(fps) .. " FPS")
-            end)
-        end
-    end
-end)
 
 -- Anti-AFK
 LP.Idled:Connect(function()
@@ -140,7 +117,7 @@ FarmSection:AddParagraph({
     Title = "How to Use Auto-Kick", 
     Content = "1. Masukkan target uang (Contoh: 1.500.000)\n2. Nyalakan toggle 'Enable Auto-Kick'\n3. Script akan otomatis kick saat uang tercapai."
 })
-    Title = "On Autofarm",
+ FarmSection:AddToggle({Title = "On Autofarm",
     Default = false,
     Callback = function(Value)
         _G.AutoFull = Value
@@ -371,3 +348,26 @@ local SpeedTab = Window:AddTab({ Name = "speed tune", Icon = "bus" })
 
 -- tab more feature --
 local MoreTab = Window:AddTab({ Name = "More Feature", Icon = "plus-circle" })
+
+-- --- LOOP MONITORING ---
+task.spawn(function()
+    while task.wait(1) do
+        if UangLabel and StatsFolder then
+            pcall(function()
+                local currentUang = StatsFolder.Uang.Value
+                UangLabel:SetContent(formatRS(currentUang))
+                EarningLabel:SetContent(formatRS(currentUang - StartUang))
+                
+                local diff = os.time() - StartTime
+                local h, m, s = math.floor(diff/3600), math.floor((diff%3600)/60), diff%60
+                TimeLabel:SetContent(string.format("%02d:%02d:%02d", h, m, s))
+                
+                local ping = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString():split(" ")[1]
+                PingLabel:SetContent(math.floor(tonumber(ping) or 0) .. " ms")
+                
+                local fps = math.floor(1/task.wait())
+                FPSLabel:SetContent(tostring(fps) .. " FPS")
+            end)
+        end
+    end
+end)
