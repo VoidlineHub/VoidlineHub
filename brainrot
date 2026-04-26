@@ -1,4 +1,5 @@
-local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
+local RawUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
+local VelarisUI = RawUI()
 
 -- // 1. SERVICES & REMOTES
 local LP = game.Players.LocalPlayer
@@ -19,7 +20,7 @@ _G.AutoRejoin = true
 -- Area KickReady
 local KickZone = workspace.Areas:FindFirstChild("KickReady")
 local KickCF = KickZone and KickZone.CFrame * CFrame.new(0, 3, 0)
-local SafeZoneCF = CFrame.new(0, 100, 0) -- Koordinat tinggi buat kabur dari Tsunami
+local SafeZoneCF = CFrame.new(0, 100, 0)
 
 -- // 3. UTILITY FUNCTIONS
 local function TweenTo(targetCF, speed)
@@ -48,21 +49,19 @@ task.spawn(function()
     end
 end)
 
--- // 5. UI SETUP
-local Window = VelarisUI:Window({
-    Title  = "VoidlineHub",
-    Footer "",
-    Color  = "Default",
-    Icon = "zap",
-    Size = UDim2.fromOffset(550, 500)
+-- // 5. UI SETUP (Fixed Nil Call)
+local Window = VelarisUI.Create({
+    Name = "VoidlineHub",
+    Footer = "Ultimate Brainrot Edition",
+    Icon = "zap"
 })
 
-local MainTab = Window:AddTab({ Name = "Main", Icon = "play" })
-local FarmSection = MainTab:AddSection({ Title = "Autofarm Gacha", Open = true })
+local MainTab = Window:Tab({ Name = "Main", Icon = "play" })
+local FarmSection = MainTab:Section({ Title = "Autofarm Gacha" })
 
 -- TOGGLE UTAMA
-FarmSection:AddToggle({
-    Title = "Auto Farm (No-Delay Mode)",
+FarmSection:Toggle({
+    Name = "Auto Farm (No-Delay Mode)",
     Default = false,
     Callback = function(Value)
         _G.AutoBrainrot = Value
@@ -84,16 +83,18 @@ FarmSection:AddToggle({
                         task.wait(0.1)
                     end
                 end)
+                if not _G.AutoBrainrot then break end
+                task.wait()
             end
         end)
     end
 })
 
 -- AUTO POWER & BONUS
-local PowerSection = MainTab:AddSection({ Title = "Power & Upgrades", Open = true })
+local PowerSection = MainTab:Section({ Title = "Power & Upgrades" })
 
-PowerSection:AddToggle({
-    Title = "Turbo Fire Power Remote",
+PowerSection:Toggle({
+    Name = "Turbo Fire Power Remote",
     Default = false,
     Callback = function(Value)
         _G.AutoPower = Value
@@ -106,8 +107,8 @@ PowerSection:AddToggle({
     end
 })
 
-PowerSection:AddToggle({
-    Title = "Auto Click Bonus UI",
+PowerSection:Toggle({
+    Name = "Auto Click Bonus UI",
     Default = false,
     Callback = function(Value)
         _G.AutoBonusUI = Value
@@ -126,18 +127,20 @@ PowerSection:AddToggle({
 })
 
 -- SETTINGS
-local SettingsSection = MainTab:AddSection({ Title = "Settings", Open = false })
-SettingsSection:AddInput({
-    Title = "Fly Duration",
-    Placeholder = "Default: 1.3",
+local SettingsTab = Window:Tab({ Name = "Settings", Icon = "settings" })
+local SettingsSection = SettingsTab:Section({ Title = "Configurations" })
+
+SettingsSection:Input({
+    Name = "Fly Duration",
+    Placeholder = "1.3",
     Callback = function(t) _G.DelayKick = tonumber(t) or 1.3 end
 })
 
 -- MISC
-local MiscTab = Window:AddTab({ Name = "Misc", Icon = "shield" })
-local MiscSection = MiscTab:AddSection({ Title = "Security" })
-MiscSection:AddToggle({ Title = "Auto Rejoin", Default = true, Callback = function(v) _G.AutoRejoin = v end })
-MiscSection:AddToggle({ Title = "Anti-AFK", Default = true, Callback = function(v) _G.AntiAFK = v end })
+local MiscSection = SettingsTab:Section({ Title = "Security" })
+
+MiscSection:Toggle({ Name = "Auto Rejoin", Default = true, Callback = function(v) _G.AutoRejoin = v end })
+MiscSection:Toggle({ Name = "Anti-AFK", Default = true, Callback = function(v) _G.AntiAFK = v end })
 
 -- // 6. BACKGROUND LOGIC
 LP.Idled:Connect(function() if _G.AntiAFK then VirtualUser:CaptureController() VirtualUser:ClickButton2(Vector2.new()) end end)
