@@ -1,33 +1,32 @@
 local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
 
-
--- Services
-local Players = game:GetService("Players")
-local LP = Players.LocalPlayer
-local RS = game:GetService("ReplicatedStorage")
-local Remotes = RS:WaitForChild("Remotes")
+local LP = game.Players.LocalPlayer
+local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StatsFolder = LP:WaitForChild("PlayerData")
+local StartUang = StatsFolder.Uang.Value
+local StartTime = os.time()
+local CarData = Remotes.GetClientCustomizationData:InvokeServer()
+local OwnedCarsFolder = LP:WaitForChild("PlayerData"):WaitForChild("OwnedCars")
+local HttpService = game:GetService("HttpService")
 local VirtualUser = game:GetService("VirtualUser")
 
--- FIX DATA FOLDER (Pake PlayerData sesuai kode lama lu yang work)
-local PlayerData = LP:WaitForChild("PlayerData", 10)
-local StatsFolder = PlayerData -- Re-alias biar gak perlu ganti nama variabel di bawah
-local OwnedCarsFolder = PlayerData:WaitForChild("OwnedCars", 10)
-
--- FIX CAR DATA (Pake InvokeServer sesuai kode lama)
-local CarData = Remotes.GetClientCustomizationData:InvokeServer()
-
--- Data Binding
-local StartTime = os.time()
--- Cek uang di dalam PlayerData
-local StartUang = (StatsFolder and StatsFolder:FindFirstChild("Uang")) and StatsFolder.Uang.Value or 0
-local lastTarget, jobStarted, noBillboardTime = nil, false, 0
-local busOptions = {}
-_G.SelectedBus = "" 
+-- VARIABEL
 _G.AutoFull = false
-_G.AntiAFK = true
-TargetUang = 0
+_G.AntiAFK = false
+_G.AutoRejoin = false
+_G.HideChar = false
+_G.SelectedBus = "" 
+_G.WebhookURL = ""
+_G.TotalEarning = 0
+_G.CycleCount = 0
+_G.StartTime = os.time()
+_G.AutoKickEnabled = false
+local TargetUang = 0
+local lastMoney = StatsFolder.Uang.Value
+local busOptions = {}
 
--- Forward Declaration Labels (Biar bisa diupdate dari fungsi manapun)
+-- Forward Declaration Labels
 local StatusLabel, UangLabel, EarningLabel, TimeLabel, FPSLabel, PingLabel
 
 -- --- FORMAT RUPIAH ---
@@ -38,18 +37,16 @@ local function formatRS(amount)
         formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1.%2')
         if (k==0) then break end
     end
-    return "Rp " .. formatted
+    return formatted
 end
 
--- --- SCANNING BUS ---
-pcall(function()
-    for _, car in pairs(OwnedCarsFolder:GetChildren()) do
-        table.insert(busOptions, car.Name)
-    end
-end)
-
-if #busOptions == 0 then table.insert(busOptions, "Jetbus_3_RM_SHD") end
-_G.SelectedBus = busOptions[1]
+-- --- DATA CFRAME ASLI LU ---
+local CirebonEndCF = CFrame.new(-26471.1445, -212.441071, 33276.8203, -0.0246282816, 0, 0.999696672, 0, 1, 0, -0.999696672, 0, -0.0246282816)
+local TP_Locations = {
+    ["Dealership"] = CFrame.new(19830.625, 266.913116, -27910.4844, 0.999847949, 0, 0.017436387, 0, 1, 0, -0.017436387, 0, 0.999847949),
+    ["Modifikasi"] = CFrame.new(12035.499, -21.3362789, 12740.0605, -0.573599219, 0, 0.81913656, 0, 1, 0, -0.81913656, 0, -0.573599219),
+    ["Teleport City"] = CFrame.new(21795.2461, 292.439026, -40055.918, 0.707134247, -0, -0.707079291, 0, 1, -0, 0.707079291, 0, 0.707134247)
+}
 
 -- --- UTILITY FUNCTIONS ---
 local function SetStatus(text)
@@ -59,9 +56,6 @@ local function SetStatus(text)
         end)
     end
 end
-
-
-
 
 local function GetMyBus()
     return workspace:FindFirstChild("SpawnedVehicles") and workspace.SpawnedVehicles:FindFirstChild(_G.SelectedBus) or workspace:FindFirstChild(_G.SelectedBus)
@@ -80,6 +74,28 @@ local function SetFreeze(state)
             end
         end
     end
+end
+
+local function InstantTP(targetCF)
+    local bus = GetMyBus()
+    if not bus then return end
+    SetFreeze(false) 
+    task.wait(0.1)
+    for i = 1, 3 do
+        bus:PivotTo(targetCF)
+        task.wait(0.05)
+    end
+end
+
+local function GetActiveStop()
+    if not workspace:FindFirstChild("Checkpoints") then return nil end
+    for _, part in pairs(workspace.Checkpoints:GetChildren()) do
+        local bs = part:FindFirstChild("BusStop")
+        if bs and bs:IsA("BillboardGui") and bs.Enabled == true then
+            return part
+        end
+    end
+    return nil
 end
 
 -- Anti-AFK
@@ -123,7 +139,8 @@ FarmSection:AddParagraph({
     Title = "How to Use Auto-Kick", 
     Content = "1. Masukkan target uang (Contoh: 1.500.000)\n2. Nyalakan toggle 'Enable Auto-Kick'\n3. Script akan otomatis kick saat uang tercapai."
 })
- FarmSection:AddToggle({
+
+FarmSection:AddToggle({
     Title = "On Autofarm",
     Default = false,
     Callback = function(Value)
@@ -139,7 +156,7 @@ FarmSection:AddParagraph({
         -- Bungkus pake spawn biar menu tetep bisa ditekuk/diklik
         task.spawn(function()
             while _G.AutoFull do
-                -- LOGIC HAPUS PENGHALANG
+                -- LOGIC HAPUS PENGHALANG (FITUR ASLI LU)
                 pcall(function()
                     local cikamurang = workspace:FindFirstChild("Cikamurang")
                     if cikamurang then
@@ -171,6 +188,7 @@ FarmSection:AddParagraph({
                         hum.Jump = true
                         task.wait(1.5)
                         
+                        -- BARIS 186 (BAGIAN SPAWN KEDUA LU)
                         SetStatus("Spawn vehicle..")
                         Remotes:WaitForChild("SpawnCar"):FireServer(_G.SelectedBus)
                         task.wait(4)
@@ -190,10 +208,10 @@ FarmSection:AddParagraph({
                         -- PROSES TP AWAL
                         SetFreeze(true) 
                         task.wait(0.2)
-                        InstantTP(target.CFrame)
+                        InstantTP(target.CFrame) -- Pake fungsi InstantTP looping 3x lu
                         lastTarget = target
                         
-                        -- PENGECEKAN 30 DETIK (Anti-Stuck / Return Zone)
+                        -- PENGECEKAN 30 DETIK (Anti-Stuck / Return Zone - FITUR ASLI LU)
                         for i = 1, 30 do
                             if not _G.AutoFull then break end
                             if infoLabel and string.find(string.upper(infoLabel.Text), "RETURN TO THE CHECKPOINT") then
@@ -209,7 +227,7 @@ FarmSection:AddParagraph({
                             task.wait(1)
                         end
                         
-                        -- SISA WAKTU FREEZE (45 - 30 = 15s)
+                        -- SISA WAKTU FREEZE (15s)
                         for i = 15, 1, -1 do
                             if not _G.AutoFull then break end
                             SetStatus("To Stations: " .. i .. "s")
@@ -218,7 +236,7 @@ FarmSection:AddParagraph({
                         
                         SetFreeze(false)
                         
-                        -- Timer 2: Total 2 Menit (120s - 45s = 75s)
+                        -- TIMER DELAY TP (75s - FITUR ASLI LU)
                         for i = 75, 1, -1 do
                             if not _G.AutoFull then break end
                             SetStatus("Delay TP: " .. i .. "s")
@@ -234,6 +252,7 @@ FarmSection:AddParagraph({
                             SetStatus("Finishing Job...")
                             SetFreeze(true)
                             task.wait(0.2)
+                            -- MENGGUNAKAN KOORDINAT CIREBON ASLI LU
                             InstantTP(CirebonEndCF)
                             
                             task.wait(2)
@@ -254,7 +273,8 @@ FarmSection:AddParagraph({
             end
         end)
     end
-}) 
+})
+
 
 
 -- SECTION 2: AUTO STOP SETTINGS
@@ -360,21 +380,21 @@ local MoreTab = Window:AddTab({ Name = "More Feature", Icon = "plus-circle" })
 -- --- LOOP MONITORING ---
 task.spawn(function()
     while task.wait(1) do
-        if UangLabel and StatsFolder then
+        if UangLabel then
             pcall(function()
                 local currentUang = StatsFolder.Uang.Value
-                UangLabel:SetContent(formatRS(currentUang))
-                EarningLabel:SetContent(formatRS(currentUang - StartUang))
+                UangLabel:SetContent("Uang: Rp " .. formatRS(currentUang))
+                EarningLabel:SetContent("Earning: Rp " .. formatRS(currentUang - StartUang))
                 
                 local diff = os.time() - StartTime
                 local h, m, s = math.floor(diff/3600), math.floor((diff%3600)/60), diff%60
-                TimeLabel:SetContent(string.format("%02d:%02d:%02d", h, m, s))
+                TimeLabel:SetContent(string.format("Time: %02d:%02d:%02d", h, m, s))
                 
                 local ping = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString():split(" ")[1]
-                PingLabel:SetContent(math.floor(tonumber(ping) or 0) .. " ms")
+                PingLabel:SetContent("Ping: " .. math.floor(tonumber(ping) or 0) .. " ms")
                 
                 local fps = math.floor(1/task.wait())
-                FPSLabel:SetContent(tostring(fps) .. " FPS")
+                FPSLabel:SetContent("FPS: " .. fps)
             end)
         end
     end
