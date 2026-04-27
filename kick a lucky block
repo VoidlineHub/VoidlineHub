@@ -1,0 +1,177 @@
+local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
+
+-- // 1. SERVICES
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local VirtualUser = game:GetService("VirtualUser")
+
+-- // 2. VARIABLES
+local player = Players.LocalPlayer
+local wavesFolder = workspace:WaitForChild("Waves")
+local safeZone = workspace:WaitForChild("Areas"):WaitForChild("KickReady")
+local network = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Packages"):WaitForChild("Network")
+
+-- // 3. GLOBALS & CONFIG
+_G.AutoKick = false
+_G.SelectedMode = "normal"
+
+local ModeSettings = {
+    ["normal"] = {
+        Speed = 100,
+        WaitKick = 0.2,
+        LoopDelay = 1.5
+    },
+    ["fast"] = {
+        Speed = 250,
+        WaitKick = 0.05,
+        LoopDelay = 0.5
+    },
+    ["very fast"] = {
+        Speed = 1000, -- Hampir teleport
+        WaitKick = 0.01,
+        LoopDelay = 0.05
+    }
+}
+
+-- funcfions --
+local function SmoothTween(targetCF, speed)
+    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local distance = (hrp.Position - targetCF.Position).Magnitude
+    local duration = distance / speed
+    
+    local info = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(hrp, info, {CFrame = targetCF})
+    tween:Play()
+    return tween
+end
+
+-- // 5. MAIN LOGIC
+local function startAutoKick()
+    task.spawn(function()
+        while _G.AutoKick do
+            local success, err = pcall(function()
+                -- Ambil settingan berdasarkan mode yang dipilih di UI
+                local cfg = ModeSettings[_G.SelectedMode]
+                local character = player.Character
+                local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                
+                if hrp and safeZone then
+                    -- A. PERGI KE ZONE
+                    local targetPos = safeZone.CFrame * CFrame.new(0, 3, 0)
+                    local tw = SmoothTween(targetPos, cfg.Speed)
+                    if tw then tw.Completed:Wait() end
+                    
+                    task.wait(0.05)
+                    local initialCount = getTotalItems()
+                    
+                    -- B. KICK SEQUENCE
+                    network.rev_Transformed:FireServer()
+                    task.wait(cfg.WaitKick) -- Jeda nendang sesuai mode
+                    network.rev_KickEvent:FireServer(0.9691926166415215)
+                    network.rev_KickZman:FireServer()
+                    
+                    -- C. SMART WAIT & PROTECTION
+                    local timeout = 0
+                    while _G.AutoKick and getTotalItems() <= initialCount and timeout < 10 do
+                        task.wait(0.1)
+                        timeout = timeout + 0.1
+                        if #wavesFolder:GetChildren() > 0 then
+                            hrp.CFrame = targetPos -- Tetap Lock biar gak kebawa tsunami
+                        end
+                    end
+                    
+                    -- D. COLLECT
+                    network.rev_KickCollect:FireServer()
+                    task.wait(cfg.LoopDelay) -- Jeda antar loop sesuai mode
+                end
+            end)
+            
+            if not success then warn("Error: " .. err) task.wait(1) end
+            if not _G.AutoKick then break end
+        end
+    end)
+end
+
+
+local Window = VelarisUI:Window({
+    Title             = "kick a lucky block",
+    Footer            = "by voidlinehub",
+    Content           = "v1.0.0", 
+    Color             = "Default",            
+    Version           = "1.0",
+    Uitransparent     = 0.15, 
+    Size              = UDim2.fromOffset(640, 400),
+    ShowUser          = true,                  
+    Search                  = true,                 
+    Animation         = true,
+    TypeDelay         = 0.07,                  
+    TypePause         = 2.5,         
+KeySystem = {
+    Title       = "VoidlineHub",
+    Icon        = "lucide:bird",
+    Placeholder = "Enter your key here",
+    Default     = "",
+    DiscordText = "Join the Discord",
+    DiscordUrl  = "https://discord.gg/void",
+
+    Links = {
+        { Name = "Linkvertise", Icon = "lucide:link", Url = "https://linkvertise.com/xxxxx" },
+                 },
+    Steps = {
+        "Choose your Authorization System!",
+        "Complete ads ( 2 Checkpoint )",
+        "Copy and paste key here!!",
+             },
+
+    Callback = function(key)
+        local validKeys = {
+            "voidline123",
+            "voidline912",
+        }
+        for _, v in ipairs(validKeys) do
+            if key == v then
+                return true
+            end
+        end
+        return false 
+    end,
+  },
+})
+
+local MainTab = Window:AddTab({ Name = "Main", Icon = "play" })
+
+local AutoSection = MainTab:AddSection({ Title = "Auto Claim", Open = true })
+
+AutoSection:AddToggle({
+    Title = "Auto Claim Offline Rewards",
+    Default = false,
+    Callback = function(Value)
+_G.autokick = Value
+end 
+})
+local FarmSection = MainTab:AddSection({ Title = "Auto kick", Open = true })
+FarmSection:AddDropdown({
+    Title    = "select mode",
+    Options  = { "normal", "fast", "very fast" },
+    Multi    = false,
+    Default  = "normal",
+    Callback = function(value)
+   _G.SelectedMode = value 
+   end
+})
+
+FarmSection:AddToggle({
+    Title = "Auto kick v1",
+    Content  = "kick lucky block automatically",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoKick = Value     
+        if Value then
+            startAutoKick() 
+        else
+        end
+    end
+})
