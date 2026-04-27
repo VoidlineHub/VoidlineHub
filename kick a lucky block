@@ -21,9 +21,18 @@ _G.TrainInterval = 0.5
 _G.AutoClickBonus = false
 
 local ModeSettings = {
-    ["normal"] = { Speed = 100, WaitKick = 0.2, LoopDelay = 1.5 },
-    ["fast"] = { Speed = 250, WaitKick = 0.05, LoopDelay = 0.5 }
+    ["normal"] = { 
+        Speed = 25,      -- Tween santai
+        WaitKick = 0.2, 
+        LoopDelay = 1.5 
+    },
+    ["fast"] = { 
+        Speed = 50,      -- Tween agak sat-set
+        WaitKick = 0.05, 
+        LoopDelay = 1.5 
+    }
 }
+
 
 -- // 4. UTILITY FUNCTIONS (WAJIB ADA BIAR GAK ERROR NIL)
 local function getTotalItems()
