@@ -120,6 +120,32 @@ local function startAutoTrain()
     end)
 end
 
+local function startAutoClickBonus()
+    task.spawn(function()
+        while _G.AutoClickBonus do
+            pcall(function()
+                local gui = player.PlayerGui:FindFirstChild("KickUpgrades")
+                if gui then
+                    -- Scan semua anak di dalam KickUpgrades
+                    for _, child in pairs(gui:GetChildren()) do
+                        -- Cari yang namanya "Bonus" (atau sesuaikan kalau ada nama spesifik)
+                        -- Kita cek juga apakah dia tombol (TextButton/ImageButton) dan lagi kelihatan
+                        if child.Name:find("Bonus") and (child:IsA("TextButton") or child:IsA("ImageButton")) and child.Visible then
+                            -- Simulasi Klik pakai getconnections biar instan tembus ke fungsi aslinya
+                            for _, connection in pairs(getconnections(child.MouseButton1Click)) do
+                                connection:Fire()
+                            end
+                            -- Opsional: kalau gamenya butuh VirtualUser buat nekan posisi
+                            -- VirtualUser:ClickButton1(Vector2.new(0,0)) 
+                        end
+                    end
+                end
+            end)
+            task.wait(0.1) -- Jeda scan biar gak bikin FPS drop karena looping ratusan anak
+            if not _G.AutoClickBonus then break end
+        end
+    end)
+end
 
 local Window = VelarisUI:Window({
     Title             = "kick a lucky block",
@@ -220,3 +246,16 @@ TrainSection:AddToggle({
         end
     end
 })
+
+TrainSection:AddToggle({
+    Title = "Auto Click Multi-Bonus",
+    Icon = "lucide:mouse-pointer-2",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoClickBonus = Value
+        if Value then
+            startAutoClickBonus()
+        end
+    end
+})
+
