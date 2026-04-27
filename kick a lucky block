@@ -4,7 +4,6 @@ local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhf
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
-local VirtualUser = game:GetService("VirtualUser")
 
 -- // 2. VARIABLES
 local player = Players.LocalPlayer
@@ -17,24 +16,23 @@ _G.AutoKick = false
 _G.SelectedMode = "normal"
 
 local ModeSettings = {
-    ["normal"] = {
-        Speed = 100,
-        WaitKick = 0.2,
-        LoopDelay = 1.5
-    },
-    ["fast"] = {
-        Speed = 250,
-        WaitKick = 0.05,
-        LoopDelay = 0.5
-    },
-    ["very fast"] = {
-        Speed = 1000, -- Hampir teleport
-        WaitKick = 0.01,
-        LoopDelay = 0.05
-    }
+    ["normal"] = { Speed = 150, WaitKick = 0.2, LoopDelay = 1.5 },
+    ["fast"] = { Speed = 350, WaitKick = 0.05, LoopDelay = 0.5 },
+    ["very fast"] = { Speed = 1000, WaitKick = 0.01, LoopDelay = 0.01 }
 }
 
--- funcfions --
+-- // 4. UTILITY FUNCTIONS (WAJIB ADA BIAR GAK ERROR NIL)
+local function getTotalItems()
+    local character = player.Character
+    local backpack = player:FindFirstChild("Backpack")
+    local count = 0
+    if backpack then count = #backpack:GetChildren() end
+    if character and character:FindFirstChildOfClass("Tool") then
+        count = count + 1
+    end
+    return count
+end
+
 local function SmoothTween(targetCF, speed)
     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
@@ -51,50 +49,55 @@ end
 -- // 5. MAIN LOGIC
 local function startAutoKick()
     task.spawn(function()
+        print("VoidlineHub: Logic Started")
         while _G.AutoKick do
             local success, err = pcall(function()
-                -- Ambil settingan berdasarkan mode yang dipilih di UI
                 local cfg = ModeSettings[_G.SelectedMode]
                 local character = player.Character
                 local hrp = character and character:FindFirstChild("HumanoidRootPart")
                 
                 if hrp and safeZone then
-                    -- A. PERGI KE ZONE
                     local targetPos = safeZone.CFrame * CFrame.new(0, 3, 0)
-                    local tw = SmoothTween(targetPos, cfg.Speed)
-                    if tw then tw.Completed:Wait() end
                     
-                    task.wait(0.05)
-                    local initialCount = getTotalItems()
+                    -- A. PERGI KE ZONE
+                    if _G.SelectedMode == "very fast" then
+                        hrp.CFrame = targetPos
+                    else
+                        local tw = SmoothTween(targetPos, cfg.Speed)
+                        if tw then tw.Completed:Wait() end
+                    end
+                    
+                    task.wait(0.1)
+                    local initialCount = getTotalItems() -- Pemanggilan fungsi yang tadi bikin error
                     
                     -- B. KICK SEQUENCE
                     network.rev_Transformed:FireServer()
-                    task.wait(cfg.WaitKick) -- Jeda nendang sesuai mode
+                    task.wait(cfg.WaitKick)
                     network.rev_KickEvent:FireServer(0.9691926166415215)
                     network.rev_KickZman:FireServer()
                     
                     -- C. SMART WAIT & PROTECTION
                     local timeout = 0
-                    while _G.AutoKick and getTotalItems() <= initialCount and timeout < 10 do
+                    while _G.AutoKick and getTotalItems() <= initialCount and timeout < 8 do
                         task.wait(0.1)
                         timeout = timeout + 0.1
+                        -- Anti-Mati Tsunami
                         if #wavesFolder:GetChildren() > 0 then
-                            hrp.CFrame = targetPos -- Tetap Lock biar gak kebawa tsunami
+                            hrp.CFrame = targetPos 
                         end
                     end
                     
                     -- D. COLLECT
                     network.rev_KickCollect:FireServer()
-                    task.wait(cfg.LoopDelay) -- Jeda antar loop sesuai mode
+                    task.wait(cfg.LoopDelay)
                 end
             end)
             
-            if not success then warn("Error: " .. err) task.wait(1) end
+            if not success then warn("Loop Error: " .. err) task.wait(1) end
             if not _G.AutoKick then break end
         end
     end)
 end
-
 
 local Window = VelarisUI:Window({
     Title             = "kick a lucky block",
