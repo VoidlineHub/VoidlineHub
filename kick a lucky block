@@ -232,7 +232,7 @@ FarmSection:AddToggle({
     end
 })
 
-local TrainTab = Window:AddTab({ Name = "Train", Icon = "dumbbell" })
+local TrainTab = Window:AddTab({ Name = "Train", Icon = "Dumbbell" })
 local TrainSection = TrainTab:AddSection({ Title = "Auto Train", Open = true })
 TrainSection:AddSlider({
     Title     = "Speed Interval",
