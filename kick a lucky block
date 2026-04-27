@@ -10,15 +10,19 @@ local player = Players.LocalPlayer
 local wavesFolder = workspace:WaitForChild("Waves")
 local safeZone = workspace:WaitForChild("Areas"):WaitForChild("KickReady")
 local network = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Packages"):WaitForChild("Network")
+local network = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Packages"):WaitForChild("Network")
+local TaviRemote = network:WaitForChild("rev_TaviMishkal")
 
 -- // 3. GLOBALS & CONFIG
 _G.AutoKick = false
 _G.SelectedMode = "normal"
+_G.AutoBonus = false
+_G.Train = false
+_G.TrainInterval = 0.5
 
 local ModeSettings = {
-    ["normal"] = { Speed = 150, WaitKick = 0.2, LoopDelay = 1.5 },
-    ["fast"] = { Speed = 350, WaitKick = 0.05, LoopDelay = 0.5 },
-    ["very fast"] = { Speed = 1000, WaitKick = 0.01, LoopDelay = 0.01 }
+    ["normal"] = { Speed = 100, WaitKick = 0.2, LoopDelay = 1.5 },
+    ["fast"] = { Speed = 250, WaitKick = 0.05, LoopDelay = 0.5 }
 }
 
 -- // 4. UTILITY FUNCTIONS (WAJIB ADA BIAR GAK ERROR NIL)
@@ -99,6 +103,24 @@ local function startAutoKick()
     end)
 end
 
+-- // 2. Fungsi Logic Train (Taruh di atas UI atau di bagian Functions)
+local function startAutoTrain()
+    task.spawn(function()
+        while _G.Train do
+            pcall(function()
+                -- Tembak remote barbel/power
+                network.rev_TaviMishkal:FireServer()
+            end)
+            
+            -- Gunakan task.wait yang nilainya selalu update dari Slider
+            task.wait(_G.TrainInterval)
+            
+            if not _G.Train then break end
+        end
+    end)
+end
+
+
 local Window = VelarisUI:Window({
     Title             = "kick a lucky block",
     Footer            = "by voidlinehub",
@@ -144,10 +166,9 @@ KeySystem = {
   },
 })
 
-local MainTab = Window:AddTab({ Name = "Main", Icon = "play" })
+local MainTab = Window:AddTab({ Name = "Main", Icon = "House" })
 
 local AutoSection = MainTab:AddSection({ Title = "Auto Claim", Open = true })
-
 AutoSection:AddToggle({
     Title = "Auto Claim Offline Rewards",
     Default = false,
@@ -175,6 +196,27 @@ FarmSection:AddToggle({
         if Value then
             startAutoKick() 
         else
+        end
+    end
+})
+
+local TrainTab = Window:AddTab({ Name = "Train", Icon = "dumbbell" })
+local TrainSection = TrainTab:AddSection({ Title = "Auto Train", Open = true })
+TrainSection:AddSlider({
+    Title     = "Speed Interval",
+    Min       = 0, Max = 1, Default = 0.5, Increment = 0.1,
+    Callback  = function(value) 
+        _G.TrainInterval = value 
+    end
+})
+
+TrainSection:AddToggle({
+    Title = "On Auto Train",
+    Default = false,
+    Callback = function(Value)
+        _G.Train = Value
+        if Value then
+            startAutoTrain()
         end
     end
 })
