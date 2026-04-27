@@ -158,7 +158,7 @@ end
 local FarmSection = MainTab:AddSection({ Title = "Auto kick", Open = true })
 FarmSection:AddDropdown({
     Title    = "select mode",
-    Options  = { "normal", "fast", "very fast" },
+    Options  = { "normal", "fast", "" },
     Multi    = false,
     Default  = "normal",
     Callback = function(value)
