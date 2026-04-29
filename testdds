@@ -220,7 +220,7 @@ KeySystem = {
     Callback = function(key)
         local validKeys = {
             "voidline123",
-            "vdgacor",
+            "vdgatau",
         }
         for _, v in ipairs(validKeys) do
             if key == v then
@@ -244,3 +244,11 @@ FarmSection:AddToggle({
     _G.AutofarmCourier = value
     end
     })
+
+FarmSection:AddSlider({
+    Title     = "delay tp",
+    Min       = 0, Max = 120, Default = 50, Increment = 1,
+    Callback  = function(value) 
+    _G.CourierDelay = value
+    end
+})
