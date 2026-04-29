@@ -209,7 +209,7 @@ KeySystem = {
     Callback = function(key)
         local validKeys = {
             "voidline123",
-            "voidline912",
+            "vdgacor",
         }
         for _, v in ipairs(validKeys) do
             if key == v then
