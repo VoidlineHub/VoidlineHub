@@ -230,6 +230,6 @@ FarmSection:AddToggle({
     Content  = "inter-package without bugs!",
     Default  = false,
     Callback = function(value)
-    _G.AutofarmCourier = Value
+    _G.AutofarmCourier = value
     end
     })
