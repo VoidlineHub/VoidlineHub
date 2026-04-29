@@ -1,0 +1,121 @@
+local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
+
+
+-- [[ USER CONFIGURATION ]]
+_G.AutofarmCourier = false
+_G.CourierDelay = 45      
+_G.CourierHold = 2         
+local WaktuKosong = nil
+
+
+task.spawn(function()
+​while true do
+task.wait(1)
+​if _G.AutofarmCourier then
+SwitchToCourier()
+​local Char = LP.Character or LP.CharacterAdded:Wait()
+local Hum = Char:WaitForChild("Humanoid")
+local Root = Char:WaitForChild("HumanoidRootPart")
+​if Hum and Root then
+if not AutoEquipBox() then
+if not WaktuKosong then
+WaktuKosong = os.clock()
+end
+​if (os.clock() - WaktuKosong) >= 240 then
+warn("[VOIDLINE] Limit Detect / Stuck! Switching Role...")
+​local args = {"Civilian", 0, 0, 0, "Detector"}
+game:GetService("ReplicatedStorage"):WaitForChild("JobEvents"):WaitForChild("TeamChangeRequest"):FireServer(unpack(args))
+​WaktuKosong = nil
+​repeat
+task.wait(1)
+warn("[VOIDLINE] Waiting for team change to Civilian...")
+until (LP.Team and LP.Team.Name == "Civilian") or not _G.AutofarmCourier
+​warn("[VOIDLINE] Resting for 15s...")
+task.wait(15)
+​continue
+end
+else
+WaktuKosong = nil
+end
+​if not Hum.Sit then
+warn("[VOIDLINE] Activating SIT Bypass...")
+repeat
+Hum.Sit = true
+task.wait(0.5)
+until Hum.Sit or not _G.AutofarmCourier
+task.wait(1)
+end
+​if not AutoEquipBox() then
+Tween(TAKE_BOX_CFRAME)
+task.wait(0.5)
+​if _G.AutofarmCourier and TAKE_PROMPT.Enabled then
+fireproximityprompt(TAKE_PROMPT)
+task.wait(1.5)
+end
+else
+local TargetBlock, TargetPrompt = GetActivePoint()
+​if TargetBlock and TargetPrompt then
+task.wait(_G.CourierDelay or 45)
+task.wait(_G.CourierHold or 2)
+​if not _G.AutofarmCourier then return end
+​Tween(TargetBlock.CFrame * CFrame.new(0, 2, 0))
+task.wait(0.8)
+​AutoEquipBox()
+​if _G.AutofarmCourier and TargetPrompt.Enabled then
+fireproximityprompt(TargetPrompt)
+task.wait(3.5)
+end
+end
+end
+end
+else
+WaktuKosong = nil
+end
+end
+end)
+
+
+local Window = VelarisUI:Window({
+    Title             = "Drag drive simulator",
+    Footer            = "by voidlinehub",
+    Content           = "v1.0.0", 
+    Color             = "Default",            
+    Version           = "1.0",
+    Uitransparent     = 0.15, 
+    Size              = UDim2.fromOffset(640, 400),
+    ShowUser          = true,                  
+    Search                  = true,                 
+    Animation         = true,
+    TypeDelay         = 0.07,                  
+    TypePause         = 2.5,         
+KeySystem = {
+    Title       = "VoidlineHub",
+    Icon        = "lucide:bird",
+    Placeholder = "Enter your key here",
+    Default     = "",
+    DiscordText = "Join the Discord",
+    DiscordUrl  = "https://discord.gg/void",
+
+    Links = {
+        { Name = "Linkvertise", Icon = "lucide:link", Url = "https://linkvertise.com/xxxxx" },
+                 },
+    Steps = {
+        "Choose your Authorization System!",
+        "Complete ads ( 2 Checkpoint )",
+        "Copy and paste key here!!",
+             },
+
+    Callback = function(key)
+        local validKeys = {
+            "voidline123",
+            "voidline912",
+        }
+        for _, v in ipairs(validKeys) do
+            if key == v then
+                return true
+            end
+        end
+        return false 
+    end,
+  },
+})
