@@ -26,8 +26,8 @@ local TAKE_PROMPT = workspace:WaitForChild("Livrason"):WaitForChild("Take1"):Wai
 
 -- [[ USER CONFIGURATION ]]
 _G.AutofarmCourier = false
-_G.CourierDelay = 45      
-_G.CourierHold = 2         
+_G.CourierDelay = 50      
+_G.CourierHold = 5         
 local WaktuKosong = nil
 
 -- [[ UTILITY FUNCTIONS ]]
