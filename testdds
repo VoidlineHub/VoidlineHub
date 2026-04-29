@@ -1,5 +1,28 @@
 local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
 
+-- [[ DATA BINDING ]]
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local PlayerData = LP:WaitForChild("PlayerData")
+local UserInputService = game:GetService("UserInputService")
+
+-- // SETTINGS & PROMPTS
+local CourierSettings = require(ReplicatedStorage:WaitForChild("Delivery System"):WaitForChild("Settings"))
+local MachinePrompt = workspace.BaristaJob.Interactions.MachinePart.MachinePart.MachinePrompt
+local RegisterPrompt = workspace.BaristaJob.Interactions.RegisterPart.RegisterPart.RegisterPrompt
+local SupplyPrompt = workspace.BaristaJob.Interactions.SupplyPart.SupplyPart.SupplyPrompt
+local JobPrompt = workspace.BaristaJob.Interactions.StartPart.StartPart.JobPrompt
+
+-- // CFRAMES
+local SupplyCF = CFrame.new(-5116.78418, 5.78931046, -670.858887)
+local MachineCF = CFrame.new(-4997.1665, 1.58353043, -795.047607)
+local RegisterCF = CFrame.new(-4994.06934, 1.30402756, -760.247437)
+local StartJobCF = CFrame.new(-4989.80078, 5.30382967, -715.013062)
+local TAKE_BOX_CFRAME = CFrame.new(-5105.61182, 4.48948574, -3758.98267)
+local TAKE_PROMPT = workspace:WaitForChild("Livrason"):WaitForChild("Take1"):WaitForChild("Take"):WaitForChild("ProximityPrompt")
 
 -- [[ USER CONFIGURATION ]]
 _G.AutofarmCourier = false
@@ -197,3 +220,16 @@ KeySystem = {
     end,
   },
 })
+
+
+local MainTab = Window:AddTab({ Name = "Main", Icon = "play" })
+local FarmSection = MainTab:AddSection({ Title = "Autofarm", Open = true })
+
+FarmSection:AddToggle({
+    Title    = "Autofarm courier",
+    Content  = "inter-package without bugs!",
+    Default  = false,
+    Callback = function(value)
+    _G.AutofarmCourier = Value
+    end
+    })
