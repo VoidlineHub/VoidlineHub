@@ -7,71 +7,149 @@ _G.CourierDelay = 45
 _G.CourierHold = 2         
 local WaktuKosong = nil
 
+-- [[ UTILITY FUNCTIONS ]]
+local function SwitchToCourier()
+    local TeamRemote = ReplicatedStorage:FindFirstChild("TeamChangeRequest", true)
+    if TeamRemote then
+        if not LP.Team or LP.Team.Name ~= "Courier" then
+            TeamRemote:FireServer("Courier", 11378976, 0, 0, "Detector")
+            task.wait(1.5)
+        end
+    end
+end
 
+-- Ganti Tween jadi Teleport instan
+local function Teleport(targetCFrame)
+    local Char = LP.Character
+    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+    if not Root then return end
+    
+    -- Langsung pindah posisi tanpa durasi
+    Root.CFrame = targetCFrame
+    Root.Velocity = Vector3.new(0,0,0)
+end
+
+local function AutoEquipBox()
+    local Char = LP.Character
+    if not Char or not Char:FindFirstChild("Humanoid") then return false end
+    local held = Char:FindFirstChildOfClass("Tool")
+    if held and held.Name:lower() == "box" then return true end
+    local bp = LP:FindFirstChild("Backpack")
+    if bp then
+        for _, item in pairs(bp:GetChildren()) do
+            if item:IsA("Tool") and item.Name:lower() == "box" then
+                Char.Humanoid:EquipTool(item)
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function GetActivePoint()
+    for _, folder in ipairs(CourierSettings.Folder.Location:GetChildren()) do
+        local block = folder:FindFirstChild("Block")
+        local prompt = block and block:FindFirstChildOfClass("ProximityPrompt")
+        if prompt and (prompt.Enabled or folder:FindFirstChild("POINT").billboardgui.Enabled) then
+            return block, prompt
+        end
+    end
+    return nil, nil
+end
+
+-- [[ MAIN ENGINE ]]
 task.spawn(function()
-​while true do
-task.wait(1)
-​if _G.AutofarmCourier then
-SwitchToCourier()
-​local Char = LP.Character or LP.CharacterAdded:Wait()
-local Hum = Char:WaitForChild("Humanoid")
-local Root = Char:WaitForChild("HumanoidRootPart")
-​if Hum and Root then
-if not AutoEquipBox() then
-if not WaktuKosong then
-WaktuKosong = os.clock()
-end
-​if (os.clock() - WaktuKosong) >= 240 then
-warn("[VOIDLINE] Limit Detect / Stuck! Switching Role...")
-​local args = {"Civilian", 0, 0, 0, "Detector"}
-game:GetService("ReplicatedStorage"):WaitForChild("JobEvents"):WaitForChild("TeamChangeRequest"):FireServer(unpack(args))
-​WaktuKosong = nil
-​repeat
-task.wait(1)
-warn("[VOIDLINE] Waiting for team change to Civilian...")
-until (LP.Team and LP.Team.Name == "Civilian") or not _G.AutofarmCourier
-​warn("[VOIDLINE] Resting for 15s...")
-task.wait(15)
-​continue
-end
-else
-WaktuKosong = nil
-end
-​if not Hum.Sit then
-warn("[VOIDLINE] Activating SIT Bypass...")
-repeat
-Hum.Sit = true
-task.wait(0.5)
-until Hum.Sit or not _G.AutofarmCourier
-task.wait(1)
-end
-​if not AutoEquipBox() then
-Tween(TAKE_BOX_CFRAME)
-task.wait(0.5)
-​if _G.AutofarmCourier and TAKE_PROMPT.Enabled then
-fireproximityprompt(TAKE_PROMPT)
-task.wait(1.5)
-end
-else
-local TargetBlock, TargetPrompt = GetActivePoint()
-​if TargetBlock and TargetPrompt then
-task.wait(_G.CourierDelay or 45)
-task.wait(_G.CourierHold or 2)
-​if not _G.AutofarmCourier then return end
-​Tween(TargetBlock.CFrame * CFrame.new(0, 2, 0))
-task.wait(0.8)
-​AutoEquipBox()
-​if _G.AutofarmCourier and TargetPrompt.Enabled then
-fireproximityprompt(TargetPrompt)
-task.wait(3.5)
-end
-end
-end
-end
-else
-WaktuKosong = nil
-end
-end
+    warn("[VOIDLINE] Engine Loaded & Waiting for Toggle...")
+    
+    while true do
+        task.wait(1)
+        
+        if _G.AutofarmCourier then
+            -- 1. MASUK JOB (DELAY 2 DETIK)
+            SwitchToCourier()
+            task.wait(2)
+
+            local Char = LP.Character or LP.CharacterAdded:Wait()
+            local Hum = Char:WaitForChild("Humanoid")
+            local Root = Char:WaitForChild("HumanoidRootPart")
+
+            if Hum and Root then
+                
+                -- [[ LOGIC DETEKSI LIMIT / STUCK 4 MENIT ]]
+                if not AutoEquipBox() then
+                    if not WaktuKosong then 
+                        WaktuKosong = os.clock() 
+                    end
+                    
+                    if (os.clock() - WaktuKosong) >= 240 then
+                        warn("[VOIDLINE] Limit Detect / Stuck! Switching Role...")
+                        local args = {"Civilian", 0, 0, 0, "Detector"}
+                        game:GetService("ReplicatedStorage"):WaitForChild("JobEvents"):WaitForChild("TeamChangeRequest"):FireServer(unpack(args))
+                        
+                        WaktuKosong = nil
+                        repeat 
+                            task.wait(1)
+                        until (LP.Team and LP.Team.Name == "Civilian") or not _G.AutofarmCourier
+                        
+                        task.wait(15) 
+                        continue 
+                    end
+                else
+                    WaktuKosong = nil
+                end
+
+                -- [[ BYPASS UTAMA: WAJIB SIT DENGAN DELAY 3 DETIK ]]
+                if not Hum.Sit then
+                    warn("[VOIDLINE] Activating SIT Bypass...")
+                    repeat 
+                        Hum.Sit = true
+                        task.wait(0.5)
+                    until Hum.Sit or not _G.AutofarmCourier
+                    task.wait(3) 
+                end
+
+                -- PHASE 1: AMBIL PAKET (TANPA DELAY 45s)
+                if not AutoEquipBox() then
+                    warn("[VOIDLINE] Fetching Box...")
+                    Teleport(TAKE_BOX_CFRAME)
+                    task.wait(0.5)
+                    
+                    if _G.AutofarmCourier and TAKE_PROMPT.Enabled then
+                        fireproximityprompt(TAKE_PROMPT)
+                        task.wait(1.5)
+                    end
+                
+                -- PHASE 2: ANTER PAKET (DELAY 45s HANYA JIKA SUDAH ADA BOX)
+                else
+                    local TargetBlock, TargetPrompt = GetActivePoint()
+                    
+                    if TargetBlock and TargetPrompt then
+                        -- Delay 45s ditaruh di sini (Setelah dapat box)
+                        warn("[VOIDLINE] Box Secured. Waiting " .. tostring(_G.CourierDelay or 45) .. "s before delivery...")
+                        task.wait(_G.CourierDelay or 45)
+                        
+                        -- Hold 2s sebelum Teleport instan
+                        task.wait(_G.CourierHold or 2)
+                        
+                        if not _G.AutofarmCourier then return end
+                        
+                        -- Teleport ke tempat antar
+                        Teleport(TargetBlock.CFrame * CFrame.new(0, 2, 0))
+                        task.wait(0.8)
+                        
+                        AutoEquipBox() -- Cek lagi box-nya
+                        
+                        if _G.AutofarmCourier and TargetPrompt.Enabled then
+                            fireproximityprompt(TargetPrompt)
+                            task.wait(3.5)
+                        end
+                    end
+                end
+            end
+        else
+            WaktuKosong = nil
+        end
+    end
 end)
 
 
