@@ -334,13 +334,13 @@ FarmTab:AddToggle({
     Content  = "farm tanpa stuck!",
     Default  = false,
     Callback = function(value)
- _G.AutofarmCourier = Value
+ _G.AutofarmCourier = alue
     end
 })
 FarmTab:AddSlider({
     Title     = "Speed Farm",
     Min       = 0, Max = 170, Default = 120, Increment = 0,
     Callback  = function(value) 
-    _G.CourierSpeed = Value
+    _G.CourierSpeed = value
 end
 })
