@@ -327,9 +327,10 @@ local Window = VelarisUI:Window({
     Animation = true,
 })
 
+-- // FARM TAB
 local FarmTab = Window:AddTab({ Name = "AutoFarm", Icon = "Play" })
-FarmTab:AddSection({ Title = "Courier Farm", Icon = "lucide:user", Open = true })
-FarmTab:AddToggle({
+local FarmSection = FarmTab:AddSection({ Title = "Farm Courier", Open = true })
+FarmSection:AddToggle({
     Title    = "On Autofarm",
     Content  = "farm tanpa stuck!",
     Default  = false,
@@ -337,10 +338,31 @@ FarmTab:AddToggle({
  _G.AutofarmCourier = alue
     end
 })
-FarmTab:AddSlider({
+FarmSection:AddSlider({
     Title     = "Speed Farm",
     Min       = 0, Max = 170, Default = 120, Increment = 1,
     Callback  = function(value) 
     _G.CourierSpeed = value
 end
+})
+
+-- // WEBHOOK TAB
+local WebhookTab = Window:AddTab({ Name = "Webhook", Icon = "Webhook" })
+local WebhookSection = WebhookTab:AddSection({ Title = "Webhook logs", Open = true })
+WebhookSection:AddInput({
+    Title    = "Webhook URL",
+    Content  = "Paste Discord Webhook Link",
+    Default  = _G.WebhookURL,
+    Callback = function(value)
+        _G.WebhookURL = value
+    end
+})
+
+WebhookSection:AddToggle({
+    Title    = "On Webhook",
+    Content  = "webhook akan mengirim informasi duit",
+    Default  = false,
+    Callback = function(value)
+ _G.AutoWebhook = value
+    end
 })
