@@ -1,0 +1,150 @@
+-- // VoidlineHub x Quadra Method (Double-Tap + Load Delay) \\ --
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local root = char:WaitForChild("HumanoidRootPart")
+local hum = char:WaitForChild("Humanoid")
+
+-- [[ DATA COORDINATES ]] --
+local StartHitbox = CFrame.new(-386.94, 6.5, -1616.52) 
+local Route = {
+    {id = "CP1", pos = CFrame.new(-229.05, 14.91, -1615.53)},
+    {id = "CP2", pos = CFrame.new(1122.35, 14.94, -1615.53)},
+    {id = "CP3", pos = CFrame.new(1373.58, 14.93, -1110.91)},
+    {id = "CP4", pos = CFrame.new(1049.25, 14.91, -732.12)},
+    {id = "CP5", pos = CFrame.new(904.14, 14.89, -416.51)},
+    {id = "CP6", pos = CFrame.new(1193.71, 14.88, 203.63)},
+    {id = "CP7", pos = CFrame.new(945.44, 14.85, 871.16)},
+    {id = "CP8", pos = CFrame.new(464.40, 14.82, 1209.74)},
+    {id = "CP9", pos = CFrame.new(-145.63, 14.80, 1255.10)},
+    {id = "CP10", pos = CFrame.new(-620.04, 14.78, 1526.12)},
+    {id = "CP11", pos = CFrame.new(-1603.34, 14.76, 1792.87)},
+    {id = "CP12", pos = CFrame.new(-1544.35, 14.76, 894.57)},
+    {id = "CP13", pos = CFrame.new(-787.45, 14.76, 604.22)},
+    {id = "CP14", pos = CFrame.new(-579.08, 14.76, -368.90)},
+    {id = "CP15", pos = CFrame.new(-1159.44, 14.76, -843.26)},
+    {id = "CP16", pos = CFrame.new(-1456.18, 14.76, -1703.13)},
+    {id = "CP17", pos = CFrame.new(-1320.92, 14.76, -2145.68)},
+    {id = "CP18", pos = CFrame.new(-1116.99, 14.76, -1933.47)},
+    {id = "CP19", pos = CFrame.new(-229.11, 14.92, -1616.68)},
+}
+
+-- [[ CONFIG ]] --
+local Speed = 165
+local Noclip = false
+
+-- [[ QUADRA TWEEN FUNCTION ]] --
+local function tweenTo(target, endCFrame, duration)
+    local isModel = target:IsA("Model")
+    local tweenValue = Instance.new("CFrameValue")
+    tweenValue.Value = isModel and target:GetPivot() or target.CFrame
+
+    local connection = tweenValue.Changed:Connect(function()
+        if isModel then target:PivotTo(tweenValue.Value) else target.CFrame = tweenValue.Value end
+    end)
+
+    local info = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(tweenValue, info, {Value = endCFrame})
+    
+    tween:Play()
+    tween.Completed:Wait()
+    connection:Disconnect()
+    tweenValue:Destroy()
+end
+
+-- [[ NOCLIP HANDLER ]] --
+RunService.Stepped:Connect(function()
+    if Noclip then
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+        for _, motor in pairs(workspace:GetChildren()) do
+            if motor.Name:find(player.Name) then
+                for _, p in pairs(motor:GetDescendants()) do
+                    if p:IsA("BasePart") then p.CanCollide = false end
+                end
+            end
+        end
+    end
+end)
+
+local function AutoRace()
+    -- 1. Tween Character ke Start
+    print("Tweening to Start...")
+    local distStart = (root.Position - StartHitbox.Position).Magnitude
+    tweenTo(char, StartHitbox, distStart/100)
+
+    -- 2. Spawn Motor dengan Delay Load
+    ReplicatedStorage.SpawnCarEvents.DespawnCar:FireServer()
+    task.wait(0.5)
+    ReplicatedStorage.SpawnCarEvents.SpawnCar:FireServer("Yamahax-MioSporty")
+    
+    print("Motor Spawned, waiting 3s for load...")
+    task.wait(3) -- Delay tambahan supaya motor keload sempurna
+
+    local motorModel = nil
+    repeat
+        for _, v in pairs(workspace:GetChildren()) do
+            if v.Name:find(player.Name) and v.Name:find("Montors") then
+                motorModel = v
+                break
+            end
+        end
+        task.wait(0.5)
+    until motorModel
+
+    -- 3. Tween ke Motor & Duduk
+    print("Approach Motor...")
+    local seat = motorModel:WaitForChild("DriveSeat")
+    local prompt = seat:WaitForChild("ProximityPrompt")
+    local distToMotor = (root.Position - seat.Position).Magnitude
+    tweenTo(char, seat.CFrame, distToMotor/50)
+    
+    repeat
+        fireproximityprompt(prompt)
+        task.wait(0.3)
+    until hum.Sit
+
+    -- 4. Delay Bypass 34 Detik
+    print("Waiting 34s Bypass...")
+    task.wait(34)
+
+    -- 5. Racing Start
+    workspace.Gravity = 0
+    Noclip = true
+    
+    for i, cp in ipairs(Route) do
+        -- A. Tween ke Koordinat Target
+        local dist = (motorModel:GetPivot().Position - cp.pos.Position).Magnitude
+        print("Targeting: " .. cp.id)
+        tweenTo(motorModel, cp.pos, dist/Speed)
+
+        -- B. DOUBLE-TAP METHOD
+        local overshoot = cp.pos * CFrame.new(0, 0, -5) 
+        tweenTo(motorModel, overshoot, 0.1) 
+        tweenTo(motorModel, cp.pos, 0.1)
+
+        if i == 19 then
+            -- 6. Finish Logic
+            Noclip = false
+            workspace.Gravity = 196
+            for _, p in pairs(motorModel:GetDescendants()) do
+                if p:IsA("BasePart") then p.Anchored = true end
+            end
+            task.wait(0.2)
+            hum.Jump = true
+            task.wait(0.5)
+            ReplicatedStorage.SpawnCarEvents.DespawnCar:FireServer()
+            print("Loop Done.")
+            break
+        end
+    end
+end
+
+while true do
+    local s, e = pcall(AutoRace)
+    if not s then warn(e) end
+    task.wait(2)
+end
