@@ -1,4 +1,4 @@
--- // VoidlineHub x Quadra Method (Smooth Parking Flow) \\ --
+-- // VoidlineHub x Quadra Method (Sit-Tween & Jump-Spawn) \\ --
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -34,13 +34,22 @@ local Route = {
 local Speed = 165
 local Noclip = false
 
+local function SetFreeze(model, state)
+    if not model then return end
+    for _, p in pairs(model:GetDescendants()) do
+        if p:IsA("BasePart") then p.Anchored = state end
+    end
+end
+
 local function tweenTo(target, endCFrame, duration)
     local isModel = target:IsA("Model")
     local tweenValue = Instance.new("CFrameValue")
     tweenValue.Value = isModel and target:GetPivot() or target.CFrame
+    
     local connection = tweenValue.Changed:Connect(function()
         if isModel then target:PivotTo(tweenValue.Value) else target.CFrame = tweenValue.Value end
     end)
+
     local info = TweenInfo.new(duration, Enum.EasingStyle.Linear)
     local tween = TweenService:Create(tweenValue, info, {Value = endCFrame})
     tween:Play()
@@ -67,7 +76,7 @@ end)
 local function AutoRace()
     local motorModel = nil
     
-    -- Cek apakah sudah ada motor dan sudah duduk
+    -- Ambil Motor yang sudah ada
     for _, v in pairs(workspace:GetChildren()) do
         if v.Name:find(player.Name) and v.Name:find("Montors") then
             motorModel = v
@@ -75,14 +84,22 @@ local function AutoRace()
         end
     end
 
+    -- Logic Awal / Reset jika tidak di motor
     if not hum.Sit or not motorModel then
-        -- Jika belum duduk/motor ga ada, baru jalanin prosedur spawn
         ReplicatedStorage.SpawnCarEvents.DespawnCar:FireServer()
-        task.wait(0.5)
+        
+        -- POSISI DUDUK SAAT TWEEN KE START
+        hum.Sit = true 
+        task.wait(0.1)
         
         local distStart = (root.Position - StartHitbox.Position).Magnitude
         tweenTo(char, StartHitbox, distStart/120)
         
+        -- SAMPAI HITBOX -> LOMPAT BIAR BERDIRI
+        hum.Jump = true
+        task.wait(0.5)
+        
+        -- BARU SPAWN MOTOR
         ReplicatedStorage.SpawnCarEvents.SpawnCar:FireServer("Yamahax-MioSporty")
         task.wait(3)
         
@@ -103,8 +120,7 @@ local function AutoRace()
         until hum.Sit
     end
 
-    -- Bypass Time
-    print("Bypassing (34s)...")
+    -- Bypass 34s
     task.wait(34)
 
     -- Racing
@@ -121,32 +137,34 @@ local function AutoRace()
         tweenTo(motorModel, cp.pos, 0.1)
 
         if i == 19 then
-            print("Checkpoint 19 Reached. Parking...")
-            
-            -- Method Parkir: Napak Tanah
+            -- FINISH FLOW
+            SetFreeze(motorModel, true)
             Noclip = false
             workspace.Gravity = 196
+            task.wait(0.1)
             
-            -- Freeze sebentar biar ban napak beneran
-            for _, p in pairs(motorModel:GetDescendants()) do
-                if p:IsA("BasePart") then p.Anchored = true end
-            end
+            hum.Jump = true -- Keluar motor
+            task.wait(0.2)
+            ReplicatedStorage.SpawnCarEvents.DespawnCar:FireServer()
+            
+            -- TWEEN BALIK KE START DALAM POSISI DUDUK
+            print("Finished. Sitting and returning to start...")
+            task.wait(0.2)
+            hum.Sit = true 
+            
+            local distBack = (root.Position - StartHitbox.Position).Magnitude
+            tweenTo(char, StartHitbox, distBack/120)
+            
+            -- SAMPAI START -> LOMPAT (BERDIRI) SEBELUM LOOP ULANG
+            hum.Jump = true
             task.wait(0.5)
-            for _, p in pairs(motorModel:GetDescendants()) do
-                if p:IsA("BasePart") then p.Anchored = false end
-            end
-            
-            -- Tween balik ke Start (tetap di motor)
-            local distBack = (motorModel:GetPivot().Position - StartHitbox.Position).Magnitude
-            tweenTo(motorModel, StartHitbox, distBack/120)
-            
-            print("Back at Start. Ready for next lap.")
             break
         end
     end
 end
 
 while true do
-    pcall(AutoRace)
+    local s, e = pcall(AutoRace)
+    if not s then warn(e) end
     task.wait(1)
 end
