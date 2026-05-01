@@ -1,0 +1,18 @@
+local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
+
+local Window = VelarisUI:Window({
+    Title     = "drag drive simulator",
+    Footer    = "By voidline",
+    Content   = "v1.0.0",             
+    Color     = "Default",            
+    Version   = "1.0",
+    Image     = "101833678008843",    
+    Size      = UDim2.fromOffset(640, 400),
+    ShowUser  = true,                  
+    Search    = true,                  
+    Animation = false,                 
+    TypeDelay = 0.07,                  
+    TypePause = 2.5,                   
+    Animation = true,
+})
+
