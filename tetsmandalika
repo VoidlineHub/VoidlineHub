@@ -32,7 +32,7 @@ local Route = {
 }
 
 -- [[ CONFIG ]] --
-local Speed = 50
+local Speed = 90
 local Noclip = false
 
 -- [[ QUADRA TWEEN FUNCTION ]] --
