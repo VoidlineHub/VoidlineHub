@@ -1,4 +1,4 @@
--- // VoidlineHub x Quadra Method (Double-Tap + Load Delay) \\ --
+-- // VoidlineHub x Quadra Method (Smooth Parking Flow) \\ --
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -31,30 +31,24 @@ local Route = {
     {id = "CP19", pos = CFrame.new(-229.11, 14.92, -1616.68)},
 }
 
--- [[ CONFIG ]] --
-local Speed = 90
+local Speed = 165
 local Noclip = false
 
--- [[ QUADRA TWEEN FUNCTION ]] --
 local function tweenTo(target, endCFrame, duration)
     local isModel = target:IsA("Model")
     local tweenValue = Instance.new("CFrameValue")
     tweenValue.Value = isModel and target:GetPivot() or target.CFrame
-
     local connection = tweenValue.Changed:Connect(function()
         if isModel then target:PivotTo(tweenValue.Value) else target.CFrame = tweenValue.Value end
     end)
-
     local info = TweenInfo.new(duration, Enum.EasingStyle.Linear)
     local tween = TweenService:Create(tweenValue, info, {Value = endCFrame})
-    
     tween:Play()
     tween.Completed:Wait()
     connection:Disconnect()
     tweenValue:Destroy()
 end
 
--- [[ NOCLIP HANDLER ]] --
 RunService.Stepped:Connect(function()
     if Noclip then
         for _, v in pairs(char:GetDescendants()) do
@@ -71,80 +65,88 @@ RunService.Stepped:Connect(function()
 end)
 
 local function AutoRace()
-    -- 1. Tween Character ke Start
-    print("Tweening to Start...")
-    local distStart = (root.Position - StartHitbox.Position).Magnitude
-    tweenTo(char, StartHitbox, distStart/100)
-
-    -- 2. Spawn Motor dengan Delay Load
-    ReplicatedStorage.SpawnCarEvents.DespawnCar:FireServer()
-    task.wait(0.5)
-    ReplicatedStorage.SpawnCarEvents.SpawnCar:FireServer("Yamahax-MioSporty")
-    
-    print("Motor Spawned, waiting 3s for load...")
-    task.wait(3) -- Delay tambahan supaya motor keload sempurna
-
     local motorModel = nil
-    repeat
+    
+    -- Cek apakah sudah ada motor dan sudah duduk
+    for _, v in pairs(workspace:GetChildren()) do
+        if v.Name:find(player.Name) and v.Name:find("Montors") then
+            motorModel = v
+            break
+        end
+    end
+
+    if not hum.Sit or not motorModel then
+        -- Jika belum duduk/motor ga ada, baru jalanin prosedur spawn
+        ReplicatedStorage.SpawnCarEvents.DespawnCar:FireServer()
+        task.wait(0.5)
+        
+        local distStart = (root.Position - StartHitbox.Position).Magnitude
+        tweenTo(char, StartHitbox, distStart/120)
+        
+        ReplicatedStorage.SpawnCarEvents.SpawnCar:FireServer("Yamahax-MioSporty")
+        task.wait(3)
+        
         for _, v in pairs(workspace:GetChildren()) do
             if v.Name:find(player.Name) and v.Name:find("Montors") then
                 motorModel = v
                 break
             end
         end
-        task.wait(0.5)
-    until motorModel
+        
+        local seat = motorModel:WaitForChild("DriveSeat")
+        local prompt = seat:WaitForChild("ProximityPrompt")
+        tweenTo(char, seat.CFrame, 0.5)
+        
+        repeat
+            fireproximityprompt(prompt)
+            task.wait(0.3)
+        until hum.Sit
+    end
 
-    -- 3. Tween ke Motor & Duduk
-    print("Approach Motor...")
-    local seat = motorModel:WaitForChild("DriveSeat")
-    local prompt = seat:WaitForChild("ProximityPrompt")
-    local distToMotor = (root.Position - seat.Position).Magnitude
-    tweenTo(char, seat.CFrame, distToMotor/50)
-    
-    repeat
-        fireproximityprompt(prompt)
-        task.wait(0.3)
-    until hum.Sit
-
-    -- 4. Delay Bypass 34 Detik
-    print("Waiting 34s Bypass...")
+    -- Bypass Time
+    print("Bypassing (34s)...")
     task.wait(34)
 
-    -- 5. Racing Start
+    -- Racing
     workspace.Gravity = 0
     Noclip = true
     
     for i, cp in ipairs(Route) do
-        -- A. Tween ke Koordinat Target
         local dist = (motorModel:GetPivot().Position - cp.pos.Position).Magnitude
-        print("Targeting: " .. cp.id)
         tweenTo(motorModel, cp.pos, dist/Speed)
 
-        -- B. DOUBLE-TAP METHOD
+        -- Double Tap
         local overshoot = cp.pos * CFrame.new(0, 0, -5) 
         tweenTo(motorModel, overshoot, 0.1) 
         tweenTo(motorModel, cp.pos, 0.1)
 
         if i == 19 then
-            -- 6. Finish Logic
+            print("Checkpoint 19 Reached. Parking...")
+            
+            -- Method Parkir: Napak Tanah
             Noclip = false
             workspace.Gravity = 196
+            
+            -- Freeze sebentar biar ban napak beneran
             for _, p in pairs(motorModel:GetDescendants()) do
                 if p:IsA("BasePart") then p.Anchored = true end
             end
-            task.wait(0.2)
-            hum.Jump = true
             task.wait(0.5)
-            ReplicatedStorage.SpawnCarEvents.DespawnCar:FireServer()
-            print("Loop Done.")
+            for _, p in pairs(motorModel:GetDescendants()) do
+                if p:IsA("BasePart") then p.Anchored = false end
+            end
+            
+            -- Tween balik ke Start (tetap di motor)
+            local distBack = (motorModel:GetPivot().Position - StartHitbox.Position).Magnitude
+            tweenTo(motorModel, StartHitbox, distBack/120)
+            
+            print("Back at Start. Ready for next lap.")
             break
         end
     end
 end
 
 while true do
-    local s, e = pcall(AutoRace)
-    if not s then warn(e) end
-    task.wait(2)
+    pcall(AutoRace)
+    task.wait(1)
 end
