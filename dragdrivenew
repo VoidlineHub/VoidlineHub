@@ -33,8 +33,8 @@ local Route = {
 }
 
 -- [[ CONFIG ]] --
-_G.AutoRace
-_G.AntiAFK
+_G.AutoRace = false
+_G.AntiAFK = false
 local BaseSpeed = 120 
 local Noclip = false
 
