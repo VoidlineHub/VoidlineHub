@@ -212,19 +212,30 @@ FarmSection:AddToggle({
 })
 
 FarmSection:AddToggle({
-    Title    = "Anti-AFK Pro",
-    Content  = "Bypass Kick 267 Internal",
+    Title    = "Anti-AFK Ultra",
+    Content  = "Fix Error 278 (20 Menit)",
     Default  = false,
     Callback = function(value)
         _G.AntiAFK = value
+        
         if value then
+            print("VoidlineHub | Anti-AFK Ultra Active")
             task.spawn(function()
                 while _G.AntiAFK do
-                    -- Simulasi lompat atau gerak dikit setiap 2 menit
-                    if player.Character and player.Character:FindFirstChild("Humanoid") then
-                        player.Character.Humanoid.Jump = true
-                    end
-                    task.wait(math.random(60, 120)) -- Jeda acak biar gak ketara bot
+                    -- 1. Simulasi Input Keyboard (Biar dikira mencet tombol)
+                    VirtualUser:CaptureController()
+                    VirtualUser:Button1Down(Vector2.new(0, 100), workspace.CurrentCamera.CFrame)
+                    task.wait(0.2)
+                    VirtualUser:Button1Up(Vector2.new(0, 100), workspace.CurrentCamera.CFrame)
+                    
+                    -- 2. Gerakin Kamera dikit (Sangat efektif lawan idle 20 menit)
+                    local cam = workspace.CurrentCamera
+                    cam.CFrame = cam.CFrame * CFrame.Angles(0, math.rad(0.1), 0)
+                    task.wait(0.1)
+                    cam.CFrame = cam.CFrame * CFrame.Angles(0, math.rad(-0.1), 0)
+
+                    -- 3. Jeda Random (Biar gak kebaca bot pola tetap)
+                    task.wait(math.random(30, 60)) 
                 end
             end)
         end
