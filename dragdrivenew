@@ -1,4 +1,4 @@
-
+local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -175,8 +175,6 @@ while true do
     end
     task.wait(1)
 end
-
-local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
 local Window = VelarisUI:Window({
     Title     = "drag drive simulator",
     Footer    = "By voidline",
