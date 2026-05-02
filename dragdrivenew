@@ -8,12 +8,12 @@ local player = game.Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local root = char:WaitForChild("HumanoidRootPart")
 local hum = char:WaitForChild("Humanoid")
-
+local VirtualUser = game:GetService("VirtualUser") 
 --// config
 _G.AutoRace = false
 local BaseSpeed = 120 
 local NoclipActive = false
-
+_G.AntiAFK = false
 -- [[ DATA COORDINATES ]] --
 local StartHitbox = CFrame.new(-386.94, 6.5, -1616.52) 
 local Route = {
@@ -202,7 +202,35 @@ FarmSection:AddToggle({
         end
     end
 })
+FarmSection:AddToggle({
+    Title    = "Anti-AFK",
+    Content  = "Mencegah disconnect (20 menit)",
+    Default  = false,
+    Callback = function(value)
+        _G.AntiAFK = value
+        
+        if value then
+            task.spawn(function()
+                local VirtualUser = game:GetService("VirtualUser")
+                print("VoidlineHub | Anti-AFK Started")
+                
+                -- Koneksi ke event Idle
+                local connection = player.Idled:Connect(function()
+                    if _G.AntiAFK then
+                        VirtualUser:CaptureController()
+                        VirtualUser:ClickButton2(Vector2.new())
+                        print("VoidlineHub | Anti-AFK: Input Simulated")
+                    end
+                end)
 
+                -- Loop pengecekan status toggle
+                repeat task.wait(1) until not _G.AntiAFK
+                
+                connection:Disconnect() 
+            end)
+        end
+    end
+})
 
 -- // WEBHOOK TAB
 local WebhookTab = Window:AddTab({ Name = "Webhook", Icon = "Webhook" })
