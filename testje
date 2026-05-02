@@ -58,7 +58,7 @@ local function AutoServerHop()
         
         if Target then
             -- TITIP SCRIPT: Pastikan link Github lo bener bre
-            local scriptRaw = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua"))()]]
+            local scriptRaw = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/VoidlineHub/VoidlineHub/main/testje"))()]]
             
             -- Cek fungsi teleport executor
             local teleportFunc = queue_on_teleport or (syn and syn.queue_on_teleport)
