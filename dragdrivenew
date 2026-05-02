@@ -1,12 +1,17 @@
 local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
+
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local root = char:WaitForChild("HumanoidRootPart")
-local hum = char:WaitForChild("Humanoid")
 local VirtualUser = game:GetService("VirtualUser") 
+
+-- [[ CONFIG ]] --
+_G.AutoRace = false
+_G.AntiAFK = false
+local BaseSpeed = 120 
+local Noclip = false
+
 -- [[ DATA COORDINATES ]] --
 local StartHitbox = CFrame.new(-386.94, 6.5, -1616.52) 
 local Route = {
@@ -31,20 +36,8 @@ local Route = {
     {id = "CP19", pos = CFrame.new(-229.11, 14.92, -1616.68)},
 }
 
--- [[ CONFIG ]] --
-_G.AutoRace = false
-_G.AntiAFK = false
-local BaseSpeed = 120 
-local Noclip = false
-
-local function SetFreeze(model, state)
-    if not model then return end
-    for _, p in pairs(model:GetDescendants()) do
-        if p:IsA("BasePart") then p.Anchored = state end
-    end
-end
-
 local function tweenTo(target, endCFrame, duration)
+    if not target then return end
     local isModel = target:IsA("Model")
     local tweenValue = Instance.new("CFrameValue")
     tweenValue.Value = isModel and target:GetPivot() or target.CFrame
@@ -64,22 +57,21 @@ end
 -- [[ NOCLIP HANDLER ]] --
 RunService.Stepped:Connect(function()
     if _G.AutoRace and Noclip then
-        for _, v in pairs(char:GetDescendants()) do
-            if v:IsA("BasePart") then v.CanCollide = false end
-        end
-        for _, motor in pairs(workspace:GetChildren()) do
-            if motor.Name:find(player.Name) then
-                for _, p in pairs(motor:GetDescendants()) do
-                    if p:IsA("BasePart") then p.CanCollide = false end
-                end
+        local char = player.Character
+        if char then
+            for _, v in pairs(char:GetDescendants()) do
+                if v:IsA("BasePart") then v.CanCollide = false end
             end
         end
     end
 end)
 
 local function AutoRace()
-    -- Cek apakah Fitur On?
     if not _G.AutoRace then return end
+    
+    local char = player.Character or player.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
+    local hum = char:WaitForChild("Humanoid")
 
     local motorModel = nil
     for _, v in pairs(workspace:GetChildren()) do
@@ -91,90 +83,68 @@ local function AutoRace()
 
     if not hum.Sit or not motorModel then
         ReplicatedStorage.SpawnCarEvents.DespawnCar:FireServer()
-        hum.Sit = true 
-        task.wait(0.1)
-        local distStart = (root.Position - StartHitbox.Position).Magnitude
-        tweenTo(char, StartHitbox, distStart/100)
-        hum.Jump = true
+        task.wait(0.5)
+        tweenTo(char, StartHitbox, 1)
         task.wait(0.5)
         
-        -- SPAWN AEROX
-        print("Spawning Aerox...")
         ReplicatedStorage.SpawnCarEvents.SpawnCar:FireServer("Yahamax-Aerox155VVA(2016)")
-        task.wait(3) 
         
-        for _, v in pairs(workspace:GetChildren()) do
-            if v.Name:find(player.Name) and v.Name:find("Montors") then
-                motorModel = v
-                break
+        -- Cari motor baru
+        local timeout = 0
+        repeat 
+            task.wait(0.5)
+            timeout = timeout + 1
+            for _, v in pairs(workspace:GetChildren()) do
+                if v.Name:find(player.Name) and v.Name:find("Montors") then
+                    motorModel = v
+                end
             end
-        end
+        until motorModel or timeout > 10
         
-        local seat = motorModel:WaitForChild("DriveSeat")
-        local prompt = seat:WaitForChild("ProximityPrompt")
-        tweenTo(char, seat.CFrame, 0.5)
-        repeat
-            if not _G.AutoRace then return end
-            fireproximityprompt(prompt)
+        if motorModel then
+            local seat = motorModel:WaitForChild("DriveSeat")
+            char:PivotTo(seat.CFrame)
             task.wait(0.3)
-        until hum.Sit
+            fireproximityprompt(seat:WaitForChild("ProximityPrompt"))
+        end
     end
 
-    -- BYPASS 34 DETIK
-    print("Bypassing (34s)...")
+    -- Tunggu bypass
     task.wait(34)
-
     if not _G.AutoRace then return end
+    
     workspace.Gravity = 0
     Noclip = true
     
     for i, cp in ipairs(Route) do
         if not _G.AutoRace then break end
-
-        local DynamicSpeed = BaseSpeed + math.random(-3, 3) 
-        local currentPivot = motorModel:GetPivot()
-        local dist = (currentPivot.Position - cp.pos.Position).Magnitude
+        local dist = (motorModel:GetPivot().Position - cp.pos.Position).Magnitude
+        tweenTo(motorModel, cp.pos, dist/BaseSpeed)
         
-        tweenTo(motorModel, cp.pos, dist/DynamicSpeed)
-
-        -- DOUBLE TAP
-        local overshoot = cp.pos * CFrame.new(0, 0, -5) 
-        tweenTo(motorModel, overshoot, 0.12) 
-        task.wait(math.random(5, 15) / 100)
-        tweenTo(motorModel, cp.pos, 0.12)
-
-        if i == 19 then
+        if i == #Route then
             print("Lap Finished.")
-            SetFreeze(motorModel, true)
             Noclip = false
             workspace.Gravity = 196
-            task.wait(0.1)
-            hum.Jump = true 
-            task.wait(0.2)
             ReplicatedStorage.SpawnCarEvents.DespawnCar:FireServer()
-            task.wait(0.2)
-            hum.Sit = true 
-            local distBack = (root.Position - StartHitbox.Position).Magnitude
-            tweenTo(char, StartHitbox, distBack/100)
-            hum.Jump = true
-            task.wait(0.5)
-            break
+            task.wait(1)
         end
     end
 end
 
--- Looping Utama tetap jalan, tapi fungsi AutoRace cuma eksekusi kalau _G.AutoRace true
-while true do
-    if _G.AutoRace then
-        local s, e = pcall(AutoRace)
-        if not s then warn("VoidlineHub Error: " .. e) end
-    else
-        -- Reset Fisika kalau fitur dimatikan
-        workspace.Gravity = 196
-        Noclip = false
+-- MENGGUNAKAN TASK.SPAWN AGAR GUI TERLOAD
+task.spawn(function()
+    while true do
+        if _G.AutoRace then
+            pcall(AutoRace)
+        else
+            workspace.Gravity = 196
+            Noclip = false
+        end
+        task.wait(1)
     end
-    task.wait(1)
-end
+end)
+
+-- [[ GUI ]] --
 local Window = VelarisUI:Window({
     Title     = "drag drive simulator",
     Footer    = "By voidline",
@@ -185,81 +155,38 @@ local Window = VelarisUI:Window({
     Size      = UDim2.fromOffset(640, 400),
     ShowUser  = true,                  
     Search    = true,                  
-    Animation = false,                 
     TypeDelay = 0.07,                  
     TypePause = 2.5,                   
     Animation = true,
 })
 
--- // FARM TAB
 local FarmTab = Window:AddTab({ Name = "AutoFarm", Icon = "Play" })
 local FarmSection = FarmTab:AddSection({ Title = "Farm Courier", Open = true })
+
 FarmSection:AddToggle({
     Title    = "On Autorace",
-    Content  = "farm tanpa stuck!",
+    Content = "auto race mandalika",
     Default  = false,
     Callback = function(value)
-        _G.AutoRace = value -- Update status global
-        
-        if not value then
-            -- Cleanup instan saat dimatikan (OFF)
-            workspace.Gravity = 196
-            -- Mencegah noclip tetap nyala saat dimatikan manual
-            Noclip = false 
-            print("VoidlineHub | Autorace Stopped")
-        else
-            print("VoidlineHub | Autorace Enabled")
-        end
+        _G.AutoRace = value
     end
 })
 
 FarmSection:AddToggle({
     Title    = "Anti-AFK",
-    Content  = "Mencegah disconnect (20 menit)",
+    Content = " "anti disconnect",
     Default  = false,
     Callback = function(value)
         _G.AntiAFK = value
-        
         if value then
-            task.spawn(function()
-                local VirtualUser = game:GetService("VirtualUser")
-                print("VoidlineHub | Anti-AFK Started")
-                
-                -- Koneksi ke event Idle
-                local connection = player.Idled:Connect(function()
-                    if _G.AntiAFK then
-                        VirtualUser:CaptureController()
-                        VirtualUser:ClickButton2(Vector2.new())
-                        print("VoidlineHub | Anti-AFK: Input Simulated")
-                    end
-                end)
-
-                -- Loop pengecekan status toggle
-                repeat task.wait(1) until not _G.AntiAFK
-                
-                connection:Disconnect() 
+            print("Anti-AFK Aktif")
+            player.Idled:Connect(function()
+                if _G.AntiAFK then
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton2(Vector2.new())
+                end
             end)
         end
     end
 })
 
--- // WEBHOOK TAB
-local WebhookTab = Window:AddTab({ Name = "Webhook", Icon = "Webhook" })
-local WebhookSection = WebhookTab:AddSection({ Title = "Webhook logs", Open = true })
-WebhookSection:AddInput({
-    Title    = "Webhook URL",
-    Content  = "Paste Discord Webhook Link",
-    Default  = _G.WebhookURL,
-    Callback = function(value)
-        _G.WebhookURL = value
-    end
-})
-
-WebhookSection:AddToggle({
-    Title    = "On Webhook",
-    Content  = "webhook akan mengirim informasi duit",
-    Default  = false,
-    Callback = function(value)
- _G.AutoWebhook = value
-    end
-})
