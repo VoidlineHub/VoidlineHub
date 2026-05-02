@@ -212,19 +212,21 @@ FarmSection:AddToggle({
 })
 
 FarmSection:AddToggle({
-    Title    = "Anti-AFK",
-    Content  = "Anti Disconnect",
+    Title    = "Anti-AFK Pro",
+    Content  = "Bypass Kick 267 Internal",
     Default  = false,
     Callback = function(value)
         _G.AntiAFK = value
         if value then
-            player.Idled:Connect(function()
-                if _G.AntiAFK then
-                    VirtualUser:CaptureController()
-                    VirtualUser:ClickButton2(Vector2.new())
+            task.spawn(function()
+                while _G.AntiAFK do
+                    -- Simulasi lompat atau gerak dikit setiap 2 menit
+                    if player.Character and player.Character:FindFirstChild("Humanoid") then
+                        player.Character.Humanoid.Jump = true
+                    end
+                    task.wait(math.random(60, 120)) -- Jeda acak biar gak ketara bot
                 end
             end)
         end
     end
 })
-
