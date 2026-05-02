@@ -1,6 +1,5 @@
 local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
 
--- [[ DATA BINDING ]]
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,11 +8,6 @@ local char = player.Character or player.CharacterAdded:Wait()
 local root = char:WaitForChild("HumanoidRootPart")
 local hum = char:WaitForChild("Humanoid")
 local VirtualUser = game:GetService("VirtualUser") 
---// config
-_G.AutoRace = false
-local BaseSpeed = 120 
-local NoclipActive = false
-_G.AntiAFK = false
 -- [[ DATA COORDINATES ]] --
 local StartHitbox = CFrame.new(-386.94, 6.5, -1616.52) 
 local Route = {
@@ -37,7 +31,13 @@ local Route = {
     {id = "CP18", pos = CFrame.new(-1116.99, 14.76, -1933.47)},
     {id = "CP19", pos = CFrame.new(-229.11, 14.92, -1616.68)},
 }
--- [[ FUNCTIONS ]] --
+
+-- [[ CONFIG ]] --
+_G.AutoRace
+_G.AntiAFK
+local BaseSpeed = 120 
+local Noclip = false
+
 local function SetFreeze(model, state)
     if not model then return end
     for _, p in pairs(model:GetDescendants()) do
@@ -62,9 +62,9 @@ local function tweenTo(target, endCFrame, duration)
     tweenValue:Destroy()
 end
 
--- [[ NOCLIP RUNNER ]] --
+-- [[ NOCLIP HANDLER ]] --
 RunService.Stepped:Connect(function()
-    if _G.AutoRace and NoclipActive then
+    if _G.AutoRace and Noclip then
         for _, v in pairs(char:GetDescendants()) do
             if v:IsA("BasePart") then v.CanCollide = false end
         end
@@ -78,93 +78,103 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- [[ MAIN LOGIC ]] --
-local function RunLoop()
-    while _G.AutoRace do
-        local success, err = pcall(function()
-            local motorModel = nil
-            
-            -- Cari Aerox
-            for _, v in pairs(workspace:GetChildren()) do
-                if v.Name:find(player.Name) and v.Name:find("Montors") then
-                    motorModel = v
-                    break
-                end
-            end
+local function AutoRace()
+    -- Cek apakah Fitur On?
+    if not _G.AutoRace then return end
 
-            -- Setup Awal
-            if not hum.Sit or not motorModel then
-                ReplicatedStorage.SpawnCarEvents.DespawnCar:FireServer()
-                hum.Sit = true 
-                task.wait(0.1)
-                tweenTo(char, StartHitbox, (root.Position - StartHitbox.Position).Magnitude/100)
-                hum.Jump = true
-                task.wait(0.5)
-                
-                ReplicatedStorage.SpawnCarEvents.SpawnCar:FireServer("Yahamax-Aerox155VVA(2016)")
-                task.wait(3) 
-                
-                for _, v in pairs(workspace:GetChildren()) do
-                    if v.Name:find(player.Name) and v.Name:find("Montors") then
-                        motorModel = v
-                        break
-                    end
-                end
-                
-                local seat = motorModel:WaitForChild("DriveSeat")
-                tweenTo(char, seat.CFrame, 0.5)
-                repeat
-                    fireproximityprompt(seat:WaitForChild("ProximityPrompt"))
-                    task.wait(0.3)
-                until hum.Sit or not _G.AutoRace
-            end
-
-            if not _G.AutoRace then return end
-
-            -- Bypass 34s
-            task.wait(34)
-
-            workspace.Gravity = 0
-            NoclipActive = true
-            
-            for i, cp in ipairs(Route) do
-                if not _G.AutoRace then break end
-
-                local DynamicSpeed = BaseSpeed + math.random(-3, 3) 
-                local dist = (motorModel:GetPivot().Position - cp.pos.Position).Magnitude
-                
-                tweenTo(motorModel, cp.pos, dist/DynamicSpeed)
-
-                -- Double Tap
-                local overshoot = cp.pos * CFrame.new(0, 0, -5) 
-                tweenTo(motorModel, overshoot, 0.12) 
-                task.wait(math.random(5, 15) / 100)
-                tweenTo(motorModel, cp.pos, 0.12)
-
-                if i == 19 then
-                    SetFreeze(motorModel, true)
-                    NoclipActive = false
-                    workspace.Gravity = 196
-                    task.wait(0.1)
-                    hum.Jump = true 
-                    task.wait(0.2)
-                    ReplicatedStorage.SpawnCarEvents.DespawnCar:FireServer()
-                    task.wait(0.2)
-                    hum.Sit = true 
-                    tweenTo(char, StartHitbox, (root.Position - StartHitbox.Position).Magnitude/100)
-                    hum.Jump = true
-                    task.wait(0.5)
-                end
-            end
-        end)
-        
-        if not success then warn("VoidlineHub Error: " .. err) end
-        task.wait(1)
+    local motorModel = nil
+    for _, v in pairs(workspace:GetChildren()) do
+        if v.Name:find(player.Name) and v.Name:find("Montors") then
+            motorModel = v
+            break
+        end
     end
+
+    if not hum.Sit or not motorModel then
+        ReplicatedStorage.SpawnCarEvents.DespawnCar:FireServer()
+        hum.Sit = true 
+        task.wait(0.1)
+        local distStart = (root.Position - StartHitbox.Position).Magnitude
+        tweenTo(char, StartHitbox, distStart/100)
+        hum.Jump = true
+        task.wait(0.5)
+        
+        -- SPAWN AEROX
+        print("Spawning Aerox...")
+        ReplicatedStorage.SpawnCarEvents.SpawnCar:FireServer("Yahamax-Aerox155VVA(2016)")
+        task.wait(3) 
+        
+        for _, v in pairs(workspace:GetChildren()) do
+            if v.Name:find(player.Name) and v.Name:find("Montors") then
+                motorModel = v
+                break
+            end
+        end
+        
+        local seat = motorModel:WaitForChild("DriveSeat")
+        local prompt = seat:WaitForChild("ProximityPrompt")
+        tweenTo(char, seat.CFrame, 0.5)
+        repeat
+            if not _G.AutoRace then return end
+            fireproximityprompt(prompt)
+            task.wait(0.3)
+        until hum.Sit
+    end
+
+    -- BYPASS 34 DETIK
+    print("Bypassing (34s)...")
+    task.wait(34)
+
+    if not _G.AutoRace then return end
+    workspace.Gravity = 0
+    Noclip = true
     
-    -- Cleanup jika AutoRace dimatikan
-    NoclipActive = false
-    workspace.Gravity = 196
+    for i, cp in ipairs(Route) do
+        if not _G.AutoRace then break end
+
+        local DynamicSpeed = BaseSpeed + math.random(-3, 3) 
+        local currentPivot = motorModel:GetPivot()
+        local dist = (currentPivot.Position - cp.pos.Position).Magnitude
+        
+        tweenTo(motorModel, cp.pos, dist/DynamicSpeed)
+
+        -- DOUBLE TAP
+        local overshoot = cp.pos * CFrame.new(0, 0, -5) 
+        tweenTo(motorModel, overshoot, 0.12) 
+        task.wait(math.random(5, 15) / 100)
+        tweenTo(motorModel, cp.pos, 0.12)
+
+        if i == 19 then
+            print("Lap Finished.")
+            SetFreeze(motorModel, true)
+            Noclip = false
+            workspace.Gravity = 196
+            task.wait(0.1)
+            hum.Jump = true 
+            task.wait(0.2)
+            ReplicatedStorage.SpawnCarEvents.DespawnCar:FireServer()
+            task.wait(0.2)
+            hum.Sit = true 
+            local distBack = (root.Position - StartHitbox.Position).Magnitude
+            tweenTo(char, StartHitbox, distBack/100)
+            hum.Jump = true
+            task.wait(0.5)
+            break
+        end
+    end
+end
+
+-- Looping Utama tetap jalan, tapi fungsi AutoRace cuma eksekusi kalau _G.AutoRace true
+while true do
+    if _G.AutoRace then
+        local s, e = pcall(AutoRace)
+        if not s then warn("VoidlineHub Error: " .. e) end
+    else
+        -- Reset Fisika kalau fitur dimatikan
+        workspace.Gravity = 196
+        Noclip = false
+    end
+    task.wait(1)
 end
 
 local Window = VelarisUI:Window({
@@ -191,17 +201,20 @@ FarmSection:AddToggle({
     Content  = "farm tanpa stuck!",
     Default  = false,
     Callback = function(value)
-        _G.AutoRace = value
+        _G.AutoRace = value -- Update status global
         
-        if value then
-            -- Jalankan thread balap pas ON
-            task.spawn(RunLoop)
-        else
-            -- Cleanup pas OFF biar ga melayang atau noclip terus
+        if not value then
+            -- Cleanup instan saat dimatikan (OFF)
             workspace.Gravity = 196
+            -- Mencegah noclip tetap nyala saat dimatikan manual
+            Noclip = false 
+            print("VoidlineHub | Autorace Stopped")
+        else
+            print("VoidlineHub | Autorace Enabled")
         end
     end
 })
+
 FarmSection:AddToggle({
     Title    = "Anti-AFK",
     Content  = "Mencegah disconnect (20 menit)",
