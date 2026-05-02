@@ -174,7 +174,7 @@ FarmSection:AddToggle({
 
 FarmSection:AddToggle({
     Title    = "Anti-AFK",
-    Content = " "anti disconnect",
+    Content = "anti disconnect",
     Default  = false,
     Callback = function(value)
         _G.AntiAFK = value
