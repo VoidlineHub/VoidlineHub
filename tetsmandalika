@@ -1,4 +1,4 @@
--- // VoidlineHub x Quadra Method (Aerox Edition) \\ --
+-- // VoidlineHub x Quadra Method (Anti-Repetitive Edition) \\ --
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -32,7 +32,7 @@ local Route = {
 }
 
 -- [[ CONFIG ]] --
-local Speed = 120 -- Updated Speed
+local BaseSpeed = 120 
 local Noclip = false
 
 local function SetFreeze(model, state)
@@ -78,7 +78,6 @@ end)
 local function AutoRace()
     local motorModel = nil
     
-    -- Cari Aerox yang ada di workspace
     for _, v in pairs(workspace:GetChildren()) do
         if v.Name:find(player.Name) and v.Name:find("Montors") then
             motorModel = v
@@ -86,25 +85,19 @@ local function AutoRace()
         end
     end
 
-    -- Flow Awal: Jika belum duduk atau motor tidak ada
     if not hum.Sit or not motorModel then
         ReplicatedStorage.SpawnCarEvents.DespawnCar:FireServer()
-        
-        -- POSISI DUDUK SAAT TWEEN KE START
         hum.Sit = true 
         task.wait(0.1)
-        
         local distStart = (root.Position - StartHitbox.Position).Magnitude
         tweenTo(char, StartHitbox, distStart/100)
-        
-        -- SAMPAI START -> BERDIRI
         hum.Jump = true
         task.wait(0.5)
         
         -- SPAWN AEROX
-        print("Spawning Yahamax-Aerox155VVA(2016)...")
+        print("Spawning Aerox...")
         ReplicatedStorage.SpawnCarEvents.SpawnCar:FireServer("Yahamax-Aerox155VVA(2016)")
-        task.wait(3) -- Delay load motor
+        task.wait(3) 
         
         for _, v in pairs(workspace:GetChildren()) do
             if v.Name:find(player.Name) and v.Name:find("Montors") then
@@ -116,53 +109,48 @@ local function AutoRace()
         local seat = motorModel:WaitForChild("DriveSeat")
         local prompt = seat:WaitForChild("ProximityPrompt")
         tweenTo(char, seat.CFrame, 0.5)
-        
         repeat
             fireproximityprompt(prompt)
             task.wait(0.3)
         until hum.Sit
     end
 
-    -- BYPASS 34 DETIK
+    -- BYPASS 34 DETIK (TETAP)
     print("Bypassing (34s)...")
     task.wait(34)
 
-    -- START RACING
     workspace.Gravity = 0
     Noclip = true
     
     for i, cp in ipairs(Route) do
+        -- RANDOMIZE SPEED TIAP CP (Anti-Repetitive)
+        -- Kecepatan bakal acak antara 117 sampai 123
+        local DynamicSpeed = BaseSpeed + math.random(-3, 3) 
+        
         local currentPivot = motorModel:GetPivot()
         local dist = (currentPivot.Position - cp.pos.Position).Magnitude
         
-        print("Tweening to: " .. cp.id)
-        tweenTo(motorModel, cp.pos, dist/Speed)
+        tweenTo(motorModel, cp.pos, dist/DynamicSpeed)
 
-        -- DOUBLE TAP METHOD
+        -- DOUBLE TAP METHOD (Kasih jeda random dikit)
         local overshoot = cp.pos * CFrame.new(0, 0, -5) 
-        tweenTo(motorModel, overshoot, 0.1) 
-        tweenTo(motorModel, cp.pos, 0.1)
+        tweenTo(motorModel, overshoot, 0.12) 
+        task.wait(math.random(5, 15) / 100) -- Jeda 0.05 - 0.15 detik
+        tweenTo(motorModel, cp.pos, 0.12)
 
         if i == 19 then
-            -- FINISH FLOW
-            print("Finished! Performing smooth exit...")
+            print("Lap Finished.")
             SetFreeze(motorModel, true)
             Noclip = false
             workspace.Gravity = 196
             task.wait(0.1)
-            
-            hum.Jump = true -- Keluar dari Aerox
+            hum.Jump = true 
             task.wait(0.2)
             ReplicatedStorage.SpawnCarEvents.DespawnCar:FireServer()
-            
-            -- TWEEN BALIK KE START DALAM POSISI DUDUK
             task.wait(0.2)
             hum.Sit = true 
-            
             local distBack = (root.Position - StartHitbox.Position).Magnitude
             tweenTo(char, StartHitbox, distBack/100)
-            
-            -- SAMPAI START -> LOMPAT (BERDIRI)
             hum.Jump = true
             task.wait(0.5)
             break
@@ -170,7 +158,6 @@ local function AutoRace()
     end
 end
 
--- LOOPING UTAMA
 while true do
     local s, e = pcall(AutoRace)
     if not s then warn("VoidlineHub Error: " .. e) end
