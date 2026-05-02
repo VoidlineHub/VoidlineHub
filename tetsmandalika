@@ -31,7 +31,7 @@ local Route = {
     {id = "CP19", pos = CFrame.new(-229.11, 14.92, -1616.68)},
 }
 
-local Speed = 120
+local Speed = 90
 local Noclip = false
 
 local function SetFreeze(model, state)
