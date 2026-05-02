@@ -83,6 +83,10 @@ end)
 local function AutoRace()
     if not _G.AutoRace then return end
     
+    -- [[ LOCK SPEED PER RACE (Kustom math.random) ]] --
+    local LockedSpeed = math.random(50, 120) 
+    print("VoidlineHub | Race ini menggunakan Speed Lock: " .. LockedSpeed)
+
     local char = player.Character or player.CharacterAdded:Wait()
     local root = char:WaitForChild("HumanoidRootPart")
     local hum = char:WaitForChild("Humanoid")
@@ -105,6 +109,8 @@ local function AutoRace()
         hum.Jump = true
         task.wait(0.5)
         
+        -- SPAWN AEROX
+        print("Spawning Aerox...")
         ReplicatedStorage.SpawnCarEvents.SpawnCar:FireServer("Yahamax-Aerox155VVA(2016)")
         task.wait(3) 
         
@@ -138,12 +144,12 @@ local function AutoRace()
     for i, cp in ipairs(Route) do
         if not _G.AutoRace then break end
 
-        -- QUADRA METHOD: RANDOM SPEED
-        local DynamicSpeed = BaseSpeed + math.random(-3, 3) 
+        -- MENGGUNAKAN LOCKED SPEED (Tetap ada variasi dikit biar gak kaku)
+        local CurrentSpeed = LockedSpeed + math.random(-1, 1) 
         local currentPivot = motorModel:GetPivot()
         local dist = (currentPivot.Position - cp.pos.Position).Magnitude
         
-        tweenTo(motorModel, cp.pos, dist/DynamicSpeed)
+        tweenTo(motorModel, cp.pos, dist/CurrentSpeed)
 
         -- QUADRA METHOD: DOUBLE TAP (Overshoot)
         local overshoot = cp.pos * CFrame.new(0, 0, -5) 
@@ -185,6 +191,8 @@ task.spawn(function()
     end
 end)
 
+
+
 -- [[ GUI VELARIS ]] --
 local Window = VelarisUI:Window({
     Title     = "Drag Drive Simulator",
@@ -213,7 +221,7 @@ FarmSection:AddToggle({
 
 FarmSection:AddToggle({
     Title    = "Anti-AFK Ultra",
-    Content  = "Fix Error 278 (20 Menit)",
+    Content  = "Fix Error 278",
     Default  = false,
     Callback = function(value)
         _G.AntiAFK = value
