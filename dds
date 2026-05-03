@@ -247,6 +247,15 @@ local Window = VelarisUI:Window({
     },
 })
 
+Window:Tag({
+    Title = "Drag drive simulator",
+    Color = "#FF5500",
+})
+
+Window:Tag({
+    Title = "Beta",
+    Color = "#F5F5F5",
+})
 
 local FarmTab = Window:AddTab({ Name = "AutoFarm", Icon = "house" })
 local FarmSection = FarmTab:AddSection({ Title = "courier farm", Open = true })
