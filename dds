@@ -161,6 +161,19 @@ task.spawn(function()
     while true do
         task.wait(1)
         
+        -- [[ AUTO SERVER HOP CHECK (3 HOURS) ]]
+        -- Mengecek apakah sudah saatnya pindah server buat bypass limit total
+        if os.time() - _G.StartTime >= 10800 then
+            warn("[VOIDLINE] 3 Hours Reached! Searching for new server...")
+            if typeof(AutoServerHop) == "function" then
+                AutoServerHop()
+            else
+                -- Fallback jika fungsi hop tidak ditemukan
+                game:GetService("TeleportService"):Teleport(game.PlaceId, LP)
+            end
+            break -- Hentikan loop di server ini
+        end
+        
         -- Hanya jalan jika Toggle ON
         if _G.AutofarmCourier then
             -- 1. Masuk Job (Jika respawn/baru mulai)
@@ -205,10 +218,11 @@ task.spawn(function()
                 if not Hum.Sit then
                     warn("[VOIDLINE] Activating SIT Bypass...")
                     repeat 
+                        if not _G.AutofarmCourier then break end
                         Hum.Sit = true
                         task.wait(0.5)
                     until Hum.Sit or not _G.AutofarmCourier
-                    task.wait(1) -- Jeda biar server sinkron posisi duduk lu
+                    task.wait(1) 
                 end
 
                 -- PHASE 1: AMBIL PAKET
@@ -233,7 +247,7 @@ task.spawn(function()
                         Tween(TargetBlock.CFrame * CFrame.new(0, 2, 0))
                         task.wait(0.8)
                         
-                        AutoEquipBox() -- Pastikan tool masih dipegang sebelum diprompt
+                        AutoEquipBox() 
                         
                         if _G.AutofarmCourier and TargetPrompt.Enabled then
                             fireproximityprompt(TargetPrompt)
@@ -248,7 +262,6 @@ task.spawn(function()
         end
     end
 end)
-
 
 
 
