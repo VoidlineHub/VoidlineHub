@@ -250,6 +250,10 @@ local Window = VelarisUI:Window({
 
 local FarmTab = Window:AddTab({ Name = "AutoFarm", Icon = "house" })
 local FarmSection = FarmTab:AddSection({ Title = "courier farm", Open = true })
+FarmSection:AddParagraph({
+    Title   = "ALERT⚠️",
+    Content = "kalau pakai redfinger bisa speed 300\nkalau hp biasa speed 230 (recommend)"
+})
 
 FarmSection:AddToggle({
     Title    = "On autofarm",
