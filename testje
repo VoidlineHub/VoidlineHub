@@ -223,10 +223,9 @@ end)
 local Window = VelarisUI:Window({
     Title     = "Drag Drive Simulator",
     Footer    = "By Voidline",
-    Content   = "Quadra Method Edition",             
     Color     = "Default",            
     Version   = "1.0",
-    Image     = "rbxassetid://101833678008843",    
+    Image     = "101833678008843",    
     Size      = UDim2.fromOffset(640, 400),
     ShowUser  = true,                  
     Search    = true,                  
