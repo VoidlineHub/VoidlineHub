@@ -24,6 +24,7 @@ _G.AutofarmCourier = false
 _G.CourierSpeed = 230  
 _G.CycleCount = 0
 _G.Antiafk = false
+local TimerTanganKosong = nil
 
 -- Timer 3 Jam (Anti-Reset)
 if not _G.StartTime then
@@ -141,32 +142,25 @@ local function GetActivePoint()
     return nil, nil
 end
 
-
-
--- [[ MAIN ENGINE ]]
+-- LOGIC KURIR
 task.spawn(function()
-    warn("[VOIDLINE] Engine Loaded & Waiting for Toggle...")
     
-    -- Pastikan variable WaktuMulai sudah ada di paling atas script utama lo:
-    -- local WaktuMulai = os.time() 
+    local TimerTanganKosong = nil -- Variabel buat jaga-jaga kalau box belum spawn
 
     while true do
         task.wait(1)
         
         -- [[ AUTO SERVER HOP CHECK (3 JAM) ]]
-        -- Mengecek apakah sudah saatnya pindah server buat bypass limit
         if os.time() - WaktuMulai >= 10800 then
             warn("[VOIDLINE] Time Limit Reached! Hopping...")
-            AutoServerHop() -- Memanggil fungsi pindah server dari Utility
-            break -- Hentikan loop di server ini
+            AutoServerHop()
+            break 
         end
 
         -- Hanya jalan jika Toggle ON
         if _G.AutofarmCourier then
-            -- 1. Masuk Job (Jika respawn/baru mulai)
             SwitchToCourier()
 
-            -- Ambil data karakter terbaru setiap kali loop
             local Char = LP.Character or LP.CharacterAdded:Wait()
             local Hum = Char:WaitForChild("Humanoid")
             local Root = Char:WaitForChild("HumanoidRootPart")
@@ -184,19 +178,35 @@ task.spawn(function()
                     task.wait(1) 
                 end
 
-                -- PHASE 1: AMBIL PAKET
+                -- PHASE 1: AMBIL PAKET (DENGAN LOGIC TUNGGU 2 MENIT)
                 if not AutoEquipBox() then
-                    -- Tween ke tempat ambil box
-                    Tween(TAKE_BOX_CFRAME)
-                    task.wait(0.5)
-                    
-                    if _G.AutofarmCourier and TAKE_PROMPT.Enabled then
-                        fireproximityprompt(TAKE_PROMPT)
-                        task.wait(1.5)
+                    -- Mulai hitung waktu pas box nggak ada
+                    if not TimerTanganKosong then
+                        TimerTanganKosong = os.time()
+                    end
+
+                    -- Cek sudah lewat 2 menit (120 detik) belum?
+                    if (os.time() - TimerTanganKosong) >= 120 then
+                        warn("[VOIDLINE] Box ga muncul-muncul, balik ke tempat ambil...")
+                        
+                        -- Tween ke tempat ambil box
+                        Tween(TAKE_BOX_CFRAME)
+                        task.wait(0.5)
+                        
+                        if _G.AutofarmCourier and TAKE_PROMPT.Enabled then
+                            fireproximityprompt(TAKE_PROMPT)
+                            task.wait(1.5)
+                        end
+                    else
+                        -- Kalau belum 2 menit, diem dulu nungguin box masuk inventaris
+                        -- warn("[VOIDLINE] Nunggu box masuk inventaris (Delay 6s)...")
                     end
                 
                 -- PHASE 2: ANTER PAKET
                 else
+                    -- Kalau box ketemu/ke-equip, reset timernya jadi nil lagi
+                    TimerTanganKosong = nil
+                    
                     local TargetBlock, TargetPrompt = GetActivePoint()
                     
                     if TargetBlock and TargetPrompt then
@@ -211,13 +221,19 @@ task.spawn(function()
                         if _G.AutofarmCourier and TargetPrompt.Enabled then
                             fireproximityprompt(TargetPrompt)
                             task.wait(3.5)
+                            -- Setelah prompt antar, dia bakal balik ke atas, 
+                            -- kena 'if not AutoEquipBox', terus nunggu 2 menit deh.
                         end
                     end
                 end
             end
+        else
+            TimerTanganKosong = nil -- Reset timer kalau toggle OFF
         end
     end
 end)
+
+
 
 -- [[ GUI VELARIS ]] --
 local Window = VelarisUI:Window({
