@@ -231,14 +231,21 @@ local Window = VelarisUI:Window({
     ShowUser  = true,                  
     Search    = true,                  
     Animation = true,
+    Config = {
+        ConfigFolder = "voidlineconfig",
+        AutoSaveFile = "Default",
+        AutoSave     = true,
+        AutoLoad     = true,
+    },
 })
+
 
 local FarmTab = Window:AddTab({ Name = "AutoFarm", Icon = "Play" })
 local FarmSection = FarmTab:AddSection({ Title = "Mandalika Farm", Open = true })
 
 FarmSection:AddToggle({
     Title    = "On autofarm",
-    Content  = "fix 3 jam",
+    Flag  = "fix 3 jam",
     Default  = false,
     Callback = function(value)
         _G.AutofarmCourier = value
@@ -246,32 +253,22 @@ FarmSection:AddToggle({
 })
 
 FarmSection:AddToggle({
-    Title    = "Anti-AFK Ultra",
-    Content  = "Fix Error 278",
+    Title    = "antiafk",
+    Flag = "fixed antiafk",
     Default  = false,
     Callback = function(value)
-        _G.AntiAFK = value
-        
-        if value then
-            print("VoidlineHub | Anti-AFK Ultra Active")
-            task.spawn(function()
-                while _G.AntiAFK do
-                    -- 1. Simulasi Input Keyboard (Biar dikira mencet tombol)
-                    VirtualUser:CaptureController()
-                    VirtualUser:Button1Down(Vector2.new(0, 100), workspace.CurrentCamera.CFrame)
-                    task.wait(0.2)
-                    VirtualUser:Button1Up(Vector2.new(0, 100), workspace.CurrentCamera.CFrame)
-                    
-                    -- 2. Gerakin Kamera dikit (Sangat efektif lawan idle 20 menit)
-                    local cam = workspace.CurrentCamera
-                    cam.CFrame = cam.CFrame * CFrame.Angles(0, math.rad(0.1), 0)
-                    task.wait(0.1)
-                    cam.CFrame = cam.CFrame * CFrame.Angles(0, math.rad(-0.1), 0)
-
-                    -- 3. Jeda Random (Biar gak kebaca bot pola tetap)
-                    task.wait(math.random(30, 60)) 
-                end
-            end)
-        end
+        _G.antiafk = value
     end
 })
+
+-- [[ ANTI-AFK ENGINE ]] --
+task.spawn(function()
+    local VirtualUser = game:GetService("VirtualUser")
+    game:GetService("Players").LocalPlayer.Idled:Connect(function()
+        if _G.antiafk then
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new())
+            warn("[VOIDLINE] Anti-AFK Active")
+        end
+    end)
+end)
