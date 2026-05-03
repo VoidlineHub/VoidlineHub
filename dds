@@ -255,35 +255,29 @@ local Window = VelarisUI:Window({
 })
 
 
-local FarmTab = Window:AddTab({ Name = "AutoFarm", Icon = "Play" })
+local FarmTab = Window:AddTab({ Name = "Main", Icon = "house" })
 local FarmSection = FarmTab:AddSection({ Title = "courier farm", Open = true })
 
 FarmSection:AddToggle({
     Title    = "On autofarm",
-    Flag  = "fix 3 jam",
+    Content = "farm nya dah bagus",
+    Flag  = "config",
     Default  = false,
     Callback = function(value)
         _G.AutofarmCourier = value
     end
 })
 
-FarmSection:AddToggle({
-    Title    = "antiafk",
-    Flag = "fixed antiafk",
-    Default  = false,
-    Callback = function(value)
-        _G.antiafk = value
+FarmSection:AddSlider({
+    Title     = "speed farm",
+    Flag      = "config",  
+    Content   = "pakai senormalnya",
+    Min       = 0,
+    Max       = 300,
+    Default   = 230,
+    Increment = 1,
+    Callback  = function(value)
+    _G.CourierSpeed = value
     end
 })
 
--- [[ ANTI-AFK ENGINE ]] --
-task.spawn(function()
-    local VirtualUser = game:GetService("VirtualUser")
-    game:GetService("Players").LocalPlayer.Idled:Connect(function()
-        if _G.antiafk then
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton2(Vector2.new())
-            warn("[VOIDLINE] Anti-AFK Active")
-        end
-    end)
-end)
