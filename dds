@@ -386,7 +386,7 @@ AvatarSection:AddToggle({
     end
 })
 
-FarmSection:AddToggle({
+AvatarSection:AddToggle({
     Title    = "antiafk",
     Content = "biar ga ke kick 20 mnit",
     Flag = "config",
