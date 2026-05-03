@@ -24,7 +24,11 @@ _G.AutofarmCourier = false
 _G.CourierSpeed = 230  
 _G.CycleCount = 0
 _G.Antiafk = false
-local TimerTanganKosong = nil
+local lastMoney = PlayerData.RPValue.Value
+local pendingIncome = 0
+local isRunning = false
+local cooldownTime = 60
+local WaktuKosong = nil
 
 -- Timer 3 Jam (Anti-Reset)
 if not _G.StartTime then
@@ -142,71 +146,76 @@ local function GetActivePoint()
     return nil, nil
 end
 
--- LOGIC KURIR
+-- [[ MAIN ENGINE ]]
 task.spawn(function()
+    warn("[VOIDLINE] Engine Loaded & Waiting for Toggle...")
     
-    local TimerTanganKosong = nil -- Variabel buat jaga-jaga kalau box belum spawn
-
     while true do
         task.wait(1)
         
-        -- [[ AUTO SERVER HOP CHECK (3 JAM) ]]
-        if os.time() - WaktuMulai >= 10800 then
-            warn("[VOIDLINE] Time Limit Reached! Hopping...")
-            AutoServerHop()
-            break 
-        end
-
         -- Hanya jalan jika Toggle ON
         if _G.AutofarmCourier then
+            -- 1. Masuk Job (Jika respawn/baru mulai)
             SwitchToCourier()
 
+            -- Ambil data karakter terbaru setiap kali loop (penting karena sering respawn)
             local Char = LP.Character or LP.CharacterAdded:Wait()
             local Hum = Char:WaitForChild("Humanoid")
             local Root = Char:WaitForChild("HumanoidRootPart")
 
             if Hum and Root then
                 
-                -- [[ BYPASS UTAMA: WAJIB SIT SEBELUM TWEEN ]]
+                -- [[ LOGIC DETEKSI LIMIT / STUCK 4 MENIT ]]
+                if not AutoEquipBox() then
+                    -- Mulai hitung waktu kalau tangan kosong
+                    if not WaktuKosong then 
+                        WaktuKosong = os.clock() 
+                    end
+                    
+                    -- Jika sudah 240 detik (4 menit) masih kosong
+                    if (os.clock() - WaktuKosong) >= 240 then
+                        warn("[VOIDLINE] Limit Detect / Stuck! Switching Role...")
+                        local args = {"Civilian", 0, 0, 0, "Detector"}
+                        game:GetService("ReplicatedStorage"):WaitForChild("JobEvents"):WaitForChild("TeamChangeRequest"):FireServer(unpack(args))
+                        WaktuKosong = nil -- Reset timer
+                        repeat 
+                            task.wait(1)
+                            warn("[VOIDLINE] Waiting for team change to Civilian...")
+                        until (LP.Team and LP.Team.Name == "Civilian") or not _G.AutofarmCourier
+                        
+                        -- Jeda istirahat 15 detik (Biar gak disangka spam ganti team)
+                        warn("[VOIDLINE] Resting for 15s...")
+                        task.wait(15) 
+                        
+                        continue
+                    end
+                else
+                    -- Kalau pegang box, timer reset jadi nil lagi
+                    WaktuKosong = nil
+                end
+
                 if not Hum.Sit then
                     warn("[VOIDLINE] Activating SIT Bypass...")
                     repeat 
-                        if not _G.AutofarmCourier then break end
                         Hum.Sit = true
                         task.wait(0.5)
                     until Hum.Sit or not _G.AutofarmCourier
-                    task.wait(1) 
+                    task.wait(1) -- Jeda biar server sinkron posisi duduk lu
                 end
 
-                -- PHASE 1: AMBIL PAKET (DENGAN LOGIC TUNGGU 2 MENIT)
+                -- PHASE 1: AMBIL PAKET
                 if not AutoEquipBox() then
-                    -- Mulai hitung waktu pas box nggak ada
-                    if not TimerTanganKosong then
-                        TimerTanganKosong = os.time()
-                    end
-
-                    -- Cek sudah lewat 2 menit (120 detik) belum?
-                    if (os.time() - TimerTanganKosong) >= 120 then
-                        warn("[VOIDLINE] Box ga muncul-muncul, balik ke tempat ambil...")
-                        
-                        -- Tween ke tempat ambil box
-                        Tween(TAKE_BOX_CFRAME)
-                        task.wait(0.5)
-                        
-                        if _G.AutofarmCourier and TAKE_PROMPT.Enabled then
-                            fireproximityprompt(TAKE_PROMPT)
-                            task.wait(1.5)
-                        end
-                    else
-                        -- Kalau belum 2 menit, diem dulu nungguin box masuk inventaris
-                        -- warn("[VOIDLINE] Nunggu box masuk inventaris (Delay 6s)...")
+                    -- Tween ke tempat ambil box
+                    Tween(TAKE_BOX_CFRAME)
+                    task.wait(0.5)
+                    
+                    if _G.AutofarmCourier and TAKE_PROMPT.Enabled then
+                        fireproximityprompt(TAKE_PROMPT)
+                        task.wait(1.5)
                     end
                 
                 -- PHASE 2: ANTER PAKET
                 else
-                    -- Kalau box ketemu/ke-equip, reset timernya jadi nil lagi
-                    TimerTanganKosong = nil
-                    
                     local TargetBlock, TargetPrompt = GetActivePoint()
                     
                     if TargetBlock and TargetPrompt then
@@ -216,22 +225,22 @@ task.spawn(function()
                         Tween(TargetBlock.CFrame * CFrame.new(0, 2, 0))
                         task.wait(0.8)
                         
-                        AutoEquipBox() 
+                        AutoEquipBox() -- Pastikan tool masih dipegang sebelum diprompt
                         
                         if _G.AutofarmCourier and TargetPrompt.Enabled then
                             fireproximityprompt(TargetPrompt)
                             task.wait(3.5)
-                            -- Setelah prompt antar, dia bakal balik ke atas, 
-                            -- kena 'if not AutoEquipBox', terus nunggu 2 menit deh.
                         end
                     end
                 end
             end
         else
-            TimerTanganKosong = nil -- Reset timer kalau toggle OFF
+            -- Reset timer kalau toggle dimatikan manual
+            WaktuKosong = nil
         end
     end
 end)
+
 
 
 
@@ -255,7 +264,7 @@ local Window = VelarisUI:Window({
 })
 
 
-local FarmTab = Window:AddTab({ Name = "Main", Icon = "house" })
+local FarmTab = Window:AddTab({ Name = "AutoFarm", Icon = "house" })
 local FarmSection = FarmTab:AddSection({ Title = "courier farm", Open = true })
 
 FarmSection:AddToggle({
@@ -281,3 +290,8 @@ FarmSection:AddSlider({
     end
 })
 
+local BaristaSection = FarmTab:AddSection({ Title = "Barista Farm", Open = true })
+BaristaSection:AddParagraph({
+    Title   = "incoming",
+    Content = "barista dalam keadaan maintenance"
+})
