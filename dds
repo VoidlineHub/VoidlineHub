@@ -29,6 +29,8 @@ _G.Increment = 50
 _G.Interval = 0.5
 _G.BoostEnabled = false
 _G.StraightBoost = false
+_G.HideName = false
+_G.HideChar = false
 local lastMoney = PlayerData.RPValue.Value
 local pendingIncome = 0
 local isRunning = false
@@ -297,7 +299,7 @@ FarmSection:AddSlider({
     end
 })
 
-local BaristaSection = FarmTab:AddSection({ Title = "Barista Farm", Open = true })
+local BaristaSection = FarmTab:AddSection({ Title = "Barista Farm", Open = false })
 BaristaSection:AddParagraph({
     Title   = "incoming",
     Content = "barista dalam keadaan maintenance"
@@ -357,6 +359,85 @@ OnSettingSection:AddToggle({
     end
 })
 
+-- tab misc
+local MiscTab = Window:AddTab({ Name = "Misc ", Icon = "house" })
+local AvatarSection = MiscTab:AddSection({ Title = "great features ", Open = true })
+
+AvatarSection:AddToggle({
+    Title = "Hide All Names",
+    Content = "Hide all player nametags",
+    Flag = "HideNames",
+    Default = false,
+    Callback = function(v)
+        _G.HideName = v
+    end
+})
+
+AvatarSection:AddToggle({
+    Title = "Hide Character",
+    Content = "Remove character model",
+    Flag = "HideChar",
+    Default = false,
+    Callback = function(v)
+        _G.HideChar = v
+        if not v and LP.Character then 
+            LP.Character.Parent = workspace 
+        end
+    end
+})
+
+FarmSection:AddToggle({
+    Title    = "antiafk",
+    Content = "biar ga ke kick 20 mnit",
+    Flag = "config",
+    Default  = false,
+    Callback = function(value)
+        _G.antiafk = value
+    end
+})
+
+-- [[ ANTI-AFK ENGINE ]] --
+task.spawn(function()
+    local VirtualUser = game:GetService("VirtualUser")
+    game:GetService("Players").LocalPlayer.Idled:Connect(function()
+        if _G.antiafk then
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new())
+        end
+    end)
+end)
+
+local GraphSection = MiscTab:AddSection({ Title = "Graphics setting", Open = true })
+GraphSection:AddButton({
+    Title = "Potato Mode",
+    Description = "Remove textures and effects for low-end devices",
+    Callback = function()
+        for _, v in pairs(game:GetDescendants()) do
+            if v:IsA("BasePart") or v:IsA("MeshPart") then
+                v.Material = Enum.Material.Plastic
+                v.Reflectance = 0
+            elseif v:IsA("Decal") or v:IsA("Texture") then
+                v:Destroy()
+            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                v.Enabled = false
+            end
+        end
+    end
+})
+
+GraphSection:AddToggle({
+    Title = "Black Screen",
+    Content = "Overlay black screen to save GPU/Battery",
+    Flag = "BlackScreen",
+    Default = false,
+    Callback = function(v)
+        if typeof(SetBlackScreen) == "function" then
+            SetBlackScreen(v)
+        end
+    end
+})
+
+
 -- [[ RUNSERVICE LOOP ]]
 RunService.Heartbeat:Connect(function()
     -- Update status karakter & kursi tiap frame
@@ -381,6 +462,28 @@ RunService.Heartbeat:Connect(function()
                 end
                 lastBoostTime = tick()
             end
+        end
+    end
+end)
+
+-- [[ MISC ENGINE ]] --
+RunService.RenderStepped:Connect(function()
+    -- Logic Hide All Names
+    if _G.HideName then
+        for _, p in pairs(game:GetService("Players"):GetPlayers()) do
+            if p.Character and p.Character:FindFirstChild("Head") then
+                local head = p.Character.Head
+                for _, bg in pairs(head:GetChildren()) do
+                    if bg:IsA("BillboardGui") then bg.Enabled = false end
+                end
+            end
+        end
+    end
+
+    -- Logic Hide Character (Local Only)
+    if _G.HideChar then
+        if LP.Character and LP.Character.Parent ~= nil then
+            LP.Character.Parent = nil 
         end
     end
 end)
