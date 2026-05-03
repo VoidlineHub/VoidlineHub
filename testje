@@ -240,7 +240,7 @@ local Window = VelarisUI:Window({
 
 
 local FarmTab = Window:AddTab({ Name = "AutoFarm", Icon = "Play" })
-local FarmSection = FarmTab:AddSection({ Title = "Mandalika Farm", Open = true })
+local FarmSection = FarmTab:AddSection({ Title = "courier farm", Open = true })
 
 FarmSection:AddToggle({
     Title    = "On autofarm",
