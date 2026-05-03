@@ -325,7 +325,7 @@ BaristaSection:AddParagraph({
     Content = "barista dalam keadaan maintenance"
 })
 
-local VehicleTab = Window:AddTab({ Name = "vehicle modification ", Icon = "house" })
+local VehicleTab = Window:AddTab({ Name = "vehicle modif ", Icon = "house" })
 local SetingsSection = VehicleTab:AddSection({ Title = "Setting", Open = true })
 
 SetingsSection:AddInput({
@@ -353,5 +353,28 @@ SetingsSection:AddInput({
     Default  = "0.5",
     Callback = function(value)
         _G.Interval = tonumber(value) or 0.5
+    end
+})
+
+local OnSettingSection = VehicleTab:AddSection({ Title = "on setting", Open = true })
+-- Toggle buat nyalain Auto Boost
+OnSettingSection:AddToggle({
+    Title    = "Vehicle Boost",
+    Content  = "On/Off Automatic Boost",
+    Flag     = "VehicleBoostToggle",
+    Default  = false,
+    Callback = function(value)
+        _G.BoostEnabled = value
+    end
+})
+
+-- Toggle buat Straight Boost (biar gak terbang)
+OnSettingSection:AddToggle({
+    Title    = "Straight Boost",
+    Content  = "Boost horizontal only (No Fly)",
+    Flag     = "StraightBoostToggle",
+    Default  = false,
+    Callback = function(value)
+        _G.StraightBoost = value
     end
 })
