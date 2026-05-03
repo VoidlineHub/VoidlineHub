@@ -267,7 +267,7 @@ FarmSection:AddToggle({
 
 FarmSection:AddSlider({
     Title     = "speed farm",
-    Flag      = "config",  
+    Flag      = "config slider",  
     Content   = "pakai senormalnya",
     Min       = 0,
     Max       = 300,
@@ -285,7 +285,7 @@ BaristaSection:AddParagraph({
 })
 
 local VehicleTab = Window:AddTab({ Name = "vehicle modif ", Icon = "house" })
-local SetingsSection = VehicleTab:AddSection({ Title = "Setting", Open = true })
+local SetingsSection = VehicleTab:AddSection({ Title = "Setting", Open = false })
 
 SetingsSection:AddInput({
     Title    = "speed",
