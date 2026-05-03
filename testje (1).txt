@@ -1,0 +1,273 @@
+local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
+
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer -- Kita pakai LP untuk LocalPlayer
+local RunService = game:GetService("RunService")
+local PlayerData = LP:WaitForChild("PlayerData") -- DIPERBAIKI: Dari Player jadi LP
+local UserInputService = game:GetService("UserInputService")
+local CourierSettings = require(ReplicatedStorage:WaitForChild("Delivery System"):WaitForChild("Settings"))
+
+
+-- // CFRAMES
+local SupplyCF = CFrame.new(-5116.78418, 5.78931046, -670.858887)
+local MachineCF = CFrame.new(-4997.1665, 1.58353043, -795.047607)
+local RegisterCF = CFrame.new(-4994.06934, 1.30402756, -760.247437)
+local StartJobCF = CFrame.new(-4989.80078, 5.30382967, -715.013062)
+local TAKE_BOX_CFRAME = CFrame.new(-5105.61182, 4.48948574, -3758.98267)
+local TAKE_PROMPT = workspace:WaitForChild("Livrason"):WaitForChild("Take1"):WaitForChild("Take"):WaitForChild("ProximityPrompt")
+
+-- // CONFIG
+_G.AutofarmCourier = false 
+_G.CourierSpeed = 230  
+_G.CycleCount = 0
+_G.Antiafk = false
+
+-- Timer 3 Jam (Anti-Reset)
+if not _G.StartTime then
+    _G.StartTime = os.time()
+end
+
+WaktuMulai = _G.StartTime
+LastActivity = tick()
+local WaktuKosong = nil
+
+
+-- [[  UTILITY FUNCTIONS ]]
+local function AutoServerHop()
+    local HttpService = game:GetService("HttpService")
+    local TeleportService = game:GetService("TeleportService")
+    local PlaceId = game.PlaceId
+    
+    warn("[VOIDLINE] 3 Hours Reached! Hopping server to bypass limit...")
+    
+    -- Ambil List Server
+    local success, Servers = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+    end)
+    
+    if success and Servers then
+        local Target = nil
+        for _, s in pairs(Servers.data) do
+            if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                Target = s.id
+                break
+            end
+        end
+        
+        if Target then
+            -- TITIP SCRIPT: Pastikan link Github lo bener bre
+            local scriptRaw = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/VoidlineHub/VoidlineHub/main/testje"))()]]
+            
+            -- Cek fungsi teleport executor
+            local teleportFunc = queue_on_teleport or (syn and syn.queue_on_teleport)
+            if teleportFunc then
+                teleportFunc(scriptRaw)
+            end
+            
+            task.wait(0.5)
+            TeleportService:TeleportToPlaceInstance(PlaceId, Target, LP)
+        end
+    end
+end
+
+local function SwitchToCourier()
+    local TeamRemote = ReplicatedStorage:FindFirstChild("TeamChangeRequest", true)
+    if TeamRemote then
+        if not LP.Team or LP.Team.Name ~= "Courier" then
+            TeamRemote:FireServer("Courier", 11378976, 0, 0, "Detector")
+            task.wait(1.5)
+        end
+    end
+end
+
+local function Tween(targetCFrame)
+    local Char = LP.Character
+    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+    if not Root then return end
+
+    local distance = (Root.Position - targetCFrame.Position).Magnitude
+    local duration = distance / _G.CourierSpeed
+
+    Root.Velocity = Vector3.new(0,0,0)
+    Root.RotVelocity = Vector3.new(0,0,0)
+
+    local info = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(Root, info, {CFrame = targetCFrame})
+
+    tween:Play()
+
+    local connection
+    connection = game:GetService("RunService").Stepped:Connect(function()
+        if tween.PlaybackState == Enum.PlaybackState.Playing then
+            Root.Velocity = Vector3.new(0,0,0)
+        else
+            connection:Disconnect()
+        end
+    end)
+
+    tween.Completed:Wait()
+    Root.Velocity = Vector3.new(0,0,0)
+end
+
+local function AutoEquipBox()
+    local Char = LP.Character
+    if not Char or not Char:FindFirstChild("Humanoid") then return false end
+    local held = Char:FindFirstChildOfClass("Tool")
+    if held and held.Name:lower() == "box" then return true end
+    local bp = LP:FindFirstChild("Backpack")
+    if bp then
+        for _, item in pairs(bp:GetChildren()) do
+            if item:IsA("Tool") and item.Name:lower() == "box" then
+                Char.Humanoid:EquipTool(item)
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function GetActivePoint()
+    -- Pastikan CourierSettings sudah terdefinisi di atas script
+    for _, folder in ipairs(CourierSettings.Folder.Location:GetChildren()) do
+        local block = folder:FindFirstChild("Block")
+        local prompt = block and block:FindFirstChildOfClass("ProximityPrompt")
+        if prompt and (prompt.Enabled or folder:FindFirstChild("POINT").billboardgui.Enabled) then
+            return block, prompt
+        end
+    end
+    return nil, nil
+end
+
+
+
+-- [[ MAIN ENGINE ]]
+task.spawn(function()
+    warn("[VOIDLINE] Engine Loaded & Waiting for Toggle...")
+    
+    -- Pastikan variable WaktuMulai sudah ada di paling atas script utama lo:
+    -- local WaktuMulai = os.time() 
+
+    while true do
+        task.wait(1)
+        
+        -- [[ AUTO SERVER HOP CHECK (3 JAM) ]]
+        -- Mengecek apakah sudah saatnya pindah server buat bypass limit
+        if os.time() - WaktuMulai >= 10800 then
+            warn("[VOIDLINE] Time Limit Reached! Hopping...")
+            AutoServerHop() -- Memanggil fungsi pindah server dari Utility
+            break -- Hentikan loop di server ini
+        end
+
+        -- Hanya jalan jika Toggle ON
+        if _G.AutofarmCourier then
+            -- 1. Masuk Job (Jika respawn/baru mulai)
+            SwitchToCourier()
+
+            -- Ambil data karakter terbaru setiap kali loop
+            local Char = LP.Character or LP.CharacterAdded:Wait()
+            local Hum = Char:WaitForChild("Humanoid")
+            local Root = Char:WaitForChild("HumanoidRootPart")
+
+            if Hum and Root then
+                
+                -- [[ BYPASS UTAMA: WAJIB SIT SEBELUM TWEEN ]]
+                if not Hum.Sit then
+                    warn("[VOIDLINE] Activating SIT Bypass...")
+                    repeat 
+                        if not _G.AutofarmCourier then break end
+                        Hum.Sit = true
+                        task.wait(0.5)
+                    until Hum.Sit or not _G.AutofarmCourier
+                    task.wait(1) 
+                end
+
+                -- PHASE 1: AMBIL PAKET
+                if not AutoEquipBox() then
+                    -- Tween ke tempat ambil box
+                    Tween(TAKE_BOX_CFRAME)
+                    task.wait(0.5)
+                    
+                    if _G.AutofarmCourier and TAKE_PROMPT.Enabled then
+                        fireproximityprompt(TAKE_PROMPT)
+                        task.wait(1.5)
+                    end
+                
+                -- PHASE 2: ANTER PAKET
+                else
+                    local TargetBlock, TargetPrompt = GetActivePoint()
+                    
+                    if TargetBlock and TargetPrompt then
+                        task.wait(math.random(0, 1))
+                        
+                        -- Tween ke tempat antar
+                        Tween(TargetBlock.CFrame * CFrame.new(0, 2, 0))
+                        task.wait(0.8)
+                        
+                        AutoEquipBox() 
+                        
+                        if _G.AutofarmCourier and TargetPrompt.Enabled then
+                            fireproximityprompt(TargetPrompt)
+                            task.wait(3.5)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- [[ GUI VELARIS ]] --
+local Window = VelarisUI:Window({
+    Title     = "Drag Drive Simulator",
+    Footer    = "By Voidline",
+    Color     = "Default",            
+    Version   = "1.0",
+    Image     = "101833678008843",    
+    Size      = UDim2.fromOffset(640, 400),
+    ShowUser  = true,                  
+    Search    = true,                  
+    Animation = true,
+    Config = {
+        ConfigFolder = "voidlineconfig",
+        AutoSaveFile = "Default",
+        AutoSave     = true,
+        AutoLoad     = true,
+    },
+})
+
+
+local FarmTab = Window:AddTab({ Name = "AutoFarm", Icon = "Play" })
+local FarmSection = FarmTab:AddSection({ Title = "courier farm", Open = true })
+
+FarmSection:AddToggle({
+    Title    = "On autofarm",
+    Flag  = "fix 3 jam",
+    Default  = false,
+    Callback = function(value)
+        _G.AutofarmCourier = value
+    end
+})
+
+FarmSection:AddToggle({
+    Title    = "antiafk",
+    Flag = "fixed antiafk",
+    Default  = false,
+    Callback = function(value)
+        _G.antiafk = value
+    end
+})
+
+-- [[ ANTI-AFK ENGINE ]] --
+task.spawn(function()
+    local VirtualUser = game:GetService("VirtualUser")
+    game:GetService("Players").LocalPlayer.Idled:Connect(function()
+        if _G.antiafk then
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new())
+            warn("[VOIDLINE] Anti-AFK Active")
+        end
+    end)
+end)
