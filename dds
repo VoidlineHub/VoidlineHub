@@ -24,6 +24,12 @@ _G.AutofarmCourier = false
 _G.CourierSpeed = 230  
 _G.CycleCount = 0
 _G.Antiafk = false
+_G.MaxForce = 200
+_G.Increment = 50
+_G.Interval = 0.5
+_G.BoostEnabled = false
+_G.StraightBoost = false
+local lastBoostTime = 0
 local lastMoney = PlayerData.RPValue.Value
 local pendingIncome = 0
 local isRunning = false
@@ -241,6 +247,29 @@ task.spawn(function()
     end
 end)
 
+-- FIXED VEHICLE BOOST LOGIC
+if _G.BoostEnabled and seat then
+    local vehicle = seat:FindFirstAncestorOfClass("Model")
+    if vehicle and vehicle.PrimaryPart then
+        if tick() - lastBoostTime >= (_G.Interval or 0.5) then
+            local currentVel = vehicle.PrimaryPart.AssemblyLinearVelocity
+            
+            -- Gunakan NEGATIVE LookVector karena kendaraan di game ini arah PrimaryPart-nya kebalik
+            local boostDirection = -vehicle.PrimaryPart.CFrame.LookVector
+
+            -- Jika Straight Boost ON, dia cuma nge-boost di sumbu datar (X, Z) biar gak terbang
+            if _G.StraightBoost then
+                boostDirection = Vector3.new(boostDirection.X, 0, boostDirection.Z).Unit
+            end
+            
+            -- Cek kalau speed sekarang belum ngelewati MaxForce
+            if currentVel.Magnitude < (_G.MaxForce or 500) then
+                vehicle.PrimaryPart.AssemblyLinearVelocity = currentVel + (boostDirection * (_G.Increment or 50))
+            end
+            lastBoostTime = tick()
+        end
+    end
+end
 
 
 
@@ -294,4 +323,35 @@ local BaristaSection = FarmTab:AddSection({ Title = "Barista Farm", Open = true 
 BaristaSection:AddParagraph({
     Title   = "incoming",
     Content = "barista dalam keadaan maintenance"
+})
+
+local VehicleTab = Window:AddTab({ Name = "vehicle modification ", Icon = "house" })
+local SetingsSection = VehicleTab:AddSection({ Title = "Setting", Open = true })
+
+SetingsSection:AddInput({
+    Title    = "speed",
+    Flag     = "BoostMaxForce",
+    Content  = "Enter value",
+    Default  = "200",
+    Callback = function(value)
+        _G.MaxForce = tonumber(value) or 200
+    end
+})
+SetingsSection:AddInput({
+    Title    = "Increment Boost",
+    Flag     = "BoostIncrement", 
+    Content  = "Enter value (Ex: 50)",
+    Default  = "50",
+    Callback = function(value)
+        _G.Increment = tonumber(value) or 50
+    end
+})
+SetingsSection:AddInput({
+    Title    = "Boost Interval",
+    Flag     = "BoostInterval",
+    Content  = "Enter seconds",
+    Default  = "0.5",
+    Callback = function(value)
+        _G.Interval = tonumber(value) or 0.5
+    end
 })
