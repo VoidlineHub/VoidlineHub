@@ -31,11 +31,6 @@ _G.BoostEnabled = false
 _G.StraightBoost = false
 _G.HideName = false
 _G.HideChar = false
-local lastMoney = PlayerData.RPValue.Value
-local pendingIncome = 0
-local isRunning = false
-local cooldownTime = 60
-local WaktuKosong = nil
 local lastBoostTime = 0
 
 -- Timer 3 Jam (Anti-Reset)
@@ -72,7 +67,7 @@ local function AutoServerHop()
         
         if Target then
             -- TITIP SCRIPT: Pastikan link Github lo bener bre
-            local scriptRaw = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/VoidlineHub/VoidlineHub/main/testje"))()]]
+            local scriptRaw = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/VoidlineHub/VoidlineHub/main/dds"))()]]
             
             -- Cek fungsi teleport executor
             local teleportFunc = queue_on_teleport or (syn and syn.queue_on_teleport)
@@ -158,63 +153,33 @@ end
 task.spawn(function()
     warn("[VOIDLINE] Engine Loaded & Waiting for Toggle...")
     
+    -- Pastikan variable WaktuMulai sudah ada di paling atas script utama lo:
+    -- local WaktuMulai = os.time() 
+
     while true do
         task.wait(1)
         
-        -- [[ AUTO SERVER HOP CHECK (3 HOURS) ]]
-        -- Mengecek apakah sudah saatnya pindah server buat bypass limit total
-        if os.time() - _G.StartTime >= 10800 then
-            warn("[VOIDLINE] 3 Hours Reached! Searching for new server...")
-            if typeof(AutoServerHop) == "function" then
-                AutoServerHop()
-            else
-                -- Fallback jika fungsi hop tidak ditemukan
-                game:GetService("TeleportService"):Teleport(game.PlaceId, LP)
-            end
+        -- [[ AUTO SERVER HOP CHECK (3 JAM) ]]
+        -- Mengecek apakah sudah saatnya pindah server buat bypass limit
+        if os.time() - WaktuMulai >= 600 then
+            warn("[VOIDLINE] Time Limit Reached! Hopping...")
+            AutoServerHop() -- Memanggil fungsi pindah server dari Utility
             break -- Hentikan loop di server ini
         end
-        
+
         -- Hanya jalan jika Toggle ON
         if _G.AutofarmCourier then
             -- 1. Masuk Job (Jika respawn/baru mulai)
             SwitchToCourier()
 
-            -- Ambil data karakter terbaru setiap kali loop (penting karena sering respawn)
+            -- Ambil data karakter terbaru setiap kali loop
             local Char = LP.Character or LP.CharacterAdded:Wait()
             local Hum = Char:WaitForChild("Humanoid")
             local Root = Char:WaitForChild("HumanoidRootPart")
 
             if Hum and Root then
                 
-                -- [[ LOGIC DETEKSI LIMIT / STUCK 4 MENIT ]]
-                if not AutoEquipBox() then
-                    -- Mulai hitung waktu kalau tangan kosong
-                    if not WaktuKosong then 
-                        WaktuKosong = os.clock() 
-                    end
-                    
-                    -- Jika sudah 240 detik (4 menit) masih kosong
-                    if (os.clock() - WaktuKosong) >= 240 then
-                        warn("[VOIDLINE] Limit Detect / Stuck! Switching Role...")
-                        local args = {"Civilian", 0, 0, 0, "Detector"}
-                        game:GetService("ReplicatedStorage"):WaitForChild("JobEvents"):WaitForChild("TeamChangeRequest"):FireServer(unpack(args))
-                        WaktuKosong = nil -- Reset timer
-                        repeat 
-                            task.wait(1)
-                            warn("[VOIDLINE] Waiting for team change to Civilian...")
-                        until (LP.Team and LP.Team.Name == "Civilian") or not _G.AutofarmCourier
-                        
-                        -- Jeda istirahat 15 detik (Biar gak disangka spam ganti team)
-                        warn("[VOIDLINE] Resting for 15s...")
-                        task.wait(15) 
-                        
-                        continue
-                    end
-                else
-                    -- Kalau pegang box, timer reset jadi nil lagi
-                    WaktuKosong = nil
-                end
-
+                -- [[ BYPASS UTAMA: WAJIB SIT SEBELUM TWEEN ]]
                 if not Hum.Sit then
                     warn("[VOIDLINE] Activating SIT Bypass...")
                     repeat 
@@ -256,9 +221,6 @@ task.spawn(function()
                     end
                 end
             end
-        else
-            -- Reset timer kalau toggle dimatikan manual
-            WaktuKosong = nil
         end
     end
 end)
