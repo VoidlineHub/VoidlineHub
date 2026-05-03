@@ -161,7 +161,7 @@ task.spawn(function()
         
         -- [[ AUTO SERVER HOP CHECK (3 JAM) ]]
         -- Mengecek apakah sudah saatnya pindah server buat bypass limit
-        if os.time() - WaktuMulai >= 600 then
+        if os.time() - WaktuMulai >= 9000 then
             warn("[VOIDLINE] Time Limit Reached! Hopping...")
             AutoServerHop() -- Memanggil fungsi pindah server dari Utility
             break -- Hentikan loop di server ini
