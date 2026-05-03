@@ -23,7 +23,7 @@ local TAKE_PROMPT = workspace:WaitForChild("Livrason"):WaitForChild("Take1"):Wai
 _G.AutofarmCourier = false 
 _G.CourierSpeed = 230  
 _G.CycleCount = 0
-_G.AntiAFK = false
+_G.Antiafk = false
 
 -- Timer 3 Jam (Anti-Reset)
 if not _G.StartTime then
