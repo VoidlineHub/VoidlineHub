@@ -366,20 +366,35 @@ InfoSection:AddParagraph({
 local MediaSection = InfoTab:AddSection({ Title = "Media support", Open = true })
 MediaSection:AddParagraph({
     Title   = "Support📷",
-    Content = "join discord voidline agar dapat informasi update"
+    Content = "Join Discord Voidline agar dapat informasi update terbaru!"
 })
+
 MediaSection:AddButton({
     Title = "Discord link",
-    Description = "join discord!",
+    Description = "Salin link Discord ke Clipboard",
     Callback = function()
         setclipboard("https://discord.gg/YrA4wfCC6d")
-
+        -- Notifikasi opsional biar user tau udah ke-copy
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Voidline Hub",
+            Text = "Discord Link copied to clipboard!",
+            Duration = 5
+        })
+    end
+})
 
 MediaSection:AddButton({
-    Title = "tiktok account",
-    Description = "folow tiktok!",
+    Title = "TikTok Account",
+    Description = "Follow TikTok owner!",
     Callback = function()
         setclipboard("https://www.tiktok.com/@haloowftd?_r=1&_t=ZS-964QIrS07Hj")
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Voidline Hub",
+            Text = "TikTok Link copied to clipboard!",
+            Duration = 5
+        })
+    end
+})
 
 local FarmTab = Window:AddTab({ Name = "AutoFarm", Icon = "house" })
 local FarmSection = FarmTab:AddSection({ Title = "courier farm", Open = true })
