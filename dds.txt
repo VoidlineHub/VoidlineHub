@@ -194,7 +194,7 @@ local function sendWebhook(income, target)
             ["icon_url"] = getAvatar() -- Foto profil lu (LP)
         },
 
-        ["title"] = "Cycle Completed",
+        ["title"] = "webhook logs",
         ["color"] = 0xFFFFFF,
 
         ["fields"] = {
