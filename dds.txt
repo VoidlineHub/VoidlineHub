@@ -357,6 +357,39 @@ local Window = VelarisUI:Window({
     },
 })
 
+local InfoTab = Window:AddTab({ Name = "information", Icon = "house" })
+local InfoSection = InfoTab:AddSection({ Title = "Information", Open = true })
+InfoSection:AddParagraph({
+    Title   = "Script Update",
+    Content = "•fix bug\n•fix courier 3 jam stuck\n•remove barista farm\n•added webhook\n•added misc tab"
+})
+local MediaSection = InfoTab:AddSection({ Title = "Media support", Open = true })
+MediaSection:AddParagraph({
+    Title   = "Support📷",
+    Content = "join discord voidline agar dapat informasi update"
+})
+MediaSection:AddButton({
+    Title = "Discord link",
+    Description = "join discord!",
+    Callback = function()
+        setclipboard("https://discord.gg/YrA4wfCC6d")
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Discord Link",
+            Text = "Link copied to clipboard!",
+            Duration = 3
+        })
+
+MediaSection:AddButton({
+    Title = "tiktok account",
+    Description = "folow tiktok!",
+    Callback = function()
+        setclipboard("https://www.tiktok.com/@haloowftd?_r=1&_t=ZS-964QIrS07Hj")
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "tiktok likk",
+            Text = "Link copied to clipboard!",
+            Duration = 3
+        })
+
 local FarmTab = Window:AddTab({ Name = "AutoFarm", Icon = "house" })
 local FarmSection = FarmTab:AddSection({ Title = "courier farm", Open = true })
 FarmSection:AddParagraph({
