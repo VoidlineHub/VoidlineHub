@@ -31,6 +31,16 @@ _G.BoostEnabled = false
 _G.StraightBoost = false
 _G.HideName = false
 _G.HideChar = false
+_G.AutoWebhook = false
+_G.WebhookURL = "" 
+_G.TotalEarning = 0
+_G.CycleCount = 0
+_G.StartTime = os.time()
+LastActivity = tick()
+local lastMoney = PlayerData.RPValue.Value
+local pendingIncome = 0
+local isRunning = false
+local cooldownTime = 60
 local lastBoostTime = 0
 
 -- Timer 3 Jam (Anti-Reset)
@@ -148,6 +158,106 @@ local function GetActivePoint()
     end
     return nil, nil
 end
+
+-- // 2. FUNGSI AUTO-AVATAR (Narik foto profil user otomatis)
+local function getAvatar()
+    -- Pastikan pakai LP.UserId agar sinkron dengan Data Binding lu
+    return "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LP.UserId .. "&width=420&height=420&format=png"
+end
+
+-- // 3. FORMAT RUPIAH
+local function formatRP(v)
+    local s = string.format("%.0f", v)
+    local formatted = s:reverse():gsub("(%d%d%d)", "%1."):reverse():gsub("^%.", "")
+    return "RP. " .. formatted
+end
+
+-- // 4. RUNNING TIME
+local function getRunningTime()
+    local diff = os.time() - _G.StartTime
+    return string.format("%02d:%02d:%02d", math.floor(diff/3600), math.floor((diff%3600)/60), diff%60)
+end
+
+-- // 5. FUNGSI WEBHOOK (VOIDLINE EMBED AUTHOR VERSION)
+local function sendWebhook(income, target)
+    if _G.WebhookURL == "" or not _G.WebhookURL:find("discord.com") then return end
+    
+    _G.CycleCount = _G.CycleCount + 1
+    _G.TotalEarning = _G.TotalEarning + income
+    
+    local currentMoney = PlayerData.RPValue.Value
+    local http_request = request or http_request or (syn and syn.request) or (fluxus and fluxus.request)
+
+    local embed = {
+        ["author"] = {
+            ["name"] = "Voidline Webhook",
+            ["icon_url"] = getAvatar() -- Foto profil lu (LP)
+        },
+
+        ["title"] = "Cycle Completed",
+        ["color"] = 0xFFFFFF,
+
+        ["fields"] = {
+            {["name"] = "Username", ["value"] = LP.Name, ["inline"] = false}, -- DIUBAH: Dari Player ke LP
+            {["name"] = "Cycle Income", ["value"] = formatRP(income), ["inline"] = false},
+            {["name"] = "Target", ["value"] = formatRP(target), ["inline"] = false},
+            {["name"] = "Current Money", ["value"] = formatRP(currentMoney) .. " (Est)", ["inline"] = false},
+            {["name"] = "Total Earning", ["value"] = formatRP(_G.TotalEarning) .. " (Est)", ["inline"] = false},
+            {["name"] = "Cycle Count", ["value"] = tostring(_G.CycleCount), ["inline"] = false},
+            {["name"] = "Running Time", ["value"] = getRunningTime(), ["inline"] = false}
+        },
+
+        ["image"] = {
+            ["url"] = "https://cdn.discordapp.com/attachments/1478884254028140611/1484460670211723304/Gemini_Generated_Image_7og1bq7og1bq7og1.png?ex=69be4f3b&is=69bcfdbb&hm=d179409928b7a1277912aedfca658b94b37a4a99b5f3bb6d39ba9850b1302a6d&"
+        },
+
+        ["footer"] = {
+            ["text"] = "Powered by Voidline | " .. os.date("%m/%d/%Y %I:%M %p")
+        }
+    }
+
+    local payload = HttpService:JSONEncode({
+        ["username"] = "Voidline Reports", 
+        ["embeds"] = {embed}
+    })
+
+    if http_request then
+        pcall(function()
+            http_request({
+                Url = _G.WebhookURL,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = payload
+            })
+        end)
+    end
+end
+
+-- // 6. MONEY MONITOR (DAFTAR PERUBAHAN DUIT)
+PlayerData.RPValue:GetPropertyChangedSignal("Value"):Connect(function()
+    local newMoney = PlayerData.RPValue.Value
+    if newMoney > lastMoney then
+        pendingIncome = pendingIncome + (newMoney - lastMoney)
+        
+        if not isRunning then
+            isRunning = true
+            task.spawn(function()
+                while isRunning do
+                    task.wait(60)
+                    if pendingIncome > 0 and _G.WebhookURL ~= "" then
+                        sendWebhook(pendingIncome, 0)
+                        pendingIncome = 0
+                    end
+                    -- Auto stop jika semua farm off
+                    if not _G.AutofarmCourier and not _G.AutoFarmBarista then
+                        isRunning = false
+                    end
+                end
+            end)
+        end
+    end
+    lastMoney = newMoney
+end)
 
 -- [[ MAIN ENGINE ]]
 task.spawn(function()
@@ -329,11 +439,33 @@ OnSettingSection:AddToggle({
 -- Toggle buat Straight Boost (biar gak terbang)
 OnSettingSection:AddToggle({
     Title    = "Straight Boost",
-    Content  = "Boost horizontal only (No Fly)",
+    Content  = "Boost horizontal only",
     Flag     = "StraightBoostToggle",
     Default  = false,
     Callback = function(value)
         _G.StraightBoost = value
+    end
+})
+
+local WebhookTab = Window:AddTab({ Name = "Webhook ", Icon = "house" })
+local WebhookSection = WebhookTab:AddSection({ Title = "Webhook farm ", Open = true })
+WebhookSection:AddInput({
+    Title    = "webhook",
+    Flag     = "webhook",
+    Content  = "Enter link webhook",
+    Default  = "",
+    Callback = function(value)
+        _G.WebhookURL = value
+    end
+})
+
+WebhookSection:AddToggle({
+    Title    = "enable webhook",
+    Content  = "webhook ngirim setiap 1 menit",
+    Flag     = "webhooktogle",
+    Default  = false,
+    Callback = function(value)
+        _G.AutoWebhook = value
     end
 })
 
