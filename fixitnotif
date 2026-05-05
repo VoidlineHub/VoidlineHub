@@ -1,0 +1,99 @@
+local WebhookURL = "paste your webhook"
+local HttpService = game:GetService("HttpService")
+
+local chatQueue = {}
+local lastChatTime = 0
+local isWaiting = false
+
+-- Fungsi membersihkan tag HTML/Font
+local function cleanText(str)
+    return str:gsub("<[^>]+>", "")
+end
+
+-- Fungsi kirim tumpukan chat ke Discord
+local function flushQueue()
+    if #chatQueue == 0 then return end
+    
+    local combinedMessage = ""
+    for _, msg in ipairs(chatQueue) do
+        combinedMessage = combinedMessage .. msg .. "\n"
+    end
+    
+    local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+    if request then
+        local data = {
+            ["embeds"] = {{
+                ["title"] = "📋 Log Chat",
+                ["description"] = "```" .. combinedMessage .. "```",
+                ["color"] = 0xFFFFFF,
+                ["footer"] = {["text"] = "Server ID: " .. game.JobId},
+                ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
+            }}
+        }
+
+        pcall(function()
+            request({
+                Url = WebhookURL,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = HttpService:JSONEncode(data)
+            })
+        end)
+    end
+    
+    -- Kosongkan antrean setelah dikirim
+    chatQueue = {}
+    isWaiting = false
+end
+
+-- Fungsi untuk menambah chat ke antrean
+local function addToQueue(sender, message)
+    local cleanedMsg = cleanText(message)
+    local formattedLine = string.format("[%s]: %s", sender, cleanedMsg)
+    
+    table.insert(chatQueue, formattedLine)
+    lastChatTime = tick()
+    
+    -- Jalankan timer jika belum ada yang nunggu
+    if not isWaiting then
+        isWaiting = true
+        task.spawn(function()
+            while tick() - lastChatTime < 1 do
+                task.wait(1)
+            end
+            flushQueue()
+        end)
+    end
+end
+
+-- Deteksi Chat Service
+local TextChatService = game:GetService("TextChatService")
+if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+    TextChatService.OnIncomingMessage = function(msg: TextChatMessage)
+        if msg.Text then
+            local name = (msg.TextSource and msg.TextSource.Name) or "SYSTEM"
+            addToQueue(name, msg.Text)
+        end
+    end
+else
+    local chatEvent = game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents")
+    if chatEvent then
+        chatEvent:WaitForChild("OnMessageDoneFiltering").OnClientEvent:Connect(function(data)
+            if data and data.FromSpeaker and data.Message then
+                addToQueue(data.FromSpeaker, data.Message)
+            end
+        end)
+    end
+end
+
+-- Ambil notifikasi dari LogService (untuk System/Spawn)
+game:GetService("LogService").MessageOut:Connect(function(message, messageType)
+    local msgLower = message:lower()
+    if string.find(msgLower, "spawn") or string.find(msgLower, "chance") or string.find(msgLower, "rare") then
+        -- Cek biar ga double dengan chat player
+        if not string.find(message, ":") or string.find(message, "<font") then
+            addToQueue("SYSTEM", message)
+        end
+    end
+end)
+
