@@ -11,6 +11,22 @@ local _ = genv.maxRetries
 
 local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
 
+-- [[ ANTI-CHEAT BYPASS & CLEANUP ]]
+task.spawn(function()
+    local RS = game:GetService("ReplicatedStorage")
+    local LP = game:GetService("Players").LocalPlayer
+    local remote = RS:FindFirstChild("menuToggleRequest") or RS:WaitForChild("menuToggleRequest", 5)
+    if remote then
+        remote:FireServer()
+    end
+    local playerGui = LP:WaitForChild("PlayerGui")
+    local mainMenu = playerGui:FindFirstChild("mainMenuSystem")
+    if mainMenu then
+        mainMenu:Destroy()
+    end
+end)
+
+
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -65,42 +81,32 @@ local WaktuKosong = nil
 
 
 -- [[  UTILITY FUNCTIONS ]]
-local function AutoServerHop()
-    local HttpService = game:GetService("HttpService")
+local function RejoinServer()
     local TeleportService = game:GetService("TeleportService")
-    local PlaceId = game.PlaceId
+    local Players = game:GetService("Players")
+    local RS = game:GetService("ReplicatedStorage")
     
-    warn("[VOIDLINE] 3 Hours Reached! Hopping server to bypass limit...")
-    
-    -- Ambil List Server
-    local success, Servers = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
-    end)
-    
-    if success and Servers then
-        local Target = nil
-        for _, s in pairs(Servers.data) do
-            if s.playing < s.maxPlayers and s.id ~= game.JobId then
-                Target = s.id
-                break
-            end
-        end
-        
-        if Target then
-            -- TITIP SCRIPT: Pastikan link Github lo bener bre
-            local scriptRaw = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/VoidlineHub/VoidlineHub/main/dds"))()]]
-            
-            -- Cek fungsi teleport executor
-            local teleportFunc = queue_on_teleport or (syn and syn.queue_on_teleport)
-            if teleportFunc then
-                teleportFunc(scriptRaw)
-            end
-            
-            task.wait(0.5)
-            TeleportService:TeleportToPlaceInstance(PlaceId, Target, LP)
-        end
+    warn("[VOIDLINE] 3 Hours Reached! Rejoining to bypass limits...")
+
+    -- 1. BYPASS: Mainin Remote sebelum cabut biar server nyatet lo "Safe"
+    local remote = RS:FindFirstChild("menuToggleRequest") or RS:WaitForChild("menuToggleRequest", 5)
+    if remote then
+        remote:FireServer()
     end
+
+    -- 2. TITIP SCRIPT: Biar pas masuk lagi langsung jalan otomatis
+    local scriptRaw = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/VoidlineHub/VoidlineHub/main/dds"))()]]
+    local teleportFunc = queue_on_teleport or (syn and syn.queue_on_teleport)
+    
+    if teleportFunc then
+        teleportFunc(scriptRaw)
+    end
+
+    -- 3. EKSEKUSI REJOIN
+    task.wait(0.5)
+    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Players.LocalPlayer)
 end
+
 
 local function SwitchToCourier()
     local TeamRemote = ReplicatedStorage:FindFirstChild("TeamChangeRequest", true)
@@ -279,13 +285,10 @@ task.spawn(function()
 
     while true do
         task.wait(1)
-        
-        -- [[ AUTO SERVER HOP CHECK (3 JAM) ]]
-        -- Mengecek apakah sudah saatnya pindah server buat bypass limit
+
         if os.time() - WaktuMulai >= 3600 then
-            warn("[VOIDLINE] Time Limit Reached! Hopping...")
-            AutoServerHop() -- Memanggil fungsi pindah server dari Utility
-            break -- Hentikan loop di server ini
+            RejoinServer()
+            break
         end
 
         -- Hanya jalan jika Toggle ON
