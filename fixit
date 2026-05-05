@@ -2,8 +2,8 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "voidlinehub | Fix It Up V8.42",
-   LoadingTitle = "Prioritizing Engine Block...",
+   Name = "voidlinehub,
+   LoadingTitle = "Wait for load",
    LoadingSubtitle = "by bilzz",
    ConfigurationSaving = { Enabled = false }
 })
@@ -13,8 +13,7 @@ local LP = game:GetService("Players").LocalPlayer
 local PitStop = workspace.Map.FirstCity.Buildings:FindFirstChild("PitStop(Large)")
 local moveable = workspace:FindFirstChild("MoveableParts") or workspace:FindFirstChild("Debris") 
 
-local TeleportPos = CFrame.new(-1027.19751, 3.67548323, -436.706421, 0.824105382, 1.22228175e-05, 0.566436529, -4.58112709e-06, 1, -1.49133839e-05, -0.566436529, 9.69528173e-06, 0.824105382)
-
+local TeleportPos = CFrame.new(-1075.90344, 3.67548323, -415.237793, 0.824105322, 2.20674906e-06, 0.566436589, -8.19339675e-07, 1, -2.70379246e-06, -0.566436589, 1.76410572e-06, 0.824105322)
 -- // UI PROGRESS
 local MainTab = Window:CreateTab("Mechanic", 4483362458)
 local StatusLabel = MainTab:CreateLabel("Status: Idle")
@@ -144,6 +143,6 @@ local function FullAutoCycle()
 end
 
 MainTab:CreateButton({
-   Name = "🚀 START REPAIR (SAFE MODE)",
+   Name = "START REPAIR",
    Callback = function() FullAutoCycle() end
 })
