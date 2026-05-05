@@ -94,9 +94,9 @@ local function FullAutoCycle()
                         UltraFire(PitStop.Station2.PartsWasher.Faucet.ClickDetector)
                     
                     elseif name == "CylinderHead" then
-                        -- Grinding 1 (Index 4)
+                        -- FIX: Pindah ke Index [3] sesuai yang lu minta
                         p:PivotTo(CFrame.new(-1072.69385, 4.62900543, -439.644714))
-                        UltraFire(PitStop.Station2:GetChildren()[4].Button.ClickDetector)
+                        UltraFire(PitStop.Station2:GetChildren()[3].Button.ClickDetector)
 
                     elseif name == "ExhaustManifold" then
                         -- Grinding 2 (Named)
@@ -149,10 +149,11 @@ local function FullAutoCycle()
     end
 
     partsEvent:FireServer("ReapplyPart", Instance.new("Model", nil))
-    UpdateStatus("Done, Bre! 4 Grinding Jalan Semua.")
+    UpdateStatus("Done, Bre! Grinding Index 3 Fix.")
 end
 
 MainTab:CreateButton({
-   Name = "🚀 START REPAIR (ALL 4 GRINDING)",
+   Name = "🚀 START REPAIR (FIX INDEX 3)",
    Callback = function() FullAutoCycle() end
 })
+
