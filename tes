@@ -1,0 +1,162 @@
+-- [[ VOIDLINE HUB | FIX IT UP - V8.42 STABLE ]]
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "voidlinehub | Fix It Up V8.42",
+   LoadingTitle = "Mapping Precision Stations...",
+   LoadingSubtitle = "by bilzz",
+   ConfigurationSaving = { Enabled = false }
+})
+
+-- // DATA & SETTINGS
+local LP = game:GetService("Players").LocalPlayer
+local PitStop = workspace.Map.FirstCity.Buildings:FindFirstChild("PitStop(Large)")
+local moveable = workspace:FindFirstChild("MoveableParts") or workspace:FindFirstChild("Debris") 
+
+-- KOORDINAT TP MOBIL TERBARU (Sesuai Koreksi Lu)
+local TeleportPos = CFrame.new(-1075.90344, 3.67548323, -415.237793, 0.824105322, 2.20674906e-06, 0.566436589, -8.19339675e-07, 1, -2.70379246e-06, -0.566436589, 1.76410572e-06, 0.824105322)
+
+-- // UI
+local MainTab = Window:CreateTab("Mechanic", 4483362458)
+local StatusLabel = MainTab:CreateLabel("Status: Idle")
+
+local function UpdateStatus(msg)
+    StatusLabel:Set("Status: "..msg)
+end
+
+local function SecureFire(cd)
+    if cd and cd:IsA("ClickDetector") then
+        task.wait(0.4) 
+        fireclickdetector(cd)
+        task.wait(0.2)
+        fireclickdetector(cd)
+    end
+end
+
+-- // [ CORE AUTO-REPAIR ]
+local function FullAutoCycle()
+    if not PitStop then UpdateStatus("PitStop Gak Ketemu!") return end
+
+    local target = (function()
+        local closest = nil
+        local dist = 50
+        for _, v in pairs(workspace.Vehicles:GetChildren()) do
+            local primary = v:FindFirstChild("DriveSeat") or v:FindFirstChildWhichIsA("BasePart", true)
+            if primary and LP.Character:FindFirstChild("HumanoidRootPart") then
+                local d = (LP.Character.HumanoidRootPart.Position - primary.Position).Magnitude
+                if d < dist then dist = d; closest = v end
+            end
+        end
+        return closest
+    end)()
+
+    if not target then UpdateStatus("Mobil Gak Ketemu!") return end
+    
+    local partsEvent = target:FindFirstChild("PartsEvent")
+    local engineBay = target.Body:FindFirstChild("EngineBay")
+    local scanData = {}
+
+    -- 1. PREP & TP
+    UpdateStatus("Teleporting...")
+    target:PivotTo(TeleportPos)
+    task.wait(2)
+
+    -- 2. BONGKAR (Remote RemovePart)
+    UpdateStatus("Removing Parts...")
+    for _, folder in pairs(engineBay:GetChildren()) do
+        scanData[folder.Name] = true
+        for _, child in pairs(folder:GetChildren()) do
+            scanData[child.Name] = true
+        end
+    end
+
+    partsEvent:FireServer("ReapplyPart", Instance.new("Model", nil))
+    for partName, _ in pairs(scanData) do
+        pcall(function() partsEvent:FireServer("RemovePart", partName) end)
+        task.wait(0.12)
+    end
+
+    -- 3. PRECISION REPAIR (MAPPING SESUAI ALAT)
+    UpdateStatus("Repairing (Precise Mode)...")
+    local startTime = tick()
+    while tick() - startTime < 18 do -- Tambah waktu dikit biar bersih semua
+        for _, p in pairs(moveable:GetChildren()) do
+            if (target:GetPivot().Position - p:GetPivot().Position).Magnitude < 150 then 
+                local name = p.Name
+                
+                pcall(function()
+                    -- BATTERY
+                    if name == "Battery" then
+                        p:PivotTo(CFrame.new(-1061.37317, 3.93821335, -445.009705))
+                        SecureFire(PitStop.Station2.BatteryCharger.Button.ClickDetector)
+                    
+                    -- RADIATOR (Ke Washer 2 biar gak numpuk)
+                    elseif name == "Radiator" then
+                        p:PivotTo(CFrame.new(-1107.78564, 4.39535522, -423.783295))
+                        SecureFire(PitStop.Station1.PartsWasher.Faucet.ClickDetector)
+
+                    -- AIR INTAKE (Ke Washer 1)
+                    elseif name == "AirIntake" then
+                        p:PivotTo(CFrame.new(-1077.64319, 4.39535522, -437.52005))
+                        SecureFire(PitStop.Station2.PartsWasher.Faucet.ClickDetector)
+                    
+                    -- CYLINDER HEAD (Ke Grinding 1)
+                    elseif name == "CylinderHead" then
+                        p:PivotTo(CFrame.new(-1072.69385, 4.62900543, -439.644714))
+                        SecureFire(PitStop.Station2:GetChildren()[4].Button.ClickDetector)
+
+                    -- EXHAUST MANIFOLD (Ke Grinding 2)
+                    elseif name == "ExhaustManifold" then
+                        p:PivotTo(CFrame.new(-1067.37622, 4.62900543, -442.068024))
+                        SecureFire(PitStop.Station2.GrindingMachine.Button.ClickDetector)
+                    
+                    -- ENGINE BLOCK (Ke Grinding 3)
+                    elseif name == "EngineBlock" then
+                        p:PivotTo(CFrame.new(-1097.51868, 4.62900543, -428.331268))
+                        SecureFire(PitStop.Station1:GetChildren()[4].Button.ClickDetector)
+
+                    -- TRANSMISSION / GEARBOX (Ke Grinding 4)
+                    elseif string.find(name, "Transmission") or string.find(name, "Speed") or string.find(name, "DCT") or string.find(name, "Manual") then
+                        p:PivotTo(CFrame.new(-1102.8363, 4.62900543, -425.907867))
+                        SecureFire(PitStop.Station1.GrindingMachine.Button.ClickDetector)
+                    end
+                end)
+            end
+        end
+        task.wait(0.8)
+    end
+
+    UpdateStatus("Syncing (25s)...")
+    task.wait(25)
+    
+    -- 4. SMART ASSEMBLY (Block First)
+    local mainBlock = nil
+    local otherParts = {}
+
+    for _, p in pairs(moveable:GetChildren()) do
+        if (target:GetPivot().Position - p:GetPivot().Position).Magnitude < 100 then 
+            if p.Name == "EngineBlock" then mainBlock = p else table.insert(otherParts, p) end
+        end
+    end
+
+    if mainBlock then
+        UpdateStatus("Installing Block...")
+        pcall(function() partsEvent:FireServer("ReapplyPart", mainBlock) end)
+        task.wait(4) 
+    end
+
+    for i, part in ipairs(otherParts) do
+        UpdateStatus("Installing: "..part.Name)
+        pcall(function() partsEvent:FireServer("ReapplyPart", part) end)
+        task.wait(2.5) 
+    end
+
+    partsEvent:FireServer("ReapplyPart", Instance.new("Model", nil))
+    UpdateStatus("Selesai! Semua Part di Posisi Masing-masing.")
+end
+
+MainTab:CreateButton({
+   Name = "🚀 START REPAIR V8.42 (PRECISE)",
+   Callback = function() FullAutoCycle() end
+})
+
