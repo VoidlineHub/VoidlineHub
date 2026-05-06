@@ -11,19 +11,14 @@ local _ = genv.maxRetries
 
 local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
 
--- [[ ANTI-CHEAT BYPASS & CLEANUP ]]
+_G.EngineReady = false
 task.spawn(function()
     local RS = game:GetService("ReplicatedStorage")
-    local LP = game:GetService("Players").LocalPlayer
     local remote = RS:FindFirstChild("menuToggleRequest") or RS:WaitForChild("menuToggleRequest", 5)
-    if remote then
-        remote:FireServer()
-    end
-    local playerGui = LP:WaitForChild("PlayerGui")
-    local mainMenu = playerGui:FindFirstChild("mainMenuSystem")
-    if mainMenu then
-        mainMenu:Destroy()
-    end
+    if remote then remote:FireServer() task.wait(0.5) end
+    local mainMenu = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("mainMenuSystem")
+    if mainMenu then mainMenu:Destroy() end
+    _G.EngineReady = true
 end)
 
 
@@ -277,35 +272,27 @@ PlayerData.RPValue:GetPropertyChangedSignal("Value"):Connect(function()
 end)
 
 -- [[ MAIN ENGINE ]]
-task.spawn(function()
-    warn("[VOIDLINE] Engine Loaded & Waiting for Toggle...")
-    
-    -- Pastikan variable WaktuMulai sudah ada di paling atas script utama lo:
-    -- local WaktuMulai = os.time() 
-
+task.spawn(function()  
     while true do
-        task.wait(1)
-
+task.wait(1)
+        -- Rejoin tiap 1 jam (3600 detik)
         if os.time() - WaktuMulai >= 3600 then
             RejoinServer()
             break
         end
 
-        -- Hanya jalan jika Toggle ON
-        if _G.AutofarmCourier then
-            -- 1. Masuk Job (Jika respawn/baru mulai)
+        -- WAJIB: Cek EngineReady (Cleanup) DAN Toggle ON
+        if _G.EngineReady and _G.AutofarmCourier then
+            
             SwitchToCourier()
 
-            -- Ambil data karakter terbaru setiap kali loop
             local Char = LP.Character or LP.CharacterAdded:Wait()
-            local Hum = Char:WaitForChild("Humanoid")
-            local Root = Char:WaitForChild("HumanoidRootPart")
+            local Hum = Char:FindFirstChild("Humanoid")
+            local Root = Char:FindFirstChild("HumanoidRootPart")
 
             if Hum and Root then
-                
-                -- [[ BYPASS UTAMA: WAJIB SIT SEBELUM TWEEN ]]
+                -- [[ SIT BYPASS ]]
                 if not Hum.Sit then
-                    warn("[VOIDLINE] Activating SIT Bypass...")
                     repeat 
                         if not _G.AutofarmCourier then break end
                         Hum.Sit = true
@@ -313,7 +300,6 @@ task.spawn(function()
                     until Hum.Sit or not _G.AutofarmCourier
                     task.wait(1) 
                 end
-
                 -- PHASE 1: AMBIL PAKET
                 if not AutoEquipBox() then
                     -- Tween ke tempat ambil box
