@@ -1,1 +1,10 @@
-
+local isMaintenance = true
+local errorCode = 600
+if isMaintenance then
+    local kickMessage = "\n[ERROR CODE " .. errorCode .. "]\n\n" ..
+                        "Sorry, the Courier Farm script is currently under MAINTENANCE.\n" ..
+                        "We are fixing some bugs to improve your experience.\n" ..
+                        "Please check back later!"    
+game.Players.LocalPlayer:Kick(kickMessage)
+    return
+end
