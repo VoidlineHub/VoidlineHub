@@ -404,7 +404,7 @@ FarmSection:AddParagraph({
 })
 
 FarmSection:AddToggle({
-    Title    = "On autofarm",
+    Title    = "On Autofarm courier",
     Content = "farm nya dah bagus",
     Flag  = "config",
     Default  = false,
