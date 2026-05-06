@@ -1,13 +1,3 @@
-local genv = getgenv()
-local fenv = getfenv()
-
-loadstring(game:HttpGet('https://raw.githubusercontent.com/LynX99-9/komtolmmek2/refs/heads/main/Adonis'))()
-game:GetService('CoreGui').RobloxGui['CoreScripts/NetworkPause']:Destroy()
-
-genv.VelarisUI = nil
-genv.maxRetries = 3
-
-local _ = genv.maxRetries
 
 local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
 
@@ -80,8 +70,6 @@ local function RejoinServer()
     local TeleportService = game:GetService("TeleportService")
     local Players = game:GetService("Players")
     local RS = game:GetService("ReplicatedStorage")
-    
-    warn("[VOIDLINE] 3 Hours Reached! Rejoining to bypass limits...")
 
     -- 1. BYPASS: Mainin Remote sebelum cabut biar server nyatet lo "Safe"
     local remote = RS:FindFirstChild("menuToggleRequest") or RS:WaitForChild("menuToggleRequest", 5)
@@ -276,7 +264,7 @@ task.spawn(function()
     while true do
 task.wait(1)
         -- Rejoin tiap 1 jam (3600 detik)
-        if os.time() - WaktuMulai >= 3600 then
+        if os.time() - WaktuMulai >= 600 then
             RejoinServer()
             break
         end
