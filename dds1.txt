@@ -406,7 +406,7 @@ FarmSection:AddSlider({
     Flag      = "config slider",  
     Content   = "pakai senormalnya",
     Min       = 0,
-    Max       = 300,
+    Max       = 270,
     Default   = 230,
     Increment = 1,
     Callback  = function(value)
