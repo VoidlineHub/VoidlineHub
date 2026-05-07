@@ -78,7 +78,7 @@ local function RejoinServer()
     end
 
     -- 2. TITIP SCRIPT: Biar pas masuk lagi langsung jalan otomatis
-    local scriptRaw = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/VoidlineHub/VoidlineHub/main/dds1.txt"))()]]
+    local scriptRaw = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/VoidlineHub/VoidlineHub/main/dds"))()]]
     local teleportFunc = queue_on_teleport or (syn and syn.queue_on_teleport)
     
     if teleportFunc then
