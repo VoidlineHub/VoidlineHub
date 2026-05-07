@@ -263,8 +263,7 @@ end)
 task.spawn(function()  
     while true do
 task.wait(1)
-        -- Rejoin tiap 1 jam (3600 detik)
-        if os.time() - WaktuMulai >= 600 then
+        if os.time() - WaktuMulai >= 3600 then
             RejoinServer()
             break
         end
