@@ -1,7 +1,0 @@
-local isMaintenance = true
-if isMaintenance then
-    local kickMessage = "Sorry, the Courier Farm script is currently under MAINTENANCE.\n"
-                        "Please check back later!"    
-game.Players.LocalPlayer:Kick(kickMessage)
-    return
-end
