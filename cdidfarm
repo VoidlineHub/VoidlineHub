@@ -102,5 +102,15 @@ else
     print("Gagal dapetin truck di awal. Coba eksekusi ulang.")
 end
 
-
-
+-- [[ GUI VELARIS ]] --
+local Window = VelarisUI:Window({
+    Title     = "Car driving indonesia",
+    Footer    = "By Voidline",
+    Color     = "Default",            
+    Version   = "1.0",
+    Image     = "101833678008843",    
+    Size      = UDim2.fromOffset(640, 400),
+    ShowUser  = true,                  
+    Search    = true,                  
+    Animation = true,
+})
