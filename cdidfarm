@@ -1,0 +1,101 @@
+-- // Configuration & Global Toggle
+_G.Autofarm = true -- Set ke false kalau mau matiin lewat UI
+
+-- // Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local lp = Players.LocalPlayer
+
+-- // Fungsi Cari Truck Milik Player
+local function getMyTruck()
+    for _, v in pairs(Workspace:WaitForChild("Vehicles"):GetChildren()) do
+        if v:IsA("Model") and v:FindFirstChild("DriveSeat") then
+            -- Kamu bisa tambah cek nama spesifik di sini jika perlu
+            return v
+        end
+    end
+    return nil
+end
+
+-- // Fungsi Pencet Prompt
+local function firePrompt(obj)
+    if not obj then return end
+    local prompt = obj:FindFirstChildOfClass("ProximityPrompt") or obj:WaitForChild("Prompt", 5)
+    if prompt then
+        fireproximityprompt(prompt)
+    end
+end
+
+-- // --- PROSES AWAL (CUMA 1 KALI) ---
+local function startJobOnce()
+    local char = lp.Character or lp.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+
+    -- 1. Ambil Job
+    local jobRemote = ReplicatedStorage:WaitForChild("NetworkContainer"):WaitForChild("RemoteEvents"):WaitForChild("Job")
+    jobRemote:FireServer("Truck")
+    task.wait(2)
+
+    -- 2. Ke Starter
+    local starter = Workspace:WaitForChild("Etc"):WaitForChild("Job"):WaitForChild("Truck"):WaitForChild("Starter")
+    hrp.CFrame = starter:GetPivot()
+    task.wait(1)
+    firePrompt(starter)
+
+    task.wait(2)
+
+    -- 3. Ke Spawner
+    local spawner = Workspace:WaitForChild("Etc"):WaitForChild("Job"):WaitForChild("Truck"):WaitForChild("Spawner")
+    local spawnerPart = spawner:FindFirstChild("Part") or spawner
+    hrp.CFrame = (spawnerPart:IsA("Model") and spawnerPart:GetPivot()) or spawnerPart.CFrame
+    task.wait(1)
+    firePrompt(spawnerPart)
+
+    -- 4. Naik ke Mobil
+    task.wait(3)
+    local truck = getMyTruck()
+    if truck and truck:FindFirstChild("DriveSeat") then
+        hrp.CFrame = truck.DriveSeat.CFrame
+        task.wait(0.5)
+        local dsPrompt = truck.DriveSeat:FindFirstChild("PromptDriveSeat")
+        if dsPrompt then fireproximityprompt(dsPrompt) end
+        return truck
+    end
+    return nil
+end
+
+-- // --- JALANKAN PROSES AWAL ---
+local myTruck = startJobOnce()
+
+-- // --- LOOP TELEPORT TRUCK (INI YANG LOOP TERUS) ---
+if myTruck then
+    print("Memulai Loop Teleport Truck...")
+    
+    while _G.Autofarm do
+        -- Cari target Waypoint
+        local waypoint = Workspace:WaitForChild("Etc"):WaitForChild("Waypoint"):WaitForChild("Waypoint")
+        local targetCF = (waypoint:IsA("Model") and waypoint:GetPivot()) or waypoint.CFrame
+        
+        -- Teleport Truck-nya
+        myTruck:PivotTo(targetCF)
+        print("Truck diteleport ke Waypoint!")
+
+        -- Delay Acak 60 - 70 detik
+        local delayTime = math.random(60, 70)
+        print("Waiting for: " .. tostring(delayTime) .. " seconds.")
+        task.wait(delayTime)
+        
+        -- Tambahan: Re-check truck kalau tiba-tiba ilang/respawn
+        if not myTruck.Parent then
+            myTruck = getMyTruck()
+            if not myTruck then 
+                print("Truck ilang, nyoba ambil ulang...")
+                myTruck = startJobOnce() 
+            end
+        end
+    end
+else
+    print("Gagal dapetin truck di awal. Coba eksekusi ulang.")
+end
+
