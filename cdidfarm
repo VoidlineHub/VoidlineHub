@@ -1,11 +1,14 @@
--- // Configuration & Global Toggle
-_G.Autofarm = true -- Set ke false kalau mau matiin lewat UI
+local VelarisUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/nhfudzfsrzggt/brigida/refs/heads/main/dist/main.lua", true))()
 
 -- // Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local lp = Players.LocalPlayer
+
+-- // Config
+_G.Autofarm = true -- Set ke false kalau mau matiin lewat UI
+
 
 -- // Fungsi Cari Truck Milik Player
 local function getMyTruck()
@@ -98,4 +101,6 @@ if myTruck then
 else
     print("Gagal dapetin truck di awal. Coba eksekusi ulang.")
 end
+
+
 
