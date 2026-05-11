@@ -7,7 +7,7 @@ local Players = game:GetService("Players")
 local lp = Players.LocalPlayer
 
 -- // Config
-_G.Autofarm = true -- Set ke false kalau mau matiin lewat UI
+_G.Autofarm = false
 
 
 -- // Fungsi Cari Truck Milik Player
@@ -114,3 +114,15 @@ local Window = VelarisUI:Window({
     Search    = true,                  
     Animation = true,
 })
+
+local FarmTab = Window:AddTab({ Name = "Autofarm", Icon = "house" })
+local FarmSection = FarmTab:AddSection({ Title = "Autofarm Truck", Open = true })
+FarmSection:AddToggle({
+    Title    = "On Autofarm Truck",
+    Content = "farm nya dah bagus",
+    Default  = false,
+    Callback = function(value)
+    _G.Autofarm = value
+    end
+})
+
