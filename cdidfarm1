@@ -28,6 +28,7 @@ local lp = Players.LocalPlayer
 
 -- // Config & Stats Variables
 _G.Autofarm = false
+_G.AutoGacha = false
 local MoneyPath = lp.PlayerGui:WaitForChild("Main"):WaitForChild("Container"):WaitForChild("Hub"):WaitForChild("CashFrame"):WaitForChild("Frame"):WaitForChild("TextLabel")
 local StartMoney = 0
 local CurrentMoney = 0
@@ -36,6 +37,7 @@ local NextTeleportIn = 0
 local SavedPos = nil
 
 -- Tambahkan baris ini biar gak error:
+local SelectedBox = "Limited Box"
 local SelectedNPC = ""
 local SelectedDealer = ""
 local SelectedPlayer = ""
@@ -192,7 +194,7 @@ local CurrentLabel = StatsSection:AddParagraph({ Title = "Current Money:", Conte
 
 
 local ProxTab = Window:AddTab({ Name = "automation", Icon = "lucide:bot" })
-local NpcSection = ProxTab:AddSection({ Title = "Open npc ui", Open = true })
+local NpcSection = ProxTab:AddSection({ Title = "Open npc", Open = true })
 NpcSection:AddDropdown({
     Title    = "Select npc",
     Options  = { "Npc upgrade slot Npc", "Npc Box Shop","Daily quest npc" },
@@ -212,7 +214,7 @@ NpcSection:AddButton({
     end
 })
 
-local DealerSection = ProxTab:AddSection({ Title = "Open dealership ui", Open = true })
+local DealerSection = ProxTab:AddSection({ Title = "Open dealership", Open = true })
 
 DealerSection:AddDropdown({
     Title    = "Select Dealer",
@@ -229,6 +231,51 @@ DealerSection:AddButton({
         local target = Dealer_Paths[SelectedDealer]
         if target then
             fireproximityprompt(target)
+        end
+    end
+})
+
+local GachaSection = ProxTab:AddSection({ Title = "Gacha Box", Open = true })
+GachaSection:AddDropdown({
+    Title    = "Select Action / Box",
+    Options  = { "Limited Box", "Gamepass Box", "Minigame Box", "Claim" },
+    Default  = "Limited Box",
+    Callback = function(value)
+        SelectedBox = value
+    end
+})
+
+GachaSection:AddToggle({
+    Title    = "auto gacha box",
+    Content  = "Automatic Buy Box",
+    Default  = false,
+    Callback = function(value)
+        _G.AutoGacha = value
+        if _G.AutoGacha then
+            task.spawn(function()
+                while _G.AutoGacha do
+                    -- Jika dropdown sedang di "Claim", jangan auto-buy
+                    if SelectedBox ~= "Claim" then
+                        game:GetService("ReplicatedStorage").NetworkContainer.RemoteEvents.Box:FireServer("Buy", SelectedBox)
+                        task.wait(0.5)
+                        game:GetService("ReplicatedStorage").NetworkContainer.RemoteEvents.Box:FireServer("Claim")
+                    end
+                    task.wait(1.5)
+                end
+            end)
+        end
+    end
+})
+
+-- Button buat Manual
+GachaSection:AddButton({
+    Title    = "Execute Selection",
+    Callback = function()
+        local Remote = game:GetService("ReplicatedStorage").NetworkContainer.RemoteEvents.Box
+        if SelectedBox == "Claim" then
+            Remote:FireServer("Claim")
+        else
+            Remote:FireServer("Buy", SelectedBox)
         end
     end
 })
