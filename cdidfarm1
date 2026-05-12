@@ -164,7 +164,7 @@ local Window = VelarisUI:Window({
     Animation = true,
 })
 
-local FarmTab = Window:AddTab({ Name = "Autofarm", Icon = "​lucide:truck" })
+local FarmTab = Window:AddTab({ Name = "Autofarm", Icon = "lucide:truck" })
 local FarmSection = FarmTab:AddSection({ Title = "Autofarm Truck", Open = true })
 
 FarmSection:AddToggle({
@@ -184,7 +184,7 @@ FarmSection:AddToggle({
 })
 
 
-local StatsTab = Window:AddTab({ Name = "Stats", Icon = "lucide:line-chart" })
+local StatsTab = Window:AddTab({ Name = "Stats", Icon = "lucide:bar-chart-2" })
 local StatsSection = StatsTab:AddSection({ Title = "Statistics", Open = true })
 local DelayLabel = StatsSection:AddParagraph({ Title = "Next Teleport In:", Content = "0 Seconds" })
 local EarnedLabel = StatsSection:AddParagraph({ Title = "Total Earned:", Content = "RP. 0" })
