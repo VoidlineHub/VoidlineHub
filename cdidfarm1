@@ -203,31 +203,60 @@ DealerSection:AddButton({
     end
 })
 
-local TpTab = Window:AddTab({ Name = "Teleport", Icon = "​" })
-local SaveSection = TpTab:AddSection({ Title = "Saved Location", Open = true })
+-- TAB TELEPORT
+local TpTab = Window:AddTab({ Name = "Teleport", Icon = "lucide:map-pin" })
+
+-- // 1. PLAYER TELEPORT SECTION
+local PlayerSection = TpTab:AddSection({ Title = "Teleport Player", Open = true })
+local PlayerDropdown = PlayerSection:AddDropdown({
+    Title    = "Select Player",
+    Options  = {}, -- Diisi lewat fungsi refresh
+    Default  = "",
+    Callback = function(value) SelectedPlayer = value end
+})
+
+local function refreshPlayers()
+    local pList = {}
+    for _, v in pairs(workspace.Lives:GetChildren()) do
+        if v:IsA("Model") and v.Name ~= lp.Name then 
+            table.insert(pList, v.Name) 
+        end
+    end
+    PlayerDropdown:SetValues(pList)
+end
+
+PlayerSection:AddButton({ Title = "Refresh Player List", Callback = refreshPlayers })
+PlayerSection:AddButton({
+    Title    = "Teleport to Player",
+    Callback = function()
+        local target = workspace.Lives:FindFirstChild(SelectedPlayer)
+        if target then lp.Character:PivotTo(target:GetPivot()) end
+    end
+})
+
+-- // 2. SAVED LOCATION SECTION
+local SaveSection = TpTab:AddSection({ Title = "Saved Location", Open = false })
 local LocationStatus = SaveSection:AddParagraph({ Title = "Status:", Content = "No Location Saved" })
 
 SaveSection:AddButton({
-    Title    = "Get Location",
+    Title    = "Get Location Now",
     Callback = function()
         SavedPos = lp.Character:GetPivot()
         LocationStatus:SetContent("Location Saved Successfully!")
     end
 })
 
--- Tombol Teleport ke Posisi Tersimpan
 SaveSection:AddButton({
     Title    = "Teleport to Saved Location",
     Callback = function()
-        if SavedPos then
-            lp.Character:PivotTo(SavedPos)
-        else
-            LocationStatus:SetContent("Error: Save a location first!")
+        if SavedPos then 
+            lp.Character:PivotTo(SavedPos) 
+        else 
+            LocationStatus:SetContent("Error: Save a location first!") 
         end
     end
 })
 
--- Tombol Reset
 SaveSection:AddButton({
     Title    = "Reset Saved Location",
     Callback = function()
@@ -236,38 +265,30 @@ SaveSection:AddButton({
     end
 })
 
+-- // 3. NPC TELEPORT SECTION
 local NpcOnlyTp = TpTab:AddSection({ Title = "Teleport NPC", Open = false })
-local SelectedNpcTp = ""
-
 NpcOnlyTp:AddDropdown({
     Title    = "Select NPC",
-    Options  = { "Npc upgrade slot Npc", "Npc Box Shop", "Daily quest npc" },
-    Default  = "",
-    Callback = function(value)
-        SelectedNpcTp = value
-    end
+    Options  = { "Npc job select", "Npc upgrade slot Npc", "Npc Box Shop", "Daily quest npc" },
+    Default  = "Npc job select",
+    Callback = function(value) SelectedNpcTp = value end
 })
 
 NpcOnlyTp:AddButton({
     Title    = "Teleport to NPC",
     Callback = function()
         local target = NPC_Paths[SelectedNpcTp]
-        if target then
-            lp.Character:PivotTo(target.Parent:GetPivot())
-        end
+        if target then lp.Character:PivotTo(target.Parent:GetPivot()) end
     end
 })
 
+-- // 4. DEALER TELEPORT SECTION
 local DealerOnlyTp = TpTab:AddSection({ Title = "Teleport Dealership", Open = false })
-local SelectedDealerTp = ""
-
 DealerOnlyTp:AddDropdown({
     Title    = "Select Dealer",
     Options  = { "Toyota", "Suzuki", "Premium", "Nissan", "Mercedes", "Komersial", "KIA", "Hyundai", "Honda", "Daihatsu", "Chery", "Bandung", "Dealer 77", "Modification" },
     Default  = "Toyota",
-    Callback = function(value)
-        SelectedDealerTp = value
-    end
+    Callback = function(value) SelectedDealerTp = value end
 })
 
 DealerOnlyTp:AddButton({
@@ -275,12 +296,15 @@ DealerOnlyTp:AddButton({
     Callback = function()
         local target = Dealer_Paths[SelectedDealerTp]
         if target then
+            -- Cek apakah target itu Prompt atau langsung Model (Modification)
             local pos = (target:IsA("ProximityPrompt") and target.Parent:GetPivot()) or target:GetPivot()
             lp.Character:PivotTo(pos)
         end
     end
 })
 
+-- Jalankan refresh list player sekali di awal
+task.spawn(refreshPlayers)
 
 -- // UPDATE UI STATS (Tiap 2 Detik)
 task.spawn(function()
