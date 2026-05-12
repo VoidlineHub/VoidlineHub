@@ -28,7 +28,7 @@ local Dealer_Paths = {
     ["Daihatsu"] = workspace.Etc.Dealership.Daihatsu.Prompt,
     ["Chery"] = workspace.Etc.Dealership.Chery.Prompt,
     ["Bandung"] = workspace.Etc.Dealership.Bandung.Prompt,
-    ["Dealer 77"] = workspace.Etc.Dealership["77"].Prompt
+    ["Dealer 77"] = workspace.Etc.Dealership["77"].Prompt,
     ["Modif"] = workspace.Map.Building.Modification
 }
 local NPC_Paths = {
@@ -201,8 +201,6 @@ DealerSection:AddButton({
         end
     end
 })
-
-local DealerSection = ProxTab:AddSection({ Title = "Teleport", Open = true })
 
 -- Dropdown buat pilih Dealer
 DealerSection:AddDropdown({
