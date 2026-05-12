@@ -13,6 +13,14 @@ local StartMoney = 0
 local CurrentMoney = 0
 local EarnedMoney = 0
 local NextTeleportIn = 0
+local SelectedNPC = ""
+local NPC_Paths = {
+    ["Npc job select"] = workspace.Etc.Job.Selection.Model.Prompt,
+    ["Npc upgrade slot Npc"] = workspace.Etc.Upgrade.Upgrade.Prompt,
+    ["Npc Box Shop"] = workspace.Etc.NPC.BOXSHOP.ProximityPrompt,
+    ["Daily quest npc"] = workspace.Asset.DailyQuest.NPC.ProximityPrompt
+}
+
 
 -- // Fungsi Format Angka
 local function formatNominal(n)
@@ -135,6 +143,28 @@ local EarnedLabel = StatsSection:AddParagraph({ Title = "Total Earned:", Content
 local CurrentLabel = StatsSection:AddParagraph({ Title = "Current Money:", Content = "RP. 0" })
 local DelayLabel = StatsSection:AddParagraph({ Title = "Next Teleport In:", Content = "0 Seconds" })
 
+
+local ProxTab = Window:AddTab({ Name = "more feature", Icon = "house" })
+local NpcSection = ProxTab:AddSection({ Title = "Npc", Open = true })
+NpcSection:AddDropdown({
+    Title    = "Select npc",
+    Options  = { "Npc job select", "Npc upgrade slot Npc", "Npc Box Shop","Daily quest npc" },
+    Default  = "Npc job select",
+    Callback = function(value)
+        SelectedNPC = value
+    end
+})
+
+NpcSection:AddButton({
+    Title    = "Open npc",
+    Callback = function()
+        local target = NPC_Paths[SelectedNPC]
+        if target then
+            fireproximityprompt(target)
+        end
+    end
+})
+
 -- // UPDATE UI STATS (Tiap 2 Detik)
 task.spawn(function()
     while true do
@@ -157,3 +187,4 @@ task.spawn(function()
         task.wait(1)
     end
 end)
+
