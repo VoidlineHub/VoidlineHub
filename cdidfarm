@@ -135,15 +135,6 @@ local DelayLabel = StatsSection:AddParagraph({ Title = "Next Teleport In:", Cont
 local EarnedLabel = StatsSection:AddParagraph({ Title = "Total Earned:", Content = "RP. 0" })
 local CurrentLabel = StatsSection:AddParagraph({ Title = "Current Money:", Content = "RP. 0" })
 
--- // UPDATE UI TIMER (Tiap 1 Detik biar Mulus 70, 69, 68...)
-task.spawn(function()
-    while true do
-        if _G.Autofarm then
-            DelayLabel:SetContent(tostring(NextTeleportIn) .. " Seconds")
-        end
-        task.wait(1)
-    end
-end)
 
 -- // UPDATE UI STATS (Tiap 2 Detik)
 task.spawn(function()
@@ -155,5 +146,15 @@ task.spawn(function()
             CurrentLabel:SetContent("RP. " .. formatNominal(current))
         end
         task.wait(2)
+    end
+end)
+
+-- // UPDATE UI TIMER (Tiap 1 Detik biar Mulus 70, 69, 68...)
+task.spawn(function()
+    while true do
+        if _G.Autofarm then
+            DelayLabel:SetContent(tostring(NextTeleportIn) .. " Seconds")
+        end
+        task.wait(1)
     end
 end)
