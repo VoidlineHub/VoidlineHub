@@ -144,7 +144,7 @@ local CurrentLabel = StatsSection:AddParagraph({ Title = "Current Money:", Conte
 local DelayLabel = StatsSection:AddParagraph({ Title = "Next Teleport In:", Content = "0 Seconds" })
 
 
-local ProxTab = Window:AddTab({ Name = "more feature", Icon = "house" })
+local ProxTab = Window:AddTab({ Name = "Open", Icon = "house" })
 local NpcSection = ProxTab:AddSection({ Title = "Npc", Open = true })
 NpcSection:AddDropdown({
     Title    = "Select npc",
