@@ -29,6 +29,7 @@ local Dealer_Paths = {
     ["Chery"] = workspace.Etc.Dealership.Chery.Prompt,
     ["Bandung"] = workspace.Etc.Dealership.Bandung.Prompt,
     ["Dealer 77"] = workspace.Etc.Dealership["77"].Prompt
+    ["Modif"] = workspace.Map.Building.Modification
 }
 local NPC_Paths = {
     ["Npc job select"] = workspace.Etc.Job.Selection.Model.Prompt,
@@ -159,7 +160,7 @@ local EarnedLabel = StatsSection:AddParagraph({ Title = "Total Earned:", Content
 local CurrentLabel = StatsSection:AddParagraph({ Title = "Current Money:", Content = "RP. 0" })
 
 
-local ProxTab = Window:AddTab({ Name = "Open", Icon = "​car" })
+local ProxTab = Window:AddTab({ Name = "automatic", Icon = "​" })
 local NpcSection = ProxTab:AddSection({ Title = "Npc", Open = false })
 NpcSection:AddDropdown({
     Title    = "Select npc",
@@ -180,7 +181,7 @@ NpcSection:AddButton({
     end
 })
 
-local DealerSection = ProxTab:AddSection({ Title = "Dealership", Open = false })
+local DealerSection = ProxTab:AddSection({ Title = "dealership", Open = false })
 
 DealerSection:AddDropdown({
     Title    = "Select Dealer",
@@ -197,6 +198,30 @@ DealerSection:AddButton({
         local target = Dealer_Paths[SelectedDealer]
         if target then
             fireproximityprompt(target)
+        end
+    end
+})
+
+local DealerSection = ProxTab:AddSection({ Title = "Teleport", Open = true })
+
+-- Dropdown buat pilih Dealer
+DealerSection:AddDropdown({
+    Title    = "Select Dealer",
+    Options  = { "Toyota", "Suzuki", "Premium", "Nissan", "Mercedes", "Komersial", "KIA", "Hyundai", "Honda", "Daihatsu", "Chery", "Bandung", "Dealer 77", "Modification", },
+    Default  = "",
+    Callback = function(value)
+        SelectedDealer = value
+    end
+})
+
+-- Tombol 1: Cuma Teleport ke Dealer (Ga buka UI)
+DealerSection:AddButton({
+    Title    = "Teleport to Dealer",
+    Callback = function()
+        local target = Dealer_Paths[SelectedDealer]
+        if target then
+            lp.Character:GetPivot() -- Memastikan karakter siap
+            lp.Character:PivotTo(target.Parent:GetPivot())
         end
     end
 })
