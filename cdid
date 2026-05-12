@@ -405,7 +405,7 @@ GachaSection:AddButton({
     end
 })
 
-local WebhookTab = Window:AddTab({ Name = "Webhook ", Icon = "house" })
+local WebhookTab = Window:AddTab({ Name = "Webhook ", Icon = "lucide:webhook" })
 local WebhookSection = WebhookTab:AddSection({ Title = "Webhook farm ", Open = true })
 WebhookSection:AddInput({
     Title    = "webhook",
