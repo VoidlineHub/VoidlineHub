@@ -153,14 +153,14 @@ FarmSection:AddToggle({
     end
 })
 
-local StatsTab = Window:AddTab({ Name = "Stats", Icon = "​activity" })
+local StatsTab = Window:AddTab({ Name = "Stats", Icon = "​lucide:activity" })
 local StatsSection = StatsTab:AddSection({ Title = "Statistics", Open = true })
 local DelayLabel = StatsSection:AddParagraph({ Title = "Next Teleport In:", Content = "0 Seconds" })
 local EarnedLabel = StatsSection:AddParagraph({ Title = "Total Earned:", Content = "RP. 0" })
 local CurrentLabel = StatsSection:AddParagraph({ Title = "Current Money:", Content = "RP. 0" })
 
 
-local ProxTab = Window:AddTab({ Name = "automatic", Icon = "​" })
+local ProxTab = Window:AddTab({ Name = "automatic", Icon = "​lucide:refresh-cw" })
 local NpcSection = ProxTab:AddSection({ Title = "Open npc ui", Open = true })
 NpcSection:AddDropdown({
     Title    = "Select npc",
