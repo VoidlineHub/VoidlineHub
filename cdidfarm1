@@ -5,6 +5,21 @@ if targetProp then
     targetProp:Destroy()
 end
 
+-- // Black Screen Setup
+local BlackScreen = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+
+BlackScreen.Name = "VoidlineBlackout"
+BlackScreen.Parent = game:GetService("CoreGui")
+BlackScreen.DisplayOrder = -1 -- Biar menu script lu tetep keliatan di depan
+BlackScreen.Enabled = false 
+
+Frame.Parent = BlackScreen
+Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Frame.Size = UDim2.new(1.5, 0, 1.5, 0) -- Lebih besar biar gak bocor layarnya
+Frame.Position = UDim2.new(-0.25, 0, -0.25, 0)
+Frame.BorderSizePixel = 0
+
 -- // Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -154,15 +169,20 @@ local FarmSection = FarmTab:AddSection({ Title = "Autofarm Truck", Open = true }
 
 FarmSection:AddToggle({
     Title    = "On Autofarm Truck",
-    Content  = "Fixed Timer & Teleport",
+    Content  = "Autofarm truck tanpa stuck",
     Default  = false,
     Callback = function(value)
         _G.Autofarm = value
+        
+        -- Layar otomatis jadi item pas toggle ON
+        BlackScreen.Enabled = value
+        
         if _G.Autofarm then
             task.spawn(runAutofarm)
         end
     end
 })
+
 
 local StatsTab = Window:AddTab({ Name = "Stats", Icon = "​lucide:activity" })
 local StatsSection = StatsTab:AddSection({ Title = "Statistics", Open = true })
