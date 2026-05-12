@@ -88,7 +88,7 @@ local function runAutofarm()
                 EarnedMoney = CurrentMoney - StartMoney
 
                 -- Countdown Delay
-                NextTeleportIn = math.random(60, 70)
+                NextTeleportIn = math.random(58, 59)
                 repeat
                     task.wait(1)
                     NextTeleportIn = NextTeleportIn - 1
@@ -130,6 +130,7 @@ FarmSection:AddToggle({
 
 local StatsTab = Window:AddTab({ Name = "Stats", Icon = "house" })
 local StatsSection = StatsTab:AddSection({ Title = "Statistics", Open = true })
+local DelayLabel = StatsSection:AddParagraph({ Title = "Next Teleport In:", Content = "0 Seconds" })
 local EarnedLabel = StatsSection:AddParagraph({ Title = "Total Earned:", Content = "RP. 0" })
 local CurrentLabel = StatsSection:AddParagraph({ Title = "Current Money:", Content = "RP. 0" })
 local DelayLabel = StatsSection:AddParagraph({ Title = "Next Teleport In:", Content = "0 Seconds" })
