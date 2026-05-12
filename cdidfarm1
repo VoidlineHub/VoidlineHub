@@ -8,14 +8,18 @@ local lp = Players.LocalPlayer
 
 -- // Config & Stats Variables
 _G.Autofarm = false
-local MoneyPath = lp.PlayerGui:WaitForChild("Main"):WaitForChild("Container"):WaitForChild("Hub"):WaitForChild("CashFrame"):WaitForChild("Frame"):WaitForChild("TextLabel")
 local StartMoney = 0
 local CurrentMoney = 0
 local EarnedMoney = 0
 local NextTeleportIn = 0
 local SavedPos = nil
+
+-- Tambahkan baris ini biar gak error:
 local SelectedNPC = ""
 local SelectedDealer = ""
+local SelectedPlayer = ""
+local SelectedNpcTp = ""
+local SelectedDealerTp = ""
 local Dealer_Paths = {
     ["Toyota"] = workspace.Etc.Dealership.Toyota.Prompt,
     ["Suzuki"] = workspace.Etc.Dealership.Suzuki.Prompt,
