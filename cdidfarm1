@@ -161,7 +161,7 @@ local CurrentLabel = StatsSection:AddParagraph({ Title = "Current Money:", Conte
 
 
 local ProxTab = Window:AddTab({ Name = "automatic", Icon = "​" })
-local NpcSection = ProxTab:AddSection({ Title = "Npc", Open = false })
+local NpcSection = ProxTab:AddSection({ Title = "Open npc ui", Open = true })
 NpcSection:AddDropdown({
     Title    = "Select npc",
     Options  = { "Npc upgrade slot Npc", "Npc Box Shop","Daily quest npc" },
@@ -181,7 +181,7 @@ NpcSection:AddButton({
     end
 })
 
-local DealerSection = ProxTab:AddSection({ Title = "dealership", Open = false })
+local DealerSection = ProxTab:AddSection({ Title = "Open dealership ui", Open = true })
 
 DealerSection:AddDropdown({
     Title    = "Select Dealer",
@@ -202,24 +202,26 @@ DealerSection:AddButton({
     end
 })
 
--- Dropdown buat pilih Dealer
-DealerSection:AddDropdown({
-    Title    = "Select Dealer",
-    Options  = { "Toyota", "Suzuki", "Premium", "Nissan", "Mercedes", "Komersial", "KIA", "Hyundai", "Honda", "Daihatsu", "Chery", "Bandung", "Dealer 77", "Modification", },
-    Default  = "",
+local TeleportSection = ProxTab:AddSection({ Title = "Teleport Only", Open = true })
+
+TeleportSection:AddDropdown({
+    Title    = "Select Location",
+    Options  = { "Toyota", "Suzuki", "Premium", "Nissan", "Mercedes", "Komersial", "KIA", "Hyundai", "Honda", "Daihatsu", "Chery", "Bandung", "Dealer 77", "Modification" },
+    Default  = "Toyota",
     Callback = function(value)
         SelectedDealer = value
     end
 })
 
--- Tombol 1: Cuma Teleport ke Dealer (Ga buka UI)
-DealerSection:AddButton({
-    Title    = "Teleport to Dealer",
+TeleportSection:AddButton({
+    Title    = "Teleport Now",
     Callback = function()
         local target = Dealer_Paths[SelectedDealer]
         if target then
-            lp.Character:GetPivot() -- Memastikan karakter siap
-            lp.Character:PivotTo(target.Parent:GetPivot())
+            local char = lp.Character or lp.CharacterAdded:Wait()
+            -- Cek apakah target itu Model atau Prompt
+            local pos = (target:IsA("ProximityPrompt") and target.Parent:GetPivot()) or target:GetPivot()
+            char:PivotTo(pos)
         end
     end
 })
