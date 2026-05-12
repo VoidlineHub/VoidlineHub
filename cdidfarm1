@@ -29,7 +29,7 @@ local Dealer_Paths = {
     ["Chery"] = workspace.Etc.Dealership.Chery.Prompt,
     ["Bandung"] = workspace.Etc.Dealership.Bandung.Prompt,
     ["Dealer 77"] = workspace.Etc.Dealership["77"].Prompt,
-    ["Modif"] = workspace.Map.Building.Modification
+    ["Modification"] = workspace.Map.Building.Modification
 }
 local NPC_Paths = {
     ["Npc job select"] = workspace.Etc.Job.Selection.Model.Prompt,
