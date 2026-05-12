@@ -160,7 +160,7 @@ local CurrentLabel = StatsSection:AddParagraph({ Title = "Current Money:", Conte
 
 
 local ProxTab = Window:AddTab({ Name = "Open", Icon = "house" })
-local NpcSection = ProxTab:AddSection({ Title = "Npc", Open = true })
+local NpcSection = ProxTab:AddSection({ Title = "Npc", Open = false })
 NpcSection:AddDropdown({
     Title    = "Select npc",
     Options  = { "Npc upgrade slot Npc", "Npc Box Shop","Daily quest npc" },
@@ -180,12 +180,12 @@ NpcSection:AddButton({
     end
 })
 
-local DealerSection = ProxTab:AddSection({ Title = "Dealership", Open = true })
+local DealerSection = ProxTab:AddSection({ Title = "Dealership", Open = false })
 
 DealerSection:AddDropdown({
     Title    = "Select Dealer",
     Options  = { "Toyota", "Suzuki", "Premium", "Nissan", "Mercedes", "Komersial", "KIA", "Hyundai", "Honda", "Daihatsu", "Chery", "Bandung", "Dealer 77" },
-    Default  = "Toyota",
+    Default  = "",
     Callback = function(value)
         SelectedDealer = value
     end
