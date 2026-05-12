@@ -13,6 +13,7 @@ local StartMoney = 0
 local CurrentMoney = 0
 local EarnedMoney = 0
 local NextTeleportIn = 0
+local SavedPos = nil
 local SelectedNPC = ""
 local SelectedDealer = ""
 local Dealer_Paths = {
@@ -202,29 +203,84 @@ DealerSection:AddButton({
     end
 })
 
-local TeleportSection = ProxTab:AddSection({ Title = "Teleport Only", Open = true })
+local TpTab = Window:AddTab({ Name = "Teleport", Icon = "​" })
+local SaveSection = TpTab:AddSection({ Title = "Saved Location", Open = true })
+local LocationStatus = SaveSection:AddParagraph({ Title = "Status:", Content = "No Location Saved" })
 
-TeleportSection:AddDropdown({
-    Title    = "Select Location",
-    Options  = { "Toyota", "Suzuki", "Premium", "Nissan", "Mercedes", "Komersial", "KIA", "Hyundai", "Honda", "Daihatsu", "Chery", "Bandung", "Dealer 77", "Modification" },
-    Default  = "Toyota",
-    Callback = function(value)
-        SelectedDealer = value
+SaveSection:AddButton({
+    Title    = "Get Location",
+    Callback = function()
+        SavedPos = lp.Character:GetPivot()
+        LocationStatus:SetContent("Location Saved Successfully!")
     end
 })
 
-TeleportSection:AddButton({
-    Title    = "Teleport Now",
+-- Tombol Teleport ke Posisi Tersimpan
+SaveSection:AddButton({
+    Title    = "Teleport to Saved Location",
     Callback = function()
-        local target = Dealer_Paths[SelectedDealer]
-        if target then
-            local char = lp.Character or lp.CharacterAdded:Wait()
-            -- Cek apakah target itu Model atau Prompt
-            local pos = (target:IsA("ProximityPrompt") and target.Parent:GetPivot()) or target:GetPivot()
-            char:PivotTo(pos)
+        if SavedPos then
+            lp.Character:PivotTo(SavedPos)
+        else
+            LocationStatus:SetContent("Error: Save a location first!")
         end
     end
 })
+
+-- Tombol Reset
+SaveSection:AddButton({
+    Title    = "Reset Saved Location",
+    Callback = function()
+        SavedPos = nil
+        LocationStatus:SetContent("No Location Saved")
+    end
+})
+
+local NpcOnlyTp = TpTab:AddSection({ Title = "Teleport NPC", Open = false })
+local SelectedNpcTp = ""
+
+NpcOnlyTp:AddDropdown({
+    Title    = "Select NPC",
+    Options  = { "Npc upgrade slot Npc", "Npc Box Shop", "Daily quest npc" },
+    Default  = "",
+    Callback = function(value)
+        SelectedNpcTp = value
+    end
+})
+
+NpcOnlyTp:AddButton({
+    Title    = "Teleport to NPC",
+    Callback = function()
+        local target = NPC_Paths[SelectedNpcTp]
+        if target then
+            lp.Character:PivotTo(target.Parent:GetPivot())
+        end
+    end
+})
+
+local DealerOnlyTp = TpTab:AddSection({ Title = "Teleport Dealership", Open = false })
+local SelectedDealerTp = ""
+
+DealerOnlyTp:AddDropdown({
+    Title    = "Select Dealer",
+    Options  = { "Toyota", "Suzuki", "Premium", "Nissan", "Mercedes", "Komersial", "KIA", "Hyundai", "Honda", "Daihatsu", "Chery", "Bandung", "Dealer 77", "Modification" },
+    Default  = "Toyota",
+    Callback = function(value)
+        SelectedDealerTp = value
+    end
+})
+
+DealerOnlyTp:AddButton({
+    Title    = "Teleport to Dealer",
+    Callback = function()
+        local target = Dealer_Paths[SelectedDealerTp]
+        if target then
+            local pos = (target:IsA("ProximityPrompt") and target.Parent:GetPivot()) or target:GetPivot()
+            lp.Character:PivotTo(pos)
+        end
+    end
+})
+
 
 -- // UPDATE UI STATS (Tiap 2 Detik)
 task.spawn(function()
