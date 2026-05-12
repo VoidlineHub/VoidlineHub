@@ -35,6 +35,13 @@ local CurrentMoney = 0
 local EarnedMoney = 0
 local NextTeleportIn = 0
 local SavedPos = nil
+_G.StartTime = _G.StartTime or os.time()
+_G.CycleCount = _G.CycleCount or 0
+_G.TotalEarning = _G.TotalEarning or 0
+_G.WebhookURL = _G.WebhookURL or ""
+local lastMoney = getCleanMoney()
+local pendingIncome = 0
+local isRunning = false
 
 -- Tambahkan baris ini biar gak error:
 local SelectedBox = "Limited Box"
@@ -90,6 +97,110 @@ local function getMyTruck()
     end
     return nil
 end
+
+
+-- // 2. FUNGSI AUTO-AVATAR
+local function getAvatar()
+    return "https://www.roblox.com/headshot-thumbnail/image?userId=" .. lp.UserId .. "&width=420&height=420&format=png"
+end
+
+-- // 3. FORMAT RUPIAH
+local function formatRP(v)
+    local s = string.format("%.0f", v)
+    local formatted = s:reverse():gsub("(%d%d%d)", "%1."):reverse():gsub("^%.", "")
+    return "RP. " .. formatted
+end
+
+-- // 4. RUNNING TIME
+local function getRunningTime()
+    local diff = os.time() - _G.StartTime
+    local hours = math.floor(diff / 3600)
+    local mins = math.floor((diff % 3600) / 60)
+    local secs = diff % 60
+    return string.format("%02d:%02d:%02d", hours, mins, secs)
+end
+
+-- // 5. FUNGSI WEBHOOK (VOIDLINE EMBED AUTHOR VERSION)
+local function sendWebhook(income, target)
+    if _G.WebhookURL == "" or not _G.WebhookURL:find("discord.com") then return end
+    
+    _G.CycleCount = _G.CycleCount + 1
+    _G.TotalEarning = _G.TotalEarning + income
+    
+    local currentMoney = getCleanMoney() -- Sinkron ke fungsi Truck Farm lu
+    local http_request = request or http_request or (syn and syn.request) or (fluxus and fluxus.request)
+    local HttpService = game:GetService("HttpService")
+
+    local embed = {
+        ["author"] = {
+            ["name"] = "Voidline Webhook",
+            ["icon_url"] = getAvatar()
+        },
+        ["title"] = "Cycle Completed",
+        ["color"] = 0xFFFFFF,
+        ["fields"] = {
+            {["name"] = "Username", ["value"] = lp.Name, ["inline"] = false},
+            {["name"] = "Cycle Income", ["value"] = formatRP(income), ["inline"] = false},
+            {["name"] = "Target", ["value"] = formatRP(target), ["inline"] = false},
+            {["name"] = "Current Money", ["value"] = formatRP(currentMoney) .. " (Est)", ["inline"] = false},
+            {["name"] = "Total Earning", ["value"] = formatRP(_G.TotalEarning) .. " (Est)", ["inline"] = false},
+            {["name"] = "Cycle Count", ["value"] = tostring(_G.CycleCount), ["inline"] = false},
+            {["name"] = "Running Time", ["value"] = getRunningTime(), ["inline"] = false}
+        },
+        ["image"] = {
+            ["url"] = "https://cdn.discordapp.com/attachments/1478884254028140611/1484460670211723304/Gemini_Generated_Image_7og1bq7og1bq7og1.png"
+        },
+        ["footer"] = {
+            ["text"] = "Powered by Voidline | " .. os.date("%m/%d/%Y %I:%M %p")
+        }
+    }
+
+    local payload = HttpService:JSONEncode({
+        ["username"] = "Voidline Reports", 
+        ["embeds"] = {embed}
+    })
+
+    if http_request then
+        pcall(function()
+            http_request({
+                Url = _G.WebhookURL,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = payload
+            })
+        end)
+    end
+end
+
+-- // 6. MONEY MONITOR (DAFTAR PERUBAHAN DUIT)
+-- Menggunakan loop karena Truck Farm lu baca dari GUI Text (bukan Value Object)
+task.spawn(function()
+    while true do
+        local newMoney = getCleanMoney()
+        if newMoney > lastMoney then
+            pendingIncome = pendingIncome + (newMoney - lastMoney)
+            
+            if not isRunning then
+                isRunning = true
+                task.spawn(function()
+                    while isRunning do
+                        task.wait(60) -- Kirim report tiap 60 detik jika ada pemasukan
+                        if pendingIncome > 0 and _G.WebhookURL ~= "" then
+                            sendWebhook(pendingIncome, 0)
+                            pendingIncome = 0
+                        end
+                        -- Auto stop jika autofarm mati
+                        if not _G.Autofarm then
+                            isRunning = false
+                        end
+                    end
+                end)
+            end
+        end
+        lastMoney = newMoney
+        task.wait(2)
+    end
+end)
 
 -- // --- FUNGSI UTAMA FARM ---
 local function runAutofarm()
