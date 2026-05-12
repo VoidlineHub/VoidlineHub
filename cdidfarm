@@ -148,7 +148,7 @@ local ProxTab = Window:AddTab({ Name = "Open", Icon = "house" })
 local NpcSection = ProxTab:AddSection({ Title = "Npc", Open = true })
 NpcSection:AddDropdown({
     Title    = "Select npc",
-    Options  = { "Npc job select", "Npc upgrade slot Npc", "Npc Box Shop","Daily quest npc" },
+    Options  = { "Npc upgrade slot Npc", "Npc Box Shop","Daily quest npc" },
     Default  = "Npc job select",
     Callback = function(value)
         SelectedNPC = value
