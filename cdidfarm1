@@ -8,6 +8,7 @@ local lp = Players.LocalPlayer
 
 -- // Config & Stats Variables
 _G.Autofarm = false
+local MoneyPath = lp.PlayerGui:WaitForChild("Main"):WaitForChild("Container"):WaitForChild("Hub"):WaitForChild("CashFrame"):WaitForChild("Frame"):WaitForChild("TextLabel")
 local StartMoney = 0
 local CurrentMoney = 0
 local EarnedMoney = 0
