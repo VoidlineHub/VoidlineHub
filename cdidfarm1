@@ -391,6 +391,26 @@ GachaSection:AddButton({
     end
 })
 
+local WebhookTab = Window:AddTab({ Name = "Webhook ", Icon = "house" })
+local WebhookSection = WebhookTab:AddSection({ Title = "Webhook farm ", Open = true })
+WebhookSection:AddInput({
+    Title    = "webhook",
+    Content  = "Enter link webhook",
+    Default  = "",
+    Callback = function(value)
+        _G.WebhookURL = value
+    end
+})
+
+WebhookSection:AddToggle({
+    Title    = "enable webhook",
+    Content  = "webhook ngirim setiap 1 menit",
+    Default  = false,
+    Callback = function(value)
+        _G.AutoWebhook = value
+    end
+})
+
 -- TAB TELEPORT
 local TpTab = Window:AddTab({ Name = "Teleport", Icon = "lucide:map-pin" })
 
