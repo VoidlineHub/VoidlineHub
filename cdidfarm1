@@ -184,7 +184,7 @@ FarmSection:AddToggle({
 })
 
 
-local StatsTab = Window:AddTab({ Name = "Stats", Icon = "lucide:bar-chart-2" })
+local StatsTab = Window:AddTab({ Name = "Stats", Icon = "lucide:trending-up" })
 local StatsSection = StatsTab:AddSection({ Title = "Statistics", Open = true })
 local DelayLabel = StatsSection:AddParagraph({ Title = "Next Teleport In:", Content = "0 Seconds" })
 local EarnedLabel = StatsSection:AddParagraph({ Title = "Total Earned:", Content = "RP. 0" })
