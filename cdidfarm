@@ -128,11 +128,11 @@ FarmSection:AddToggle({
     end
 })
 
-local StatsSection = FarmTab:AddSection({ Title = "Statistics", Open = true })
-local DelayLabel = StatsSection:AddParagraph({ Title = "Next Teleport In:", Content = "0 Seconds" })
+local StatsTab = Window:AddTab({ Name = "Stats", Icon = "house" })
+local StatsSection = StatsTab:AddSection({ Title = "Statistics", Open = true })
 local EarnedLabel = StatsSection:AddParagraph({ Title = "Total Earned:", Content = "RP. 0" })
 local CurrentLabel = StatsSection:AddParagraph({ Title = "Current Money:", Content = "RP. 0" })
-
+local DelayLabel = StatsSection:AddParagraph({ Title = "Next Teleport In:", Content = "0 Seconds" })
 
 -- // UPDATE UI STATS (Tiap 2 Detik)
 task.spawn(function()
