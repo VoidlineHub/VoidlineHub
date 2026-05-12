@@ -6,108 +6,106 @@ local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local lp = Players.LocalPlayer
 
--- // Config
+-- // Config & Stats Variables
 _G.Autofarm = false
+local MoneyPath = lp.PlayerGui:WaitForChild("Main"):WaitForChild("Container"):WaitForChild("Hub"):WaitForChild("CashFrame"):WaitForChild("Frame"):WaitForChild("TextLabel")
+local StartMoney = 0
+local CurrentMoney = 0
+local EarnedMoney = 0
+local NextTeleportIn = 0
 
+-- // Fungsi Format Angka
+local function formatNominal(n)
+    local left, num, right = string.match(tostring(n), '^([^%d]*%d)(%d*)(.-)$')
+    if not left then return tostring(n) end
+    return left .. (num:reverse():gsub('(%d%d%d)', '%1,'):reverse()) .. right
+end
 
--- // Fungsi Cari Truck Milik Player
+-- // Fungsi Konversi Text ke Angka
+local function getCleanMoney()
+    local rawText = MoneyPath.Text
+    local cleanText = rawText:gsub("RP.", ""):gsub(",", ""):gsub("%s+", "")
+    return tonumber(cleanText) or 0
+end
+
+-- // Fungsi Cari Truck
 local function getMyTruck()
     for _, v in pairs(Workspace:WaitForChild("Vehicles"):GetChildren()) do
         if v:IsA("Model") and v:FindFirstChild("DriveSeat") then
-            -- Kamu bisa tambah cek nama spesifik di sini jika perlu
             return v
         end
     end
     return nil
 end
 
--- // Fungsi Pencet Prompt
-local function firePrompt(obj)
-    if not obj then return end
-    local prompt = obj:FindFirstChildOfClass("ProximityPrompt") or obj:WaitForChild("Prompt", 5)
-    if prompt then
-        fireproximityprompt(prompt)
-    end
-end
-
--- // --- PROSES AWAL (CUMA 1 KALI) ---
-local function startJobOnce()
-    local char = lp.Character or lp.CharacterAdded:Wait()
-    local hrp = char:WaitForChild("HumanoidRootPart")
-
-    -- 1. Ambil Job
-    local jobRemote = ReplicatedStorage:WaitForChild("NetworkContainer"):WaitForChild("RemoteEvents"):WaitForChild("Job")
-    jobRemote:FireServer("Truck")
-    task.wait(2)
-
-    -- 2. Ke Starter
-    local starter = Workspace:WaitForChild("Etc"):WaitForChild("Job"):WaitForChild("Truck"):WaitForChild("Starter")
-    hrp.CFrame = starter:GetPivot()
-    task.wait(1)
-    firePrompt(starter)
-
-    task.wait(2)
-
-    -- 3. Ke Spawner
-    local spawner = Workspace:WaitForChild("Etc"):WaitForChild("Job"):WaitForChild("Truck"):WaitForChild("Spawner")
-    local spawnerPart = spawner:FindFirstChild("Part") or spawner
-    hrp.CFrame = (spawnerPart:IsA("Model") and spawnerPart:GetPivot()) or spawnerPart.CFrame
-    task.wait(1)
-    firePrompt(spawnerPart)
-
-    -- 4. Naik ke Mobil
-    task.wait(3)
-    local truck = getMyTruck()
-    if truck and truck:FindFirstChild("DriveSeat") then
-        hrp.CFrame = truck.DriveSeat.CFrame
-        task.wait(0.5)
-        local dsPrompt = truck.DriveSeat:FindFirstChild("PromptDriveSeat")
-        if dsPrompt then fireproximityprompt(dsPrompt) end
-        return truck
-    end
-    return nil
-end
-
--- // --- JALANKAN PROSES AWAL ---
-local myTruck = startJobOnce()
-
--- // --- LOOP TELEPORT TRUCK (INI YANG LOOP TERUS) ---
-if myTruck then
-    print("Memulai Loop Teleport Truck...")
+-- // --- FUNGSI UTAMA FARM ---
+local function runAutofarm()
+    StartMoney = getCleanMoney()
     
     while _G.Autofarm do
-        -- Cari target Waypoint
-        local waypoint = Workspace:WaitForChild("Etc"):WaitForChild("Waypoint"):WaitForChild("Waypoint")
-        local targetCF = (waypoint:IsA("Model") and waypoint:GetPivot()) or waypoint.CFrame
-        
-        -- Teleport Truck-nya
-        myTruck:PivotTo(targetCF)
-        print("Truck diteleport ke Waypoint!")
+        local char = lp.Character or lp.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart")
 
-        -- Delay Acak 60 - 70 detik
-        local delayTime = math.random(60, 70)
-        print("Waiting for: " .. tostring(delayTime) .. " seconds.")
-        task.wait(delayTime)
+        -- 1. Ambil Job
+        ReplicatedStorage:WaitForChild("NetworkContainer"):WaitForChild("RemoteEvents"):WaitForChild("Job"):FireServer("Truck")
+        task.wait(2)
+
+        -- 2. Starter
+        local starter = Workspace:WaitForChild("Etc"):WaitForChild("Job"):WaitForChild("Truck"):WaitForChild("Starter")
+        hrp.CFrame = starter:GetPivot()
+        task.wait(1.5)
+        fireproximityprompt(starter:WaitForChild("Prompt"))
+        task.wait(2)
+
+        -- 3. Spawner
+        local spawnerPart = Workspace:WaitForChild("Etc"):WaitForChild("Job"):WaitForChild("Truck"):WaitForChild("Spawner"):WaitForChild("Part")
+        hrp.CFrame = spawnerPart.CFrame
+        task.wait(1.5)
+        fireproximityprompt(spawnerPart:WaitForChild("Prompt"))
+
+        -- 4. Masuk Truck & Loop Teleport
+        task.wait(4)
+        local myTruck = getMyTruck()
         
-        -- Tambahan: Re-check truck kalau tiba-tiba ilang/respawn
-        if not myTruck.Parent then
-            myTruck = getMyTruck()
-            if not myTruck then 
-                print("Truck ilang, nyoba ambil ulang...")
-                myTruck = startJobOnce() 
+        if myTruck then
+            hrp.CFrame = myTruck.DriveSeat.CFrame
+            task.wait(1)
+            fireproximityprompt(myTruck.DriveSeat:WaitForChild("PromptDriveSeat"))
+            
+            while _G.Autofarm do
+                if not myTruck or not myTruck.Parent then break end
+
+                local waypoint = Workspace:WaitForChild("Etc"):WaitForChild("Waypoint"):WaitForChild("Waypoint")
+                local targetCF = (waypoint:IsA("Model") and waypoint:GetPivot()) or waypoint.CFrame
+                
+                -- Teleport Dest
+                myTruck:PivotTo(targetCF)
+                if myTruck.PrimaryPart then
+                    myTruck.PrimaryPart.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                end
+                
+                CurrentMoney = getCleanMoney()
+                EarnedMoney = CurrentMoney - StartMoney
+
+                -- Countdown Delay
+                NextTeleportIn = math.random(60, 70)
+                repeat
+                    task.wait(1)
+                    NextTeleportIn = NextTeleportIn - 1
+                until NextTeleportIn <= 0 or not _G.Autofarm
             end
         end
+        if not _G.Autofarm then break end
+        task.wait(1)
     end
-else
-    print("Gagal dapetin truck di awal. Coba eksekusi ulang.")
 end
 
 -- [[ GUI VELARIS ]] --
 local Window = VelarisUI:Window({
-    Title     = "Car driving indonesia",
+    Title     = "Car Driving Indonesia",
     Footer    = "By Voidline",
     Color     = "Default",            
-    Version   = "1.0",
+    Version   = "1.6",
     Image     = "101833678008843",    
     Size      = UDim2.fromOffset(640, 400),
     ShowUser  = true,                  
@@ -117,12 +115,45 @@ local Window = VelarisUI:Window({
 
 local FarmTab = Window:AddTab({ Name = "Autofarm", Icon = "house" })
 local FarmSection = FarmTab:AddSection({ Title = "Autofarm Truck", Open = true })
+
 FarmSection:AddToggle({
     Title    = "On Autofarm Truck",
-    Content = "farm nya dah bagus",
+    Content  = "Fixed Timer & Teleport",
     Default  = false,
     Callback = function(value)
-    _G.Autofarm = value
+        _G.Autofarm = value
+        if _G.Autofarm then
+            task.spawn(runAutofarm)
+        end
     end
 })
 
+
+local StatsTab = Window:AddTab({ Name = "Stats", Icon = "house" })
+local StatsSection = StatsTab:AddSection({ Title = "Statistics", Open = true })
+local DelayLabel = StatsSection:AddParagraph({ Title = "Next Teleport In:", Content = "0 Seconds" })
+local EarnedLabel = StatsSection:AddParagraph({ Title = "Total Earned:", Content = "RP. 0" })
+local CurrentLabel = StatsSection:AddParagraph({ Title = "Current Money:", Content = "RP. 0" })
+
+-- // UPDATE UI TIMER (Tiap 1 Detik biar Mulus 70, 69, 68...)
+task.spawn(function()
+    while true do
+        if _G.Autofarm then
+            DelayLabel:SetContent(tostring(NextTeleportIn) .. " Seconds")
+        end
+        task.wait(1)
+    end
+end)
+
+-- // UPDATE UI STATS (Tiap 2 Detik)
+task.spawn(function()
+    while true do
+        if _G.Autofarm then
+            local current = getCleanMoney()
+            EarnedMoney = current - StartMoney
+            EarnedLabel:SetContent("RP. " .. formatNominal(EarnedMoney))
+            CurrentLabel:SetContent("RP. " .. formatNominal(current))
+        end
+        task.wait(2)
+    end
+end)
