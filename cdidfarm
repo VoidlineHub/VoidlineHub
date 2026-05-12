@@ -14,6 +14,22 @@ local CurrentMoney = 0
 local EarnedMoney = 0
 local NextTeleportIn = 0
 local SelectedNPC = ""
+local SelectedDealer = ""
+local Dealer_Paths = {
+    ["Toyota"] = workspace.Etc.Dealership.Toyota.Prompt,
+    ["Suzuki"] = workspace.Etc.Dealership.Suzuki.Prompt,
+    ["Premium"] = workspace.Etc.Dealership.Premium.Prompt,
+    ["Nissan"] = workspace.Etc.Dealership.Nissan.Prompt,
+    ["Mercedes"] = workspace.Etc.Dealership.MercedesBenz.Prompt,
+    ["Komersial"] = workspace.Etc.Dealership.Komersial.Prompt,
+    ["KIA"] = workspace.Etc.Dealership.KIA.Prompt,
+    ["Hyundai"] = workspace.Etc.Dealership.Hyundai.Prompt,
+    ["Honda"] = workspace.Etc.Dealership.Honda.Prompt,
+    ["Daihatsu"] = workspace.Etc.Dealership.Daihatsu.Prompt,
+    ["Chery"] = workspace.Etc.Dealership.Chery.Prompt,
+    ["Bandung"] = workspace.Etc.Dealership.Bandung.Prompt,
+    ["Dealer 77"] = workspace.Etc.Dealership["77"].Prompt
+}
 local NPC_Paths = {
     ["Npc job select"] = workspace.Etc.Job.Selection.Model.Prompt,
     ["Npc upgrade slot Npc"] = workspace.Etc.Upgrade.Upgrade.Prompt,
@@ -159,6 +175,27 @@ NpcSection:AddButton({
     Title    = "Open npc",
     Callback = function()
         local target = NPC_Paths[SelectedNPC]
+        if target then
+            fireproximityprompt(target)
+        end
+    end
+})
+
+local DealerSection = ProxTab:AddSection({ Title = "Dealership", Open = true })
+
+DealerSection:AddDropdown({
+    Title    = "Select Dealer",
+    Options  = { "Toyota", "Suzuki", "Premium", "Nissan", "Mercedes", "Komersial", "KIA", "Hyundai", "Honda", "Daihatsu", "Chery", "Bandung", "Dealer 77" },
+    Default  = "Toyota",
+    Callback = function(value)
+        SelectedDealer = value
+    end
+})
+
+DealerSection:AddButton({
+    Title    = "Open Dealer UI",
+    Callback = function()
+        local target = Dealer_Paths[SelectedDealer]
         if target then
             fireproximityprompt(target)
         end
