@@ -27,6 +27,7 @@ local Players = game:GetService("Players")
 local lp = Players.LocalPlayer
 
 -- // Config & Stats Variables
+-- // Tetep di baris yang sama kayak kemauan lu
 _G.Autofarm = false
 _G.AutoGacha = false
 _G.AutoWebhook = false
@@ -41,9 +42,18 @@ _G.StartTime = _G.StartTime or os.time()
 _G.CycleCount = _G.CycleCount or 0
 _G.TotalEarning = _G.TotalEarning or 0
 _G.WebhookURL = _G.WebhookURL or ""
-local lastMoney = getCleanMoney()
+
+-- JANGAN LANGSUNG PANGGIL FUNGSINYA DI SINI
+local lastMoney = 0 
 local pendingIncome = 0
 local isRunning = false
+
+-- // NAH, TAPI DI BAWAH (Setelah fungsi getCleanMoney dibuat), LU ISI NILAINYA
+task.spawn(function()
+    task.wait(1) -- Tunggu bentar biar game load
+    lastMoney = getCleanMoney()
+end)
+
 
 -- Tambahkan baris ini biar gak error:
 local SelectedBox = "Limited Box"
