@@ -29,6 +29,8 @@ local lp = Players.LocalPlayer
 -- // Config & Stats Variables
 _G.Autofarm = false
 _G.AutoGacha = false
+_G.AutoWebhook = false
+_G.WebhookURL = "" 
 local MoneyPath = lp.PlayerGui:WaitForChild("Main"):WaitForChild("Container"):WaitForChild("Hub"):WaitForChild("CashFrame"):WaitForChild("Frame"):WaitForChild("TextLabel")
 local StartMoney = 0
 local CurrentMoney = 0
@@ -172,25 +174,25 @@ local function sendWebhook(income, target)
     end
 end
 
--- // 6. MONEY MONITOR (DAFTAR PERUBAHAN DUIT)
--- Menggunakan loop karena Truck Farm lu baca dari GUI Text (bukan Value Object)
+-- // 6. MONEY MONITOR (SINKRON KE TOGGLE)
 task.spawn(function()
     while true do
         local newMoney = getCleanMoney()
-        if newMoney > lastMoney then
+        -- Cek apakah duit nambah DAN fitur Webhook dinyalain
+        if _G.AutoWebhook and newMoney > lastMoney then
             pendingIncome = pendingIncome + (newMoney - lastMoney)
             
             if not isRunning then
                 isRunning = true
                 task.spawn(function()
-                    while isRunning do
-                        task.wait(60) -- Kirim report tiap 60 detik jika ada pemasukan
+                    while isRunning and _G.AutoWebhook do
+                        task.wait(60) 
                         if pendingIncome > 0 and _G.WebhookURL ~= "" then
                             sendWebhook(pendingIncome, 0)
                             pendingIncome = 0
                         end
-                        -- Auto stop jika autofarm mati
-                        if not _G.Autofarm then
+                        -- Stop jika fitur dimatikan atau farm berhenti
+                        if not _G.AutoWebhook or not _G.Autofarm then
                             isRunning = false
                         end
                     end
@@ -201,6 +203,8 @@ task.spawn(function()
         task.wait(2)
     end
 end)
+
+
 
 -- // --- FUNGSI UTAMA FARM ---
 local function runAutofarm()
