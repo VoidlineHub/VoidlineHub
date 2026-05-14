@@ -336,7 +336,7 @@ MainTab:CreateToggle({
                     task.wait(2)
                     
                     SetStatus("get job...")
-                    Remotes:WaitForChild("StartBusJob"):InvokeServer("Baranangsiang_ke_Cirebon1")
+                    Remotes:WaitForChild("StartBusJob"):InvokeServer("Baranangsiang_ke_Cirebon2")
                     task.wait(1)
                     
                     hum.Jump = true
