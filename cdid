@@ -50,7 +50,7 @@ local isRunning = false
 
 -- // NAH, TAPI DI BAWAH (Setelah fungsi getCleanMoney dibuat), LU ISI NILAINYA
 task.spawn(function()
-    task.wait(1) -- Tunggu bentar biar game load
+    task.wait(3) -- Tunggu bentar biar game load
     lastMoney = getCleanMoney()
 end)
 
