@@ -390,7 +390,7 @@ MainTab:CreateToggle({
                     SetFreeze(false)
                     
                     -- Timer 2: Total 2 Menit (120s - 45s = 75s)
-                    for i = 85, 1, -1 do
+                    for i = 70, 1, -1 do
                         if not _G.AutoFull then break end
                         SetStatus("Delay TP: " .. i .. "s")
                         task.wait(1)
