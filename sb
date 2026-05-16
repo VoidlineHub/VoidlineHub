@@ -1,0 +1,241 @@
+-- Toggle State Autofarm
+_G.Autofarm = false
+local amountToBuy = 0
+
+-- Services & Player References
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+
+-- Store Purchase Remote
+local StorePurchase = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("StorePurchase")
+
+-- Workspace References
+local CookingPot = workspace.Map.Locations.Apartments["Home 4"]["Cooking Pot"]
+local Prompt = CookingPot.Attachment.ProximityPrompt
+local TimerLabel = CookingPot.Timer.TextLabel
+
+-- Function Notifikasi Roblox Bawaan
+local function sendNotification(title, text)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title;
+            Text = text;
+            Duration = 3;
+        })
+    end)
+end
+
+-- Function untuk meriset/lepas semua item dari tangan kembali ke Backpack
+local function unequipAllItems()
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    local character = LocalPlayer.Character
+    if backpack and character then
+        for _, v in pairs(character:GetChildren()) do
+            if v:IsA("Tool") then
+                v.Parent = backpack
+            end
+        end
+    end
+    task.wait(0.2)
+end
+
+-- Function Equip Item
+local function equipItem(itemName)
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    local character = LocalPlayer.Character
+    
+    if backpack and character then
+        local item = backpack:FindFirstChild(itemName)
+        if item then
+            -- Un-equip item yang sedang dipegang dulu agar tidak bentrok
+            for _, v in pairs(character:GetChildren()) do
+                if v:IsA("Tool") then
+                    v.Parent = backpack
+                end
+            end
+            -- Equip item yang diinginkan
+            item.Parent = character
+            task.wait(0.4) -- Delay sedikit dinaikkan agar lebih stabil saat replikasi
+            return true
+        elseif character:FindFirstChild(itemName) then
+            return true
+        end
+    end
+    return false
+end
+
+-- Function Wait Timer
+local function waitTimerToZero()
+    repeat
+        task.wait(0.1)
+    until not _G.Autofarm or TimerLabel.Text == "0" or TimerLabel.Text == "0s" or string.match(TimerLabel.Text, "^0")
+end
+
+-- Main Loop Autofarm
+task.spawn(function()
+    while true do
+        if _G.Autofarm then
+            -- RESET HAND STATE: Lepas Empty Bag atau item lain bawaan sisa loop sebelumnya
+            unequipAllItems()
+
+            -- STEP 1: Taruh Water
+            if _G.Autofarm then
+                local hasWater = equipItem("Water")
+                if hasWater then
+                    fireproximityprompt(Prompt)
+                    task.wait(0.5)
+                else
+                    sendNotification("Autofarm Info", "Miskin lu gada Water!")
+                    _G.Autofarm = false
+                end
+            end
+
+            -- STEP 2: Tunggu sampai timer jadi 0
+            if _G.Autofarm then
+                waitTimerToZero()
+                task.wait(0.5)
+            end
+
+            -- STEP 3: Taruh Sugar Block Bag DULUAN
+            if _G.Autofarm then
+                local hasSugar = equipItem("Sugar Block Bag")
+                if hasSugar then
+                    fireproximityprompt(Prompt)
+                    task.wait(1) -- Jeda aman setelah menaruh sugar
+                else
+                    sendNotification("Autofarm Info", "Miskin lu gada Sugar Block Bag!")
+                    _G.Autofarm = false
+                end
+            end
+
+            -- STEP 4: Taruh Gelatin SETELAH Sugar
+            if _G.Autofarm then
+                local hasGelatin = equipItem("Gelatin")
+                if hasGelatin then
+                    fireproximityprompt(Prompt)
+                    task.wait(0.5)
+                else
+                    sendNotification("Autofarm Info", "Miskin lu gada Gelatin!")
+                    _G.Autofarm = false
+                end
+            end
+
+            -- STEP 5: Tunggu timer jadi 0 lagi (Proses Memasak Selesai)
+            if _G.Autofarm then
+                waitTimerToZero()
+                task.wait(0.5)
+            end
+
+            -- STEP 6: Ambil pakai Empty Bag
+            if _G.Autofarm then
+                local hasEmptyBag = equipItem("Empty Bag")
+                if hasEmptyBag then
+                    fireproximityprompt(Prompt)
+                    task.wait(0.5)
+                else
+                    sendNotification("Autofarm Warning", "Empty Bag abis / tidak ditemukan!")
+                    _G.Autofarm = false
+                end
+            end
+            
+            -- Lepas kembali Empty Bag di akhir siklus sebelum masuk loop baru
+            unequipAllItems()
+        end
+
+        task.wait(1)
+    end
+end)
+
+-- Function untuk eksekusi pembelian berurutan dengan delay 2 detik
+local function buyIngredients(count)
+    if count <= 0 then 
+        sendNotification("Store Info", "Masukkan jumlah item yang valid dulu!")
+        return 
+    end
+    
+    sendNotification("Store Info", "Memulai pembelian barang... Diam di tempat store!")
+    
+    -- 1. Beli Gelatin
+    for i = 1, count do
+        StorePurchase:FireServer("Gelatin")
+        task.wait(2)
+    end
+    sendNotification("Store Info", "Gelatin selesai dibeli!")
+    
+    -- 2. Beli Water
+    for i = 1, count do
+        StorePurchase:FireServer("Water")
+        task.wait(2)
+    end
+    sendNotification("Store Info", "Water selesai dibeli!")
+    
+    -- 3. Beli Sugar Block Bag (Sudah fix menggunakan 1 spasi)
+    for i = 1, count do
+        StorePurchase:FireServer("Sugar Block Bag")
+        task.wait(2)
+    end
+    sendNotification("Store Info", "Semua bahan berhasil dibeli rata!")
+end
+
+-- ==========================================
+-- RAYFIELD UI SETUP
+-- ==========================================
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "South Bronx - Autofarm Hub",
+   LoadingTitle = "Loading Script...",
+   LoadingSubtitle = "by VoidlineHub",
+   ConfigurationSaving = {
+      Enabled = false
+   },
+   KeySystem = false
+})
+
+local MainTab = Window:CreateTab("Main Farm", 4483362458)
+
+-- Toggle untuk menjalankan / mematikan Autofarm
+local Toggle = MainTab:CreateToggle({
+   Name = "Enable Autofarm",
+   CurrentValue = false,
+   Flag = "AutofarmToggle",
+   Callback = function(Value)
+      _G.Autofarm = Value
+      if Value then
+          sendNotification("Autofarm", "Autofarm Berjalan!")
+      else
+          sendNotification("Autofarm", "Autofarm Dimatikan!")
+          unequipAllItems() -- Otomatis lepas item dari tangan saat dimatikan manual lewat UI
+      end
+   end,
+})
+
+local StoreTab = Window:CreateTab("Store Buy", 4483362458)
+
+-- Input Jumlah Bahan (1 input untuk 3 bahan)
+local Input = StoreTab:CreateInput({
+   Name = "Amount to Buy",
+   PlaceholderText = "Masukkan jumlah (Misal: 15)",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num then
+          amountToBuy = num
+      else
+          amountToBuy = 0
+      end
+   end,
+})
+
+-- Button untuk memicu loop beli massal aman (delay 2 detik)
+local Button = StoreTab:CreateButton({
+   Name = "Buy All Ingredients",
+   Callback = function()
+      task.spawn(function()
+          buyIngredients(amountToBuy)
+      end)
+   end,
+})
+
