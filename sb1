@@ -1,0 +1,209 @@
+-- Toggle State Autofarm
+_G.Autofarm = false
+local amountToBuy = 0
+
+-- Services & Player References
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+
+-- Store Purchase Remote
+local StorePurchase = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("StorePurchase")
+
+-- Workspace References
+local CookingPot = workspace.Map.Locations.Apartments["Home 4"]["Cooking Pot"]
+local Prompt = CookingPot.Attachment.ProximityPrompt
+local TimerLabel = CookingPot.Timer.TextLabel
+
+-- Function Notifikasi Roblox Bawaan
+local function sendNotification(title, text)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title;
+            Text = text;
+            Duration = 3;
+        })
+    end)
+end
+
+-- Function Sederhana untuk Equip Item langsung ke Character
+local function equipItem(itemName)
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    local character = LocalPlayer.Character
+    
+    if character and character:FindFirstChild(itemName) then
+        return true
+    end
+    
+    if backpack then
+        local item = backpack:FindFirstChild(itemName)
+        if item then
+            item.Parent = character
+            task.wait(0.4)
+            return true
+        end
+    end
+    return false
+end
+
+-- Function Wait Timer sampai teksnya menunjukkan angka 0
+local function waitTimerToZero()
+    repeat
+        task.wait(0.1)
+    until not _G.Autofarm or TimerLabel.Text == "0" or TimerLabel.Text == "0s" or string.match(TimerLabel.Text, "^0")
+end
+
+-- Main Loop Autofarm Murni Siklus Sempurna
+task.spawn(function()
+    while true do
+        if _G.Autofarm then
+            -- STEP 1: Pertama pegang Water dan jalankan prompt
+            local hasWater = equipItem("Water")
+            if hasWater then
+                fireproximityprompt(Prompt)
+                -- AKALIN ANTI-CHEAT VISUAL TIMER 20: Delay 4 detik setelah taruh water
+                task.wait(4)
+            else
+                sendNotification("Autofarm Info", "Water tidak ditemukan!")
+                _G.Autofarm = false
+            end
+        end
+
+        -- STEP 2: Setelah nunggu delay 4 detik, baru pantau timer 20 sampai bener-bener jadi 0
+        if _G.Autofarm then
+            waitTimerToZero()
+            task.wait(0.5)
+        end
+
+        -- STEP 3: Setelah timer 20 jadi 0, BARU taruh Sugar Block Bag
+        if _G.Autofarm then
+            local hasSugar = equipItem("Sugar Block Bag")
+            if hasSugar then
+                fireproximityprompt(Prompt)
+                task.wait(3) -- Jeda 3 detik sebelum masuk ke item berikutnya sesuai instruksi lu
+            else
+                sendNotification("Autofarm Info", "Sugar Block Bag tidak ditemukan!")
+                _G.Autofarm = false
+            end
+        end
+
+        -- STEP 4: Setelah delay 3 detik, BARU taruh Gelatin
+        if _G.Autofarm then
+            local hasGelatin = equipItem("Gelatin")
+            if hasGelatin then
+                fireproximityprompt(Prompt)
+                -- AKALIN ANTI-CHEAT VISUAL TIMER 45: Delay 4 detik setelah taruh gelatin
+                -- Biar gak terkecoh angka 0 bawaan sebelum server ganti teksnya ke 45
+                task.wait(4)
+            else
+                sendNotification("Autofarm Info", "Gelatin tidak ditemukan!")
+                _G.Autofarm = false
+            end
+        end
+
+        -- STEP 5: Setelah nunggu delay 4 detik, baru pantau timer masak 45 sampai habis jadi 0
+        if _G.Autofarm then
+            waitTimerToZero()
+            task.wait(0.5)
+        end
+
+        -- STEP 6: Begitu timer 45 habis jadi 0, pegang Empty Bag buat ambil hasil masakannya
+        if _G.Autofarm then
+            local hasEmptyBag = equipItem("Empty Bag")
+            if hasEmptyBag then
+                fireproximityprompt(Prompt)
+                task.wait(1.5) -- Kasih jeda sedikit sebelum siklusnya keulang lagi dari awal (Water)
+            else
+                sendNotification("Autofarm Info", "Empty Bag tidak ditemukan!")
+                _G.Autofarm = false
+            end
+        end
+
+        -- Otomatis looping balik lagi ke STEP 1 selama _G.Autofarm = true
+        task.wait(0.5)
+    end
+end)
+
+-- Function Pembelian di Store (Tetap dipisah aman dengan delay 2 detik)
+local function buyIngredients(count)
+    if count <= 0 then 
+        sendNotification("Store Info", "Masukkan jumlah item yang valid dulu!")
+        return 
+    end
+    
+    sendNotification("Store Info", "Memulai pembelian barang... Diam di tempat store!")
+    
+    for i = 1, count do
+        StorePurchase:FireServer("Gelatin")
+        task.wait(2)
+    end
+    
+    for i = 1, count do
+        StorePurchase:FireServer("Water")
+        task.wait(2)
+    end
+    
+    for i = 1, count do
+        StorePurchase:FireServer("Sugar Block Bag")
+        task.wait(2)
+    end
+    sendNotification("Store Info", "Semua bahan berhasil dibeli rata!")
+end
+
+-- ==========================================
+-- RAYFIELD UI SETUP
+-- ==========================================
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "South Bronx - Autofarm Hub",
+   LoadingTitle = "Loading Script...",
+   LoadingSubtitle = "by VoidlineHub",
+   ConfigurationSaving = {
+      Enabled = false
+   },
+   KeySystem = false
+ })
+
+local MainTab = Window:CreateTab("Main Farm", 4483362458)
+
+local Toggle = MainTab:CreateToggle({
+   Name = "Enable Autofarm",
+   CurrentValue = false,
+   Flag = "AutofarmToggle",
+   Callback = function(Value)
+      _G.Autofarm = Value
+      if Value then
+          sendNotification("Autofarm", "Autofarm Berjalan!")
+      else
+          sendNotification("Autofarm", "Autofarm Dimatikan!")
+      end
+   end,
+})
+
+local StoreTab = Window:CreateTab("Store Buy", 4483362458)
+
+local Input = StoreTab:CreateInput({
+   Name = "Amount to Buy",
+   PlaceholderText = "Masukkan jumlah (Misal: 15)",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num then
+          amountToBuy = num
+      else
+          amountToBuy = 0
+      end
+   end,
+})
+
+local Button = StoreTab:CreateButton({
+   Name = "Buy All Ingredients",
+   Callback = function()
+      task.spawn(function()
+          buyIngredients(amountToBuy)
+      end)
+   end,
+})
+
