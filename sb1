@@ -12,7 +12,7 @@ local StarterGui = game:GetService("StarterGui")
 local StorePurchase = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("StorePurchase")
 
 -- Workspace References
-local CookingPot = workspace.Map.Houses.BH4.Interior["Cooking Pot"]
+local CookingPot = workspace.Map.Houses.WH1.Interior["Cooking Pot"]
 local Prompt = CookingPot.Attachment.ProximityPrompt
 local TimerLabel = CookingPot.Timer.TextLabel
 
@@ -157,7 +157,7 @@ end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "South Bronx - Autofarm Hub",
+   Name = "South Bronx - voidlinehub",
    LoadingTitle = "Loading Script...",
    LoadingSubtitle = "by VoidlineHub",
    ConfigurationSaving = {
