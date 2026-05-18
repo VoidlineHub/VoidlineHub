@@ -194,17 +194,17 @@ local function buyIngredients(count)
     
     for i = 1, count do
         StorePurchase:FireServer("Gelatin")
-        task.wait(2)
+        task.wait(0.9)
     end
     
     for i = 1, count do
         StorePurchase:FireServer("Water")
-        task.wait(2)
+        task.wait(0.9)
     end
     
     for i = 1, count do
         StorePurchase:FireServer("Sugar Block Bag")
-        task.wait(2)
+        task.wait(0.9)
     end
     sendNotification("Store Info", "Semua bahan berhasil dibeli rata!")
 end
