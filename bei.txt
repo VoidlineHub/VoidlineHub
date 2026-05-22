@@ -1,3 +1,14 @@
+local RunService = game:GetService("RunService")
+task.spawn(function()
+    while task.wait(0.5) do
+        if _G.blackscreen then
+            RunService:Set3DRenderingEnabled(false)
+        else
+            RunService:Set3DRenderingEnabled(true)
+        end
+    end
+end)
+
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
@@ -36,6 +47,7 @@ local HttpService = game:GetService("HttpService")
 _G.AutoFull = false
 _G.AntiAFK = false
 _G.AutoRejoin = false
+_G.blackscreen = false
 _G.HideChar = false
 _G.SelectedBus = "" 
 _G.WebhookURL = ""
@@ -301,8 +313,10 @@ MainTab:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         _G.AutoFull = Value
+        _G.blackscreen = Value
         
         if not Value then 
+           _G.blackscreen = false
             lastTarget = nil 
             jobStarted = false
             SetFreeze(false)
