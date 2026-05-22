@@ -54,15 +54,27 @@ local SelectedAction = "Dealership"
 local SelectedTP = "Dealership"
 local isRunning = false
 local busOptions = {}
+local BlackScreen = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
 
-local RunService = game:GetService("RunService")
+BlackScreen.Name = "VoidlineBlackout"
+BlackScreen.Parent = game:GetService("CoreGui")
+BlackScreen.DisplayOrder = -1 -- Menunya aman di depan, in-game ketutup hitam
+BlackScreen.Enabled = false 
 
+Frame.Parent = BlackScreen
+Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Frame.Size = UDim2.new(1.5, 0, 1.5, 0)
+Frame.Position = UDim2.new(-0.25, 0, -0.25, 0)
+Frame.BorderSizePixel = 0
+
+-- Fungsi buat ngetoggle GUI hitamnya berdasarkan variabel _G.blackscreen
 task.spawn(function()
     while task.wait(0.5) do
         if _G.blackscreen then
-            RunService:Set3DRenderingEnabled(false)
+            BlackScreen.Enabled = true
         else
-            RunService:Set3DRenderingEnabled(true)
+            BlackScreen.Enabled = false
         end
     end
 end)
