@@ -1,13 +1,3 @@
-local RunService = game:GetService("RunService")
-task.spawn(function()
-    while task.wait(0.5) do
-        if _G.blackscreen then
-            RunService:Set3DRenderingEnabled(false)
-        else
-            RunService:Set3DRenderingEnabled(true)
-        end
-    end
-end)
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
@@ -64,6 +54,18 @@ local SelectedAction = "Dealership"
 local SelectedTP = "Dealership"
 local isRunning = false
 local busOptions = {}
+
+local RunService = game:GetService("RunService")
+
+task.spawn(function()
+    while task.wait(0.5) do
+        if _G.blackscreen then
+            RunService:Set3DRenderingEnabled(false)
+        else
+            RunService:Set3DRenderingEnabled(true)
+        end
+    end
+end)
 
 -- Forward Declaration
 local StatusLabel, UangLabel, EarningLabel, TimeLabel, FPSLabel, PingLabel
