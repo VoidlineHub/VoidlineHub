@@ -1,0 +1,57 @@
+local StarterGui = game:GetService("StarterGui")
+local function print(...)
+    local argumen = {...}
+    local pesan = ""
+    for i, v in ipairs(argumen) do
+        pesan = pesan .. tostring(v) .. " "
+    end
+    
+    -- Memunculkan Notifikasi Resmi Roblox di pojok kanan bawah
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = "🔥 Auto-Qurban",       
+            Text = pesan,                  
+            Duration = 3,                  
+            Button1 = "OK"                 
+        })
+    end)
+end
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local QurbanRemotes = ReplicatedStorage:WaitForChild("EventAsset"):WaitForChild("QurbanRemotes")
+local StartLoadingMinigame = QurbanRemotes:WaitForChild("StartLoadingMinigame")
+local PromptInput = QurbanRemotes:WaitForChild("PromptInput")
+
+-- Ini sekarang akan muncul sebagai NOTIFIKASI ROBLOX, bukan di f9/output log
+print("Script Aktif! Menunggu minigame...")
+
+StartLoadingMinigame.OnClientEvent:Connect(function(data)
+    if not data or not data.sequence then return end
+    
+    -- Notifikasi otomatis muncul saat minigame terdeteksi
+    print("Minigame dideteksi! Hewan: " .. tostring(data.animalType))
+    task.wait(0.5)
+
+    for index, prompt in ipairs(data.sequence) do
+        local kunciJawaban = nil
+
+        if prompt.type == "TAP" then
+            kunciJawaban = prompt.key
+        elseif prompt.type == "MASH" then
+            kunciJawaban = prompt.targetCount
+        elseif prompt.type == "SEQUENCE" then
+            kunciJawaban = prompt.sequence
+        end
+
+        if kunciJawaban ~= nil then
+            PromptInput:FireServer({
+                ["promptIndex"] = index,
+                ["input"] = kunciJawaban
+            })
+            print("Sukses tahap: " .. tostring(index))
+        end
+
+        task.wait(0.3) 
+    end
+end)
+
