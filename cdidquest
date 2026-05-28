@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "VoidlineHub | Qurban GodMode",
+   Name = "VoidlineHub",
    LoadingTitle = "Loading VoidlineHub...",
    LoadingSubtitle = "by bill",
    ConfigurationSaving = {
