@@ -1,0 +1,269 @@
+-- ====================================================================
+-- RAYFIELD UI INITIALIZATION
+-- ====================================================================
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+   Name = "auto quest cdid",
+   LoadingTitle = "load feature",
+   LoadingSubtitle = "by voidline",
+   ConfigurationSaving = { Enabled = false }
+})
+
+local Tab = Window:CreateTab("Utama", 4483362458)
+
+-- ====================================================================
+-- LIBRARIES & SERVICES
+-- ====================================================================
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+local VirtualUser = game:GetService("VirtualUser")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Notif singkat dan santai
+local function kirimNotif(pesan)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = "Auto-Qurban Info",
+            Text = pesan,
+            Duration = 4,
+            Button1 = "OK"
+        })
+    end)
+end
+
+local QurbanRemotes = ReplicatedStorage:WaitForChild("EventAsset"):WaitForChild("QurbanRemotes")
+local StartLoadingMinigame = QurbanRemotes:WaitForChild("StartLoadingMinigame")
+local PromptInput = QurbanRemotes:WaitForChild("PromptInput")
+local DestinationRevealed = QurbanRemotes:WaitForChild("DestinationRevealed")
+
+-- Variabel Status Utama
+local AutoQuestEnabled = true
+local sedangMengerjakanSapi = false
+
+-- ====================================================================
+-- ANTI-AFK SYNC
+-- ====================================================================
+LocalPlayer.Idled:Connect(function()
+    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    task.wait(1)
+    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+end)
+Tab:CreateLabel("⚡ Anti-AFK: Aktif Otomatis")
+
+-- ====================================================================
+-- TOGGLE UNTUK MATIKAN / HIDUPKAN AUTO QUEST
+-- ====================================================================
+Tab:CreateToggle({
+   Name = "Mulai Auto Quest",
+   CurrentValue = true,
+   Flag = "ToggleAutoQuest",
+   Callback = function(Value)
+       AutoQuestEnabled = Value
+       if AutoQuestEnabled then
+           kirimNotif("Auto quest dinyalain bre.")
+       else
+           kirimNotif("Auto quest dimatiin bre.")
+           sedangMengerjakanSapi = false
+       end
+   end,
+})
+
+-- ====================================================================
+-- OPEN UI SHOP VIA BUTTON
+-- ====================================================================
+Tab:CreateButton({
+   Name = "🛒 Buka Toko (Shop)",
+   Callback = function()
+       pcall(function()
+           local shopPrompt = workspace:WaitForChild("Event"):WaitForChild("NPC"):WaitForChild("Shop"):WaitForChild("ShopPrompt")
+           if shopPrompt and shopPrompt:IsA("ProximityPrompt") then
+               fireproximityprompt(shopPrompt)
+           else
+               kirimNotif("Tombol shop gak ketemu di workspace.")
+           end
+       end)
+   end,
+})
+
+-- ====================================================================
+-- AUTO TELEPORT SAPI (1 SELESAI BARU PINDAH) + MUTASI PRIORITAS
+-- ====================================================================
+task.spawn(function()
+    while task.wait(0.5) do
+        -- Cek toggle aktif atau enggak
+        if AutoQuestEnabled then
+            local karakter = LocalPlayer.Character
+            local rootPart = karakter and karakter:FindFirstChild("HumanoidRootPart")
+            local humanoid = karakter and karakter:FindFirstChildOfClass("Humanoid")
+            
+            if rootPart and humanoid and not humanoid.SeatPart and not sedangMengerjakanSapi then
+                local targetSapi = nil
+                
+                -- Cari Sapi Mutasi dulu
+                for _, obj in ipairs(workspace:GetChildren()) do
+                    if string.sub(obj.Name, 1, 4) == "Cow_" and obj:IsA("Model") then
+                        local prompt = obj:FindFirstChild("LoadPrompt", true)
+                        if prompt and prompt.Enabled and obj:FindFirstChild("_MutationBaseSA") then
+                            targetSapi = obj
+                            break 
+                        end
+                    end
+                end
+                
+                -- Kalau mutasi gak ada, cari sapi biasa
+                if not targetSapi then
+                    for _, obj in ipairs(workspace:GetChildren()) do
+                        if string.sub(obj.Name, 1, 4) == "Cow_" and obj:IsA("Model") then
+                            local prompt = obj:FindFirstChild("LoadPrompt", true)
+                            if prompt and prompt.Enabled then
+                                targetSapi = obj
+                                break
+                            end
+                        end
+                    end
+                end
+                
+                -- Teleport ke sapi
+                if targetSapi and AutoQuestEnabled then
+                    local promptSapi = targetSapi:FindFirstChild("LoadPrompt", true)
+                    if promptSapi then
+                        sedangMengerjakanSapi = true 
+                        rootPart.CFrame = targetSapi:GetPivot() * CFrame.new(0, 2, 2)
+                        task.wait(0.2)
+                        if AutoQuestEnabled then
+                            fireproximityprompt(promptSapi)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- ====================================================================
+-- AUTO MINIGAME (ANTI-SERUDUK)
+-- ====================================================================
+StartLoadingMinigame.OnClientEvent:Connect(function(data)
+    if not AutoQuestEnabled then return end
+    if not data or not data.sequence then 
+        sedangMengerjakanSapi = false 
+        return 
+    end
+    task.wait(1.0) 
+
+    for index, prompt in ipairs(data.sequence) do
+        if not AutoQuestEnabled then break end
+        
+        local kunciJawaban = nil
+
+        if prompt.type == "TAP" then
+            kunciJawaban = prompt.key
+        elseif prompt.type == "MASH" then
+            kunciJawaban = prompt.targetCount
+        elseif prompt.type == "SEQUENCE" then
+            kunciJawaban = prompt.sequence
+        end
+
+        if kunciJawaban ~= nil and AutoQuestEnabled then
+            PromptInput:FireServer({
+                ["promptIndex"] = index,
+                ["input"] = kunciJawaban
+            })
+        end
+
+        task.wait(math.random(80, 120) / 100) 
+    end
+    
+    task.wait(1.5)
+    sedangMengerjakanSapi = false 
+end)
+
+-- ====================================================================
+-- TELEPORT TRUK BERDASARKAN CEK ANGKA JARAK UTAMA
+-- ====================================================================
+DestinationRevealed.OnClientEvent:Connect(function(data)
+    if not AutoQuestEnabled then return end
+    if not data or not data.masjidPosition then return end
+    
+    local karakter = LocalPlayer.Character
+    if not karakter then return end
+    
+    local humanoid = karakter:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    
+    while not humanoid.SeatPart do
+        if not AutoQuestEnabled then return end
+        task.wait(0.5)
+    end
+    
+    task.wait(1) 
+    
+    local waktuTunggu = 20 
+    
+    pcall(function()
+        local playerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
+        local deliveryHUD = playerGui and playerGui:WaitForChild("DeliveryHUD", 5)
+        local destFrame = deliveryHUD and deliveryHUD:WaitForChild("DestinationFrame", 5)
+        local distanceLabel = destFrame and destFrame:WaitForChild("Distance", 5)
+        
+        if distanceLabel then
+            local teksOriginal = distanceLabel.Text
+            local isKStuds = string.find(string.lower(teksOriginal), "k")
+            local angkaTeks = string.match(teksOriginal, "%d+%.?%d*")
+            local nilaiAngka = tonumber(angkaTeks)
+            
+            if nilaiAngka then
+                if isKStuds then
+                    if nilaiAngka >= 23.0 then
+                        waktuTunggu = 65 
+                    else
+                        waktuTunggu = 20 
+                    end
+                else
+                    if nilaiAngka <= 23.9 then
+                        waktuTunggu = 65 
+                    end
+                end
+            end
+        end
+    end)
+    
+    kirimNotif("Nunggu " .. tostring(waktuTunggu) .. " detik dulu bre biar aman...")
+    
+    -- Loop wait biar kalau toggle dimatikan pas lagi nunggu, langsung batal TP
+    local elapsed = 0
+    while elapsed < waktuTunggu do
+        if not AutoQuestEnabled then return end
+        task.wait(1)
+        elapsed = elapsed + 1
+    end
+    
+    if not AutoQuestEnabled then return end
+    
+    local modelTruk = nil
+    local vehiclesFolder = workspace:FindFirstChild("Vehicles")
+    
+    if vehiclesFolder then
+        for _, v in ipairs(vehiclesFolder:GetChildren()) do
+            if string.sub(v.Name, 1, 11) == "QurbanTruck" then
+                modelTruk = v
+                break
+            end
+        end
+    end
+    
+    if not modelTruk and humanoid.SeatPart then
+        modelTruk = humanoid.SeatPart:FindFirstAncestorOfClass("Model")
+    end
+    
+    if not modelTruk or not AutoQuestEnabled then return end
+    
+    local pivotAwal = modelTruk:GetPivot()
+    local posisiTujuan = data.masjidPosition + Vector3.new(0, 5, 0)
+    local cframeTujuan = CFrame.new(posisiTujuan) * pivotAwal.Rotation
+    
+    modelTruk:PivotTo(cframeTujuan)
+end)
+
