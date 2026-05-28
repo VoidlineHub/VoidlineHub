@@ -280,3 +280,20 @@ local Button = MainTab:CreateButton({
        end)
    end,
 })
+
+local ButtonTP = MainTab:CreateButton({
+   Name = "teleport to the cow zone",
+   Callback = function()
+       pcall(function()
+           local karakter = LocalPlayer.Character
+           local rootPart = karakter and karakter:FindFirstChild("HumanoidRootPart")
+           if rootPart then
+               -- Teleport Karakter menggunakan CFrame lengkap yang kamu berikan
+               rootPart.CFrame = CFrame.new(-3386.31543, -79.0189896, -23828.9395, 0, 0, 1, 0, -1, 0, 1, 0, 0)
+               kirimNotif("Berhasil Teleport Manual ke Sapi Spawn!")
+           else
+               kirimNotif("Gagal Teleport, Karakter tidak ditemukan!")
+           end
+       end)
+   end,
+})
