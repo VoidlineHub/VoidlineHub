@@ -4,9 +4,8 @@ local StarterGui = game:GetService("StarterGui")
 
 local LocalPlayer = Players.LocalPlayer
 
--- TOGGLE & STATUS UTAMA
-_G.AutoFarmSapi = true  -- Ubah ke false untuk mematikan farm
-local sedangKerja = false -- Pengaman agar tidak TP ke sapi lain saat proses minigame/nganter
+_G.AutoFarmSapi = true
+local sedangKerja = false
 
 local function print(...)
     local argumen = {...}
@@ -32,12 +31,11 @@ local DestinationRevealed = QurbanRemotes:WaitForChild("DestinationRevealed")
 
 print("Script Aktif")
 
----------------------------------------------------------------------
--- FUNGSI MENCARI SAPI DI WORKSPACE
----------------------------------------------------------------------
+-- Fungsi mengumpulkan model utama sapi langsung dari Workspace
 local function getAllCows()
     local validCows = {}
     for _, obj in pairs(workspace:GetChildren()) do
+        -- Cari yang namanya diawali "Cow_" dan berupa Model (Contoh: Cow_822, Cow_192)
         if string.sub(obj.Name, 1, 4) == "Cow_" and obj:IsA("Model") then
             table.insert(validCows, obj)
         end
@@ -45,9 +43,6 @@ local function getAllCows()
     return validCows
 end
 
----------------------------------------------------------------------
--- FUNGSI UTAMA UNTUK TP DAN FIRE PROMPT KE SAPI RANDOM
----------------------------------------------------------------------
 local function harvestSingleCow()
     local cows = getAllCows()
     
@@ -56,7 +51,7 @@ local function harvestSingleCow()
         return false
     end
 
-    -- 1. Pilih 1 sapi acak
+    -- Pilih 1 Model Sapi secara acak (Contoh: Cow_822)
     local randomCow = cows[math.random(1, #cows)]
     print("Menuju ke Sapi -> " .. randomCow.Name)
 
@@ -64,56 +59,44 @@ local function harvestSingleCow()
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
     
     if hrp then
-        -- 2. Cari part utama sapi (Mendukung tipe biasa, mutasi, maupun giant via recursive)
-        local targetPart = randomCow:FindFirstChild("Cow_F_LOD1_Cow_F_0", true) or randomCow:FindFirstChildWhichIsA("BasePart", true)
+        sedangKerja = true
         
-        if targetPart then
-            -- Lock status agar tidak mencari sapi lain saat proses eksekusi
-            sedangKerja = true
+        -- Langsung TP ke koordinat Model Utama Sapi tersebut menggunakan GetPivot()
+        hrp.CFrame = randomCow:GetPivot() * CFrame.new(0, 3, 0)
+        task.wait(0.6)
+        
+        -- Cari ProximityPrompt di dalam Model Sapi tersebut
+        local prompt = randomCow:FindFirstChild("LoadPrompt", true) or randomCow:FindFirstChildWhichIsA("ProximityPrompt", true)
+        
+        if prompt then
+            print("Prompt ditemukan, memerah sapi...")
+            fireproximityprompt(prompt)
             
-            -- 3. Teleport ke target sapi
-            hrp.CFrame = targetPart.CFrame * CFrame.new(0, 3, 0)
-            
-            -- 4. Tunggu objek ke-load sempurna di client (StreamingEnabled Bypass)
-            task.wait(0.6)
-            
-            -- 5. Cari ProximityPrompt
-            local prompt = randomCow:FindFirstChild("LoadPrompt", true) or randomCow:FindFirstChildWhichIsA("ProximityPrompt", true)
-            
-            if prompt then
-                print("Prompt ditemukan, memerah sapi...")
-                fireproximityprompt(prompt)
-                
-                -- Pengaman Anti-Stuck: Jika dalam 15 detik minigame/rute tidak ketrigger, lepas lock
-                task.delay(15, function()
-                    if sedangKerja then
-                        local humanoid = character:FindFirstChildOfClass("Humanoid")
-                        if humanoid and not humanoid.SeatPart then
-                            print("⚠️ Deteksi stuck/gagal load minigame, mereset target...")
-                            sedangKerja = false
-                        end
+            task.delay(15, function()
+                if sedangKerja then
+                    local humanoid = character:FindFirstChildOfClass("Humanoid")
+                    if humanoid and not humanoid.SeatPart then
+                        print("Deteksi stuck/gagal load minigame, mereset target...")
+                        sedangKerja = false
                     end
-                end)
-                
-                return true
-            else
-                print("LoadPrompt gagal dimuat di lokasi ini.")
-                sedangKerja = false
-                return false
-            end
+                end
+            end)
+            
+            return true
+        else
+            print("LoadPrompt gagal dimuat di lokasi ini.")
+            sedangKerja = false
+            return false
         end
     end
     return false
 end
 
----------------------------------------------------------------------
--- LOGIKA AUTO ANSWER MINIGAME
----------------------------------------------------------------------
 StartLoadingMinigame.OnClientEvent:Connect(function(data)
     if not _G.AutoFarmSapi then return end
     if not data or not data.sequence then return end
     
-    sedangKerja = true -- Kunci posisi aman selama minigame berlangsung
+    sedangKerja = true
     print("Minigame dimulai: " .. tostring(data.animalType))
     task.wait(1.0) 
 
@@ -140,9 +123,6 @@ StartLoadingMinigame.OnClientEvent:Connect(function(data)
     end
 end)
 
----------------------------------------------------------------------
--- LOGIKA TELEPORT TRUK & HITUNG MUNDUR ROUTE DELIVER
----------------------------------------------------------------------
 DestinationRevealed.OnClientEvent:Connect(function(data)
     if not _G.AutoFarmSapi then return end
     if not data or not data.masjidPosition then return end
@@ -153,10 +133,9 @@ DestinationRevealed.OnClientEvent:Connect(function(data)
     local humanoid = karakter:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
     
-    sedangKerja = true -- Tetap kunci status agar aman selama proses nganter
+    sedangKerja = true
     print("Lokasi diterima")
     
-    -- 1. TUNGGU SAMPAI KAMU DUDUK
     while not humanoid.SeatPart do
         task.wait(0.5)
     end
@@ -166,7 +145,6 @@ DestinationRevealed.OnClientEvent:Connect(function(data)
     
     local waktuTunggu = 20 
     
-    -- 2. LOGIKA CEK TEXT DISTANCE DI GUI
     pcall(function()
         local playerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
         local deliveryHUD = playerGui and playerGui:WaitForChild("DeliveryHUD", 5)
@@ -187,11 +165,9 @@ DestinationRevealed.OnClientEvent:Connect(function(data)
         end
     end)
     
-    -- 3. PROSES HITUNG MUNDUR DELAY
     print("Menahan posisi selama " .. tostring(waktuTunggu) .. " detik...")
     task.wait(waktuTunggu)
     
-    -- 4. MENCARI MODEL TRUK DI VEHICLES
     local modelTruk = nil
     local vehiclesFolder = workspace:FindFirstChild("Vehicles")
     
@@ -209,12 +185,11 @@ DestinationRevealed.OnClientEvent:Connect(function(data)
     end
     
     if not modelTruk then 
-        print("❌ Gagal teleport, model truk tidak terdeteksi!")
-        sedangKerja = false -- Reset status agar bisa cari sapi lain jika gagal total
+        print("Gagal teleport, model truk tidak terdeteksi!")
+        sedangKerja = false
         return 
     end
     
-    -- 5. EKSEKUSI TELEPORTASI MODEL VIA PIVOT TO
     print("Memindahkan model truk ke tujuan...")
     
     local pivotAwal = modelTruk:GetPivot()
@@ -224,21 +199,16 @@ DestinationRevealed.OnClientEvent:Connect(function(data)
     modelTruk:PivotTo(cframeTujuan)
     print("Alhamdulillah, truk berhasil sampai dan poin aman!")
     
-    -- 6. BERES NGANTER, RESET STATUS BIAR BISA CARI SAPI LAGI
-    task.wait(2.0) -- Kasih jeda 2 detik biar data di server kelar kesinkronisasi
+    task.wait(2.0)
     sedangKerja = false 
 end)
 
----------------------------------------------------------------------
--- LOOPING AUTO FARM (BERJALAN DI BACKGROUND)
----------------------------------------------------------------------
 task.spawn(function()
     while task.wait(0.5) do
         if _G.AutoFarmSapi and not sedangKerja then
             local karakter = LocalPlayer.Character
             local humanoid = karakter and karakter:FindFirstChildOfClass("Humanoid")
             
-            -- Jalankan pencarian jika karakter sedang TIDAK berada di dalam truk
             if humanoid and not humanoid.SeatPart then
                 harvestSingleCow()
             end
