@@ -1,4 +1,12 @@
+-- ====================================================================
+-- SERVICE & UTALITAS NOTIFIKASI
+-- ====================================================================
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
+
+local LocalPlayer = Players.LocalPlayer
+
 local function print(...)
     local argumen = {...}
     local pesan = ""
@@ -6,31 +14,34 @@ local function print(...)
         pesan = pesan .. tostring(v) .. " "
     end
     
-    -- Memunculkan Notifikasi Resmi Roblox di pojok kanan bawah
     pcall(function()
         StarterGui:SetCore("SendNotification", {
-            Title = "🔥 Auto-Qurban",       
-            Text = pesan,                  
-            Duration = 3,                  
-            Button1 = "OK"                 
+            Title = " Auto Minigame",
+            Text = pesan,
+            Duration = 4,
+            Button1 = "OK"
         })
     end)
 end
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- ====================================================================
+-- KONFIGURASI & REMOTES
+-- ====================================================================
 local QurbanRemotes = ReplicatedStorage:WaitForChild("EventAsset"):WaitForChild("QurbanRemotes")
 local StartLoadingMinigame = QurbanRemotes:WaitForChild("StartLoadingMinigame")
 local PromptInput = QurbanRemotes:WaitForChild("PromptInput")
+local DestinationRevealed = QurbanRemotes:WaitForChild("DestinationRevealed")
 
--- Ini sekarang akan muncul sebagai NOTIFIKASI ROBLOX, bukan di f9/output log
-print("Script Aktif! Menunggu minigame...")
+print("Script Aktif")
 
+-- ====================================================================
+-- FITUR 1: AUTO MINIGAME (ANTI-SERUDUK SAPI)
+-- ====================================================================
 StartLoadingMinigame.OnClientEvent:Connect(function(data)
     if not data or not data.sequence then return end
     
-    -- Notifikasi otomatis muncul saat minigame terdeteksi
-    print("Minigame dideteksi! Hewan: " .. tostring(data.animalType))
-    task.wait(0.5)
+    print("Minigame dimulai: " .. tostring(data.animalType))
+    task.wait(1.0) 
 
     for index, prompt in ipairs(data.sequence) do
         local kunciJawaban = nil
@@ -51,7 +62,90 @@ StartLoadingMinigame.OnClientEvent:Connect(function(data)
             print("Sukses tahap: " .. tostring(index))
         end
 
-        task.wait(0.3) 
+        task.wait(math.random(80, 120) / 100) 
     end
 end)
 
+-- ====================================================================
+-- FITUR 2: TELEPORT TRUK DENGAN SMART DELAY BERDASARKAN JARAK UI
+-- ====================================================================
+DestinationRevealed.OnClientEvent:Connect(function(data)
+    if not data or not data.masjidPosition then return end
+    
+    local karakter = LocalPlayer.Character
+    if not karakter then return end
+    
+    local humanoid = karakter:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    
+    print("Lokasi diterima")
+    
+    -- 1. TUNGGU SAMPAI KAMU DUDUK
+    while not humanoid.SeatPart do
+        task.wait(0.5)
+    end
+    
+    print("Mengecek jarak tujuan...")
+    task.wait(1) -- Jeda sebentar biar teks UI terupdate dari game
+    
+    -- Default waktu tunggu awal
+    local waktuTunggu = 20 
+    
+    -- 2. LOGIKA CEK TEXT DISTANCE DI GUI
+    pcall(function()
+        local playerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
+        local deliveryHUD = playerGui and playerGui:WaitForChild("DeliveryHUD", 5)
+        local destFrame = deliveryHUD and deliveryHUD:WaitForChild("DestinationFrame", 5)
+        local distanceLabel = destFrame and destFrame:WaitForChild("Distance", 5)
+        
+        if distanceLabel then
+            local teksJarak = string.lower(distanceLabel.Text)
+            print("Deteksi teks jarak di UI: " .. teksJarak)
+            
+            -- Jika teks TIDAK mengandung huruf "k" (berarti jaraknya dekat seperti 23.9 studs)
+            if not string.find(teksJarak, "k") then
+                waktuTunggu = 65 -- Set delay 1 menitan (65 detik) biar poin masuk
+                print(" Menggunakan delay jauh detik agar poin masuk")
+            else
+                waktuTunggu = 20 -- Jarak ribuan (3.0k / 9.0k studs) tetap aman di 20 detik
+                print("menggunakan delay aman detik.")
+            end
+        end
+    end)
+    
+    -- 3. PROSES HITUNG MUNDUR DELAY
+    print("Menahan posisi selama " .. tostring(waktuTunggu) .. " detik...")
+    task.wait(waktuTunggu)
+    
+    -- 4. MENCARI MODEL TRUK DI VEHICLES
+    local modelTruk = nil
+    local vehiclesFolder = workspace:FindFirstChild("Vehicles")
+    
+    if vehiclesFolder then
+        for _, v in ipairs(vehiclesFolder:GetChildren()) do
+            if string.sub(v.Name, 1, 11) == "QurbanTruck" then
+                modelTruk = v
+                break
+            end
+        end
+    end
+    
+    if not modelTruk and humanoid.SeatPart then
+        modelTruk = humanoid.SeatPart:FindFirstAncestorOfClass("Model")
+    end
+    
+    if not modelTruk then 
+        print("❌ Gagal teleport, model truk tidak terdeteksi!")
+        return 
+    end
+    
+    -- 5. EKSEKUSI TELEPORTASI MODEL VIA PIVOT TO
+    print("Memindahkan model truk ke tujuan...")
+    
+    local pivotAwal = modelTruk:GetPivot()
+    local posisiTujuan = data.masjidPosition + Vector3.new(0, 5, 0)
+    local cframeTujuan = CFrame.new(posisiTujuan) * pivotAwal.Rotation
+    
+    modelTruk:PivotTo(cframeTujuan)
+    print("Alhamdulillah, truk berhasil sampai dan poin aman!")
+end)
