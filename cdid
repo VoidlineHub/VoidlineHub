@@ -274,7 +274,7 @@ local function runAutofarm()
                 EarnedMoney = CurrentMoney - StartMoney
 
                 -- Countdown Delay
-                NextTeleportIn = math.random(58, 61)
+                NextTeleportIn = math.random(60, 66)
                 repeat
                     task.wait(1)
                     NextTeleportIn = NextTeleportIn - 1
