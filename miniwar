@@ -260,12 +260,13 @@ PlayerData.RPValue:GetPropertyChangedSignal("Value"):Connect(function()
     lastMoney = newMoney
 end)
 
+
 -- [[ MAIN ENGINE ]]
 task.spawn(function()  
     while true do
-task.wait(1)
+        task.wait(1)
         if os.time() - WaktuMulai >= 900 then
-            RejoinServer()
+            TeleportToPrivateServer() -- <--- SUDAH DIPERBAIKI (Sesuai fungsi baru)
             break
         end
 
@@ -625,4 +626,4 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-print("hello world")
+print("voidline loas")
