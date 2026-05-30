@@ -624,3 +624,5 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
+
+print("hello world")
