@@ -662,4 +662,4 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-print("voidline loas")
+print("voidline load")
