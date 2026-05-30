@@ -66,28 +66,29 @@ local WaktuKosong = nil
 
 
 -- [[  UTILITY FUNCTIONS ]]
-local function RejoinServer()
+local function TeleportToPrivateServer()
     local TeleportService = game:GetService("TeleportService")
     local Players = game:GetService("Players")
     local RS = game:GetService("ReplicatedStorage")
-
-    -- 1. BYPASS: Mainin Remote sebelum cabut biar server nyatet lo "Safe"
     local remote = RS:FindFirstChild("menuToggleRequest") or RS:WaitForChild("menuToggleRequest", 5)
     if remote then
         remote:FireServer()
     end
-
-    -- 2. TITIP SCRIPT: Biar pas masuk lagi langsung jalan otomatis
     local scriptRaw = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/VoidlineHub/VoidlineHub/main/miniwar"))()]]
-    local teleportFunc = queue_on_teleport or (syn and syn.queue_on_teleport)
-    
+    local teleportFunc = queue_on_teleport or (syn and syn.queue_on_teleport)    
     if teleportFunc then
         teleportFunc(scriptRaw)
     end
+    task.wait(0.5)  
+    local placeId = game.PlaceId
+    local privateServerShareCode = "56bff0b2245a794ea63cc77279d9032f" 
+    success, err = pcall(function()
+        TeleportService:TeleportToPrivateServer(placeId, privateServerShareCode, {Players.LocalPlayer})
+    end)
 
-    -- 3. EKSEKUSI REJOIN
-    task.wait(0.5)
-    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Players.LocalPlayer)
+    if not success then
+        warn("Gagal teleport ke Private Server: " .. tostring(err))
+    end
 end
 
 
