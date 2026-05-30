@@ -82,8 +82,8 @@ local function TeleportToPrivateServer()
     task.wait(0.5)  
     local placeId = game.PlaceId
     local privateServerShareCode = "56bff0b2245a794ea63cc77279d9032f" 
-    success, err = pcall(function()
-        TeleportService:TeleportToPrivateServer(placeId, privateServerShareCode, {Players.LocalPlayer})
+    local success, err = pcall(function()
+        TeleportService:TeleportToPlaceInstance(placeId, privateServerShareCode, Players.LocalPlayer)
     end)
 
     if not success then
