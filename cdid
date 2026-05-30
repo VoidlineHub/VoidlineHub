@@ -308,10 +308,6 @@ FarmSection:AddToggle({
     Default  = false,
     Callback = function(value)
         _G.Autofarm = value
-        
-        -- Layar otomatis jadi item pas toggle ON
-        BlackScreen.Enabled = value
-        
         if _G.Autofarm then
             task.spawn(runAutofarm)
         end
