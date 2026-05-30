@@ -66,30 +66,70 @@ local WaktuKosong = nil
 
 
 -- [[  UTILITY FUNCTIONS ]]
-local function TeleportToPrivateServer()
+-- [[  UTILITY FUNCTIONS ]]
+local function ServerHopSepi()
     local TeleportService = game:GetService("TeleportService")
     local Players = game:GetService("Players")
     local RS = game:GetService("ReplicatedStorage")
+    local HttpService = game:GetService("HttpService")
+
+    -- 1. BYPASS: Mainin Remote sebelum cabut biar server nyatet lo "Safe"
     local remote = RS:FindFirstChild("menuToggleRequest") or RS:WaitForChild("menuToggleRequest", 5)
     if remote then
         remote:FireServer()
     end
+
+    -- 2. TITIP SCRIPT: Biar pas masuk lagi langsung jalan otomatis
     local scriptRaw = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/VoidlineHub/VoidlineHub/main/miniwar"))()]]
     local teleportFunc = queue_on_teleport or (syn and syn.queue_on_teleport)    
     if teleportFunc then
         teleportFunc(scriptRaw)
     end
     task.wait(0.5)  
+
+    -- 3. LOGIKA CARI SERVER SEPI
     local placeId = game.PlaceId
-    local privateServerShareCode = "56bff0b2245a794ea63cc77279d9032f" 
-    local success, err = pcall(function()
-        TeleportService:TeleportToPlaceInstance(placeId, privateServerShareCode, Players.LocalPlayer)
+    local serverList = {}
+    
+    -- Ambil data daftar server dari API Roblox
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"))
     end)
 
-    if not success then
-        warn("Gagal teleport ke Private Server: " .. tostring(err))
+    if success and result and result.data then
+        for _, server in ipairs(result.data) do
+            -- Cek server yang masih muat, bukan server kita sekarang, dan jumlah player-nya dikit (misal di bawah maxPlayers)
+            if server.playing and server.maxPlayers and server.playing < server.maxPlayers and server.id ~= game.JobId then
+                table.insert(serverList, server)
+            end
+        end
+    end
+
+    -- Urutkan dari yang playernya paling sedikit ke paling banyak
+    if #serverList > 0 then
+        table.sort(serverList, function(a, b)
+            return a.playing < b.playing
+        end)
+
+        -- Ambil server paling sepi (indeks pertama setelah diurutkan)
+        local targetServer = serverList[1]
+        
+        local teleSuccess, teleErr = pcall(function()
+            TeleportService:TeleportToPlaceInstance(placeId, targetServer.id, Players.LocalPlayer)
+        end)
+
+        if not teleSuccess then
+            warn("Gagal teleport ke server sepi: " .. tostring(teleErr))
+        end
+    else
+        -- Jika gagal dapet server sepi, fallback pake Teleport biasa (hop acak)
+        warn("Gka nemu daftar server sepi, mencoba hop acak...")
+        pcall(function()
+            TeleportService:Teleport(placeId, Players.LocalPlayer)
+        end)
     end
 end
+
 
 
 local function SwitchToCourier()
@@ -261,15 +301,11 @@ PlayerData.RPValue:GetPropertyChangedSignal("Value"):Connect(function()
 end)
 
 
--- [[ MAIN ENGINE ]]
-task.spawn(function()  
-    while true do
-        task.wait(1)
-        if os.time() - WaktuMulai >= 900 then
-            TeleportToPrivateServer() -- <--- SUDAH DIPERBAIKI (Sesuai fungsi baru)
-            break
-        end
-
+-- DI MAIN ENGINE (Ubah panggilannya):
+if os.time() - WaktuMulai >= 900 then
+    ServerHopSepi() -- <--- Ganti jadi ini bray
+    break
+end
         -- WAJIB: Cek EngineReady (Cleanup) DAN Toggle ON
         if _G.EngineReady and _G.AutofarmCourier then
             
