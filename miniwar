@@ -64,8 +64,6 @@ WaktuMulai = _G.StartTime
 LastActivity = tick()
 local WaktuKosong = nil
 
-
--- [[  UTILITY FUNCTIONS ]]
 -- [[  UTILITY FUNCTIONS ]]
 local function ServerHopSepi()
     local TeleportService = game:GetService("TeleportService")
@@ -129,7 +127,6 @@ local function ServerHopSepi()
         end)
     end
 end
-
 
 
 local function SwitchToCourier()
@@ -301,13 +298,15 @@ PlayerData.RPValue:GetPropertyChangedSignal("Value"):Connect(function()
 end)
 
 
--- DI MAIN ENGINE (Ubah panggilannya):
+-- [[ MAIN ENGINE ]]
+        task.spawn(function()  
+    while true do
+        task.wait(1)
 if os.time() - WaktuMulai >= 900 then
-    ServerHopSepi() -- <--- Ganti jadi ini bray
+    ServerHopSepi() 
     break
 end
-        -- WAJIB: Cek EngineReady (Cleanup) DAN Toggle ON
-        if _G.EngineReady and _G.AutofarmCourier then
+if _G.EngineReady and _G.AutofarmCourier then
             
             SwitchToCourier()
 
