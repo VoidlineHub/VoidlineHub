@@ -174,7 +174,7 @@ local function processText(message)
         hrp.CFrame = CFrame.new(targetCoords + Vector3.new(0, 2, 0))
         
         task.spawn(function()
-            task.wait(3) -- Delay 3 detik setelah teleport biar map & prompt keload sempurna
+            task.wait(5) -- Delay 3 detik setelah teleport biar map & prompt keload sempurna
             
             local attempts = 0
             local success = false
