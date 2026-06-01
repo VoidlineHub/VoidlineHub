@@ -2,8 +2,8 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Cow Auto Farm",
-   LoadingTitle = "Loading Script...",
+   Name = "voidline | auto collect cow",
+   LoadingTitle = "Loading Interface...",
    LoadingSubtitle = "by Client",
    ConfigurationSaving = {
       Enabled = false
@@ -11,7 +11,7 @@ local Window = Rayfield:CreateWindow({
    KeySystem = false
 })
 
--- DAFTAR KOORDINAT SAPI (Berurutan)
+-- DATA KOORDINAT SAPI
 local cowData = {
     [0]  = CFrame.new(21814.5527, 291.924683, -40000.0078, 0.707134247, 0, 0.707079291, 0, 1, 0, -0.707079291, 0, 0.707134247),
     [1]  = CFrame.new(22561.3359, 305.784637, -39775.4297, -0.642836332, 0, 0.766003549, 0, 1, 0, -0.766003549, 0, -0.642836332),
@@ -30,10 +30,17 @@ local cowData = {
     [14] = CFrame.new(30319.8398, 148.35994, -2932.49414, 0.882993639, 0, 0.469385028, 0, 1, 0, -0.469385028, 0, 0.882993639)
 }
 
-local LP = game:GetService("Players").LocalPlayer
+-- DATA KOORDINAT NPC
+local npcData = {
+    ["Npc Gacha"] = CFrame.new(21961.4434, 291.229523, -39988.5664, -0.707134247, 0, 0.707079291, 0, 1, 0, -0.707079291, 0, -0.707134247),
+    ["Npc Pak Haji"] = CFrame.new(21659.2695, 291.71405, -40545.4062, 0.707134247, -0, -0.707079291, 0, 1, -0, 0.707079291, 0, 0.707134247)
+}
 
--- Fungsi Paksa Duduk Terus (Looping Pengaman)
+local LP = game:GetService("Players").LocalPlayer
+local selectedNpc = "Npc Gacha" -- Default value untuk dropdown NPC
 local keepSitting = false
+
+-- Fungsi Looping agar Sit terus-menerus bernilai True
 local function startSitLoop()
     keepSitting = true
     task.spawn(function()
@@ -43,18 +50,17 @@ local function startSitLoop()
             if Hum and not Hum.Sit then
                 Hum.Sit = true
             end
-            task.wait(0.2) -- Ngecek super cepat biar pas TP ga lepas duduknya
+            task.wait(0.2)
         end
     end)
 end
 
--- Fungsi Teleportasi Aman (Duduk Aktif Terus)
+-- Fungsi Teleportasi Aman (Harus dalam keadaan duduk)
 local function secureTeleport(cframe)
     local Char = LP.Character or LP.CharacterAdded:Wait()
     local Hum = Char:WaitForChild("Humanoid", 5)
     
     if Hum then
-        -- Pastikan karakter beneran duduk dulu pake logic repeat kamu bre
         if not Hum.Sit then
             repeat 
                 Hum.Sit = true
@@ -62,13 +68,11 @@ local function secureTeleport(cframe)
             until Hum.Sit
             task.wait(0.5)
         end
-        
-        -- Eksekusi TP instan saat duduk
         Char:PivotTo(cframe)
     end
 end
 
--- Fungsi Mencari Sapi dan Mengaktifkan Proximity
+-- Fungsi Mengaktifkan Proximity Sapi
 local function actionPrompt(id)
     local folderSapi = workspace:FindFirstChild("sapi")
     if not folderSapi then return end
@@ -91,57 +95,78 @@ local function actionPrompt(id)
     end
 end
 
--- Fungsi Utama Menjalankan Alur Farm
+-- Fungsi Alur Farm Sapi (Jalan sekali dari 10 -> 0 sampai 14 lalu Stop)
 local function startCowFarm()
-    -- Nyalakan loop pencegah berdiri
-    startSitLoop()
+    startSitLoop() -- Nyalakan pengunci duduk true
     
-    -- 1. AWAL SPAWN: TP ke Cow10
+    -- Teleport Awal ke Cow 10
     Rayfield:Notify({Name = "Status", Content = "Memulai: Teleport ke Cow10", Duration = 3})
     secureTeleport(cowData[10])
-    task.wait(3) -- Delay 3 detik biar keload
+    task.wait(3)
     actionPrompt(10)
     
-    -- Delay 30 detik setelah cow10 di fire
     task.wait(30)
     
-    -- 2. ROTASI BERURUTAN (Dari 0 ke 14, dilewati 10)
+    -- Rotasi berurutan dari 0 ke 14
     for id = 0, 14 do
         if id ~= 10 then
             local nameFormat = (id == 0) and "Cow" or "Cow" .. id
             Rayfield:Notify({Name = "Status", Content = "Teleport ke " .. nameFormat, Duration = 2})
             
             secureTeleport(cowData[id])
-            task.wait(3) -- Delay 3 detik biar keload
+            task.wait(3)
             actionPrompt(id)
             
-            -- Jeda 30 detik sebelum ke sapi berikutnya
-            -- Khusus untuk Cow14 (terakhir), ga usah nunggu 30 detik lagi karena skrip mau selesai
             if id < 14 then
                 task.wait(30)
             end
         end
     end
     
-    -- 3. STOP SELESAI (Matikan fitur duduk, beres!)
+    -- Selesai dan matikan pengunci duduk
     keepSitting = false
-    local Char = LP.Character
-    if Char then
-        local Hum = Char:FindFirstChildOfClass("Humanoid")
-        if Hum then Hum.Sit = false end -- Berdiri lagi setelah beres farm
-    end
-    
     Rayfield:Notify({Name = "Selesai", Content = "Sudah sampai Cow14. Farm dihentikan otomatis!", Duration = 5})
 end
 
--- MEMBUAT TAB & TOMBOL DI RAYFIELD UI
-local Tab = Window:CreateTab("Main Farm", 4483362458) -- Icon ID gratisan
+local Tab = Window:CreateTab("Main Menu", 4483362458)
 
-local Button = Tab:CreateButton({
-   Name = "Start Auto Cow (0 - 14 Stop)",
+-- SECTION 1: AUTO FARM COW
+local CowSection = Tab:CreateSection("Auto Collect cow")
+
+local CowButton = Tab:CreateButton({
+   Name = "Start Auto Cow",
    Callback = function()
-       -- Menjalankan fungsi farm dalam thread terpisah agar UI Rayfield ga nge-freeze/hang
        task.spawn(startCowFarm)
    end,
 })
 
+-- SECTION 2: TELEPORT NPC
+local NpcSection = Tab:CreateSection("Teleport NPC")
+
+-- Dropdown Pilihan NPC
+local NpcDropdown = Tab:CreateDropdown({
+   Name = "Pilih NPC Tujuan",
+   Options = {"Npc Gacha", "Npc Pak Haji"},
+   CurrentOption = {"Npc Gacha"},
+   MultipleOptions = false,
+   Callback = function(Option)
+       selectedNpc = Option[1]
+   end,
+})
+
+-- Button Eksekusi Teleport NPC
+local NpcButton = Tab:CreateButton({
+   Name = "Teleport ke NPC",
+   Callback = function()
+       local targetCFrame = npcData[selectedNpc]
+       if targetCFrame then
+           Rayfield:Notify({Name = "Teleport", Content = "Menuju ke " .. selectedNpc, Duration = 2})
+           
+           -- Tetap pakai logika aman (Duduk dulu baru TP) sesuai mekanisme anti-cheat kamu
+           startSitLoop() 
+           secureTeleport(targetCFrame)
+           task.wait(1)
+           keepSitting = false -- Matikan duduk setelah sampai di NPC supaya bisa jalan biasa
+       end
+   end,
+})
