@@ -1,4 +1,4 @@
-print("voidline loaded")
+
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
@@ -326,7 +326,17 @@ MainTab:CreateToggle({
     Name = "On Autofarm",
     CurrentValue = false,
     Callback = function(Value)
-        _G.AutoFull = Value        
+        _G.AutoFull = Value
+        _G.blackscreen = Value
+        
+        if not Value then 
+           _G.blackscreen = false
+            lastTarget = nil 
+            jobStarted = false
+            SetFreeze(false)
+            SetStatus("Idle")
+        end
+        
         while _G.AutoFull do
             -- LOGIC HAPUS PENGHALANG
             pcall(function()
